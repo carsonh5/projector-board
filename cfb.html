@@ -62,9 +62,11 @@
   .live { color: #FF6A00; } .pre { color: #35E0E0; } .final { color: #d8dce2; }
   .upset { color: #FF2D95; } .close { color: #FF6A00; } .err { color: #FF2D95; }
 
-  .gap { position: fixed; background: #000; z-index: 2; top: 75vh; bottom: 14vh; }
-  #gapA { left: 43.85vw; right: 54.45vw; }
-  #gapB { left: 71.45vw; right: 24.35vw; }
+  .gap { position: fixed; background: #000; z-index: 2; }
+  #gapA { top: var(--gA-t,75vh); bottom: var(--gA-b,14vh); left: var(--gA-l,43.85vw); right: var(--gA-r,54.45vw); }
+  #gapB { top: var(--gB-t,75vh); bottom: var(--gB-b,14vh); left: var(--gB-l,71.45vw); right: var(--gB-r,24.35vw); }
+  #mo-gA { top: var(--gA-t,75vh); bottom: var(--gA-b,14vh); left: var(--gA-l,43.85vw); right: var(--gA-r,54.45vw); }
+  #mo-gB { top: var(--gB-t,75vh); bottom: var(--gB-b,14vh); left: var(--gB-l,71.45vw); right: var(--gB-r,24.35vw); }
 
   #flash { top: var(--m-t,30.75vh); bottom: var(--m-b,24.7vh); left: var(--m-l,0); right: var(--m-r,0); z-index: 5; display: flex; flex-direction: column;
     align-items: center; justify-content: center; background: #000000d9; opacity: 0; transition: opacity .3s; pointer-events: none; }
@@ -98,7 +100,7 @@
   <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
   <div class="gap" id="gapA"></div><div class="gap" id="gapB"></div>
   <div class="zone" id="flash"><div class="big" id="flash-big"></div><div class="sub" id="flash-sub"></div></div>
-  <div id="mapmode"><div class="mo" id="mo-m"></div><div class="mo" id="mo-tk"></div><div id="mo-info"></div></div>
+  <div id="mapmode"><div class="mo" id="mo-m"></div><div class="mo" id="mo-tk"></div><div class="mo" id="mo-gA"></div><div class="mo" id="mo-gB"></div><div id="mo-info"></div></div>
 
 <script>
 "use strict";
@@ -252,29 +254,39 @@ setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).th
   .then(function(v){ v=(v||"").trim(); if(!v) return; if(_ver===null){_ver=v;}
     else if(v!==_ver){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(v)); } })
   .catch(function(){}); }, 20000);
-const TICKER_PXPS=90, TICKER_MAX=14;   // continuous scroll: constant px/sec, capped so the GPU layer stays small
+const TICKER_PXPS=90, TICKER_MAX=14; let _lastTicker="";   // continuous scroll; guard stops the reset on spotlight rotation
 function setTicker(arr){ const el=document.getElementById("t-ticker");
   const html=(arr.length?arr.slice(0,TICKER_MAX):['<span class="item">No games today</span>']).join("");
+  if(html===_lastTicker) return; _lastTicker=html;   // only rebuild (and restart scroll) when the games actually change
   el.innerHTML=html+html; el.style.animation="none";
   requestAnimationFrame(function(){ const w=el.scrollWidth/2; el.style.animation="scroll "+Math.max(12,Math.round(w/TICKER_PXPS))+"s linear infinite"; }); }
 
 /* ===== ZONES + MAPPING MODE (add ?map=1 to the URL to edit; saved on this device) ===== */
-const ZDEF={ m:{t:30.75,r:0,b:24.7,l:0}, tk:{t:76,r:0,b:15,l:0} };
+const ZDEF={ m:{t:30.75,r:0,b:24.7,l:0}, tk:{t:76,r:0,b:15,l:0}, gA:{t:75,r:54.45,b:14,l:43.85}, gB:{t:75,r:24.35,b:14,l:71.45} };
 const Z=JSON.parse(localStorage.getItem("pboardZones")||"null")||JSON.parse(JSON.stringify(ZDEF));
-Z.m=Object.assign({},ZDEF.m,Z.m); Z.tk=Object.assign({},ZDEF.tk,Z.tk);
+for(const k in ZDEF){ Z[k]=Object.assign({},ZDEF[k],Z[k]); }
+const ZORDER=["m","tk","gA","gB"], ZNAME={m:"MAIN BAND",tk:"TICKER",gA:"DIVIDER GAP 1",gB:"DIVIDER GAP 2"};
 function applyZones(){ const s=document.documentElement.style;
   s.setProperty("--m-t",Z.m.t+"vh"); s.setProperty("--m-b",Z.m.b+"vh"); s.setProperty("--m-l",Z.m.l+"vw"); s.setProperty("--m-r",Z.m.r+"vw");
   s.setProperty("--tk-t",Z.tk.t+"vh"); s.setProperty("--tk-b",Z.tk.b+"vh"); s.setProperty("--tk-l",Z.tk.l+"vw"); s.setProperty("--tk-r",Z.tk.r+"vw");
+  for(const g of ["gA","gB"]){ s.setProperty("--"+g+"-t",Z[g].t+"vh"); s.setProperty("--"+g+"-b",Z[g].b+"vh"); s.setProperty("--"+g+"-l",Z[g].l+"vw"); s.setProperty("--"+g+"-r",Z[g].r+"vw"); }
   localStorage.setItem("pboardZones",JSON.stringify(Z)); }
 applyZones();
 /* --- live cloud sync: PC map edits -> projector, via the dedicated projector-board Supabase --- */
 const SB_URL="https://gnfnvsarnregwunhtnak.supabase.co";
 const SB_KEY="sb_publishable_8064CO-O7GTH8ApC55U7Ng_RQesuKSp";
 const SB_HEAD={apikey:SB_KEY, Authorization:"Bearer "+SB_KEY};
+let _mapFlashT;
 async function pullZones(){ try{
   const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones",{headers:SB_HEAD,cache:"no-store"});
   const j=await r.json(); const z=j&&j[0]&&j[0].zones;
-  if(z&&z.m&&z.tk&&JSON.stringify(z)!==JSON.stringify(Z)){ Object.assign(Z.m,z.m); Object.assign(Z.tk,z.tk); applyZones(); }
+  if(z&&z.m&&JSON.stringify(z)!==JSON.stringify(Z)){
+    for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); }
+    applyZones();
+    var info=document.getElementById("mo-info"); if(info) info.textContent="MAPPING — live from your PC";
+    document.body.classList.add("mapon");   // flash the zone lines on the projector while you map
+    clearTimeout(_mapFlashT); _mapFlashT=setTimeout(function(){ document.body.classList.remove("mapon"); }, 5000);
+  }
 }catch(e){} }
 let _pushTimer;
 function pushZones(){ clearTimeout(_pushTimer); _pushTimer=setTimeout(function(){
@@ -284,18 +296,17 @@ function pushZones(){ clearTimeout(_pushTimer); _pushTimer=setTimeout(function()
 let mapOn=new URLSearchParams(location.search).get("map")==="1", mapSel="m", mapFine=false;
 if(!mapOn){ pullZones(); setInterval(pullZones, 2500); }   // projector receives live edits
 function drawMap(){ if(!mapOn) return;
-  document.getElementById("mo-m").classList.toggle("sel",mapSel==="m");
-  document.getElementById("mo-tk").classList.toggle("sel",mapSel==="tk");
+  ZORDER.forEach(function(k){ const el=document.getElementById("mo-"+k); if(el) el.classList.toggle("sel",mapSel===k); });
   const z=Z[mapSel];
   document.getElementById("mo-info").innerHTML=
-    `MAPPING &mdash; editing <b>${mapSel==="m"?"MAIN BAND":"TICKER"}</b> &middot; step ${mapFine?0.25:1}<br>`+
+    `MAPPING &mdash; editing <b>${ZNAME[mapSel]}</b> &middot; step ${mapFine?0.25:1}<br>`+
     `top ${z.t} &nbsp; right ${z.r} &nbsp; bottom ${z.b} &nbsp; left ${z.l}<br>`+
-    `<span style="font-size:1.9vh;color:#9aa0a6">Arrows move &middot; Shift+Arrows resize &middot; Enter switch zone &middot; F fine</span>`; }
+    `<span style="font-size:1.9vh;color:#9aa0a6">Arrows move &middot; Shift+Arrows resize &middot; Enter = next zone (Main/Ticker/Gaps) &middot; F fine</span>`; }
 if(mapOn){ document.body.classList.add("mapon"); drawMap(); }
 document.addEventListener("keydown",function(e){ if(!mapOn) return;
   const z=Z[mapSel], st=mapFine?0.25:1, sh=e.shiftKey, r2=x=>Math.round(x*100)/100;
   switch(e.key){
-    case "Enter": case " ": mapSel=mapSel==="m"?"tk":"m"; break;
+    case "Enter": case " ": mapSel=ZORDER[(ZORDER.indexOf(mapSel)+1)%ZORDER.length]; break;
     case "f": case "F": mapFine=!mapFine; break;
     case "ArrowUp":    if(sh){z.b=r2(z.b+st);}else{z.t=r2(Math.max(0,z.t-st)); z.b=r2(z.b+st);} break;
     case "ArrowDown":  if(sh){z.b=r2(Math.max(0,z.b-st));}else{z.t=r2(z.t+st); z.b=r2(Math.max(0,z.b-st));} break;
