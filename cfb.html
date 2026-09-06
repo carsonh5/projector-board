@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CFB Saturday Surf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+<script src="vendor/confetti.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; color: #fff; overflow: hidden;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; cursor: none; }
+  .zone { position: fixed; overflow: hidden; }
+
+  /* ===== MAIN band ===== */
+  #zone-main { top: 30.75vh; bottom: 24.7vh; left: 0; right: 0; z-index: 1; display: flex; flex-direction: column; }
+  #head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 3vw; }
+  #clock { font-family: "Oswald", sans-serif; font-size: 6vh; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  #date { font-size: 2.8vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+  #count { font-family: "Oswald", sans-serif; font-size: 3vh; color: #FFE84D; font-weight: 600; letter-spacing: 0.06em; }
+
+  #bugwrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4vh; min-height: 0; padding: 0 3vw; }
+  #flag .fchip { font-family: "Oswald", sans-serif; font-size: 3.2vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
+    padding: 0.4vh 1.6vw; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
+
+  #bug { display: flex; align-items: center; width: 100%; }
+  .tmod { flex: 1; display: flex; align-items: center; gap: 1vw; min-width: 0; }
+  .tmod.away { justify-content: flex-end; }
+  .tmod.home { justify-content: flex-start; }
+  .plate { background: #f0f0f0; border-radius: 16%; display: inline-flex; align-items: center; justify-content: center; padding: 0.6vh; flex: 0 0 auto; }
+  .plate img { height: 6.5vh; object-fit: contain; display: block; }
+  body.white-logos .plate { background: transparent; }
+  body.white-logos .plate img { filter: brightness(0) invert(1); }
+  .tcell { height: 10vh; display: inline-flex; align-items: center; padding: 0 1.5vw; font-family: "Oswald", sans-serif;
+    font-size: 4.8vh; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;
+    clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%); }
+  .tscore { height: 10vh; min-width: 8vw; display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Oswald", sans-serif; font-size: 8.6vh; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #center { flex: 0 0 auto; height: 10vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3vh; padding: 0 1.5vw; }
+  #status { font-family: "Oswald", sans-serif; font-size: 4.4vh; font-weight: 600; white-space: nowrap; }
+  #dd { font-family: "Barlow Condensed", sans-serif; font-size: 2.8vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; white-space: nowrap; }
+  #infostrip { font-family: "Barlow Condensed", sans-serif; font-size: 3vh; font-weight: 600; display: flex; align-items: center; gap: 1vw; }
+  .chip { background: #f0f0f0; color: #111; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.8vh; padding: 0.1vh 0.8vw; border-radius: 4px; }
+
+  /* ===== TICKER band ===== */
+  #zone-ticker { top: 76vh; bottom: 15vh; left: 0; right: 0; z-index: 1; display: flex; align-items: center; }
+  #zone-ticker .track { display: inline-block; white-space: nowrap; padding-left: 100%;
+    animation: scroll linear infinite; will-change: transform; font-family: "Barlow Condensed", sans-serif; font-size: 5.2vh; font-weight: 700; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .item { display: inline-block; padding: 0 1.8vw; }
+  .item .sep { color: #6a6f76; padding: 0 0.7vw; }
+  .seclbl { color: #FFE84D; font-weight: 700; letter-spacing: 0.08em; }
+  .tkplate { padding: 0.3vh; margin: 0 0.3vw; vertical-align: middle; }
+  .tkplate img { height: 3.8vh; object-fit: contain; display: block; }
+  .tk { border-bottom: 0.3vh solid #888; padding-bottom: 0.1vh; }
+  .score { font-variant-numeric: tabular-nums; }
+
+  .lbl { color: #FFE84D; font-weight: 700; }
+  .live { color: #FF6A00; } .pre { color: #35E0E0; } .final { color: #d8dce2; }
+  .upset { color: #FF2D95; } .close { color: #FF6A00; } .err { color: #FF2D95; }
+
+  .gap { position: fixed; background: #000; z-index: 2; top: 75vh; bottom: 14vh; }
+  #gapA { left: 43.85vw; right: 54.45vw; }
+  #gapB { left: 71.45vw; right: 24.35vw; }
+
+  #flash { top: 30.75vh; bottom: 24.7vh; left: 0; right: 0; z-index: 5; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: #000000d9; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  #flash.on { opacity: 1; }
+  #flash .big { font-family: "Oswald", sans-serif; font-size: 11vh; font-weight: 700; line-height: 1; }
+  #flash .sub { font-family: "Oswald", sans-serif; font-size: 5vh; font-weight: 600; margin-top: 1vh; }
+</style>
+</head>
+<body>
+  <div class="zone" id="zone-main">
+    <div id="head"><div><div id="clock">--:--</div><div id="date"></div></div><div id="count">loading&hellip;</div></div>
+    <div id="bugwrap">
+      <div id="flag"></div>
+      <div id="bug"><div class="tscore" style="font-size:5vh">Loading&hellip;</div></div>
+      <div id="infostrip"></div>
+    </div>
+  </div>
+  <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
+  <div class="gap" id="gapA"></div><div class="gap" id="gapB"></div>
+  <div class="zone" id="flash"><div class="big" id="flash-big"></div><div class="sub" id="flash-sub"></div></div>
+
+<script>
+"use strict";
+const SB = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=100";
+
+function tick(){ const n=new Date(); let h=n.getHours(); const m=String(n.getMinutes()).padStart(2,"0");
+  const ap=h>=12?"PM":"AM"; h=h%12||12; document.getElementById("clock").textContent=`${h}:${m} ${ap}`;
+  document.getElementById("date").textContent=n.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}); }
+setInterval(tick,1000); tick();
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="l"||e.key==="L") document.body.classList.toggle("white-logos");
+  if(e.key==="t"||e.key==="T") celebrate("BUFFS","#FF6A00",7);
+  if(e.key==="a"||e.key==="A"){ showAll=!showAll; render(); }
+});
+
+function teamColors(hex){ let n=parseInt(hex||"888888",16); if(isNaN(n)) n=0x888888;
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255; const L0=0.299*r+0.587*g+0.114*b;
+  if(L0<95){ const f=95/Math.max(L0,1); r=Math.min(255,r*f); g=Math.min(255,g*f); b=Math.min(255,b*f); }
+  const L=0.299*r+0.587*g+0.114*b; return { bg:`rgb(${r|0},${g|0},${b|0})`, text: L>150?"#111":"#fff" }; }
+const rankNum = t => { const r=t?.curatedRank?.current; return (r&&r<=25)?r:99; };
+const rk = t => { const r=rankNum(t); return r<99?`#${r} `:""; };
+const logoOf = t => t.logo || t.logos?.[0]?.href || `https://a.espncdn.com/i/teamlogos/ncaa/500/${t.id}.png`;
+function channelOf(c){ const b=c.broadcasts?.[0]; if(b?.names?.length) return b.names.join("/");
+  const g=c.geoBroadcasts?.[0]; return g?.media?.shortName||""; }
+function oddsOf(c){ const o=c.odds?.[0]; if(!o) return {line:"",ou:""};
+  return { line:o.details||"", ou:(o.overUnder!=null)?`O/U ${o.overUnder}`:"" }; }
+function favSide(c){ const o=c.odds?.[0]; if(!o) return null;
+  if(o.homeTeamOdds?.favorite) return "home"; if(o.awayTeamOdds?.favorite) return "away"; return null; }
+
+let games=[], lastScores={}, firstLoad=true;
+async function load(){
+  try{
+    const res=await fetch(SB); if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    games=(data.events||[]).map(ev=>{
+      const c=ev.competitions[0];
+      const home=c.competitors.find(t=>t.homeAway==="home"), away=c.competitors.find(t=>t.homeAway==="away");
+      const st=ev.status.type, state=st.state, hS=+home.score||0, aS=+away.score||0, fav=favSide(c);
+      const aR=rankNum(away.team), hR=rankNum(home.team);
+      const isUpset=state==="in"&&fav&&((fav==="home"?aS:hS)>(fav==="home"?hS:aS));
+      const period=c.status?.period||0, isClose=state==="in"&&period>=4&&Math.abs(hS-aS)<=8;
+      let watch=-1;
+      if(state==="in"){ watch=100-Math.abs(hS-aS)*5; if(period>=4)watch+=20; else if(period>=3)watch+=10;
+        if(isUpset)watch+=30; if(c.situation?.isRedZone)watch+=15; }
+      const {line,ou}=oddsOf(c);
+      return { id:ev.id, date:ev.date, aAbbr:away.team.abbreviation, hAbbr:home.team.abbreviation,
+        aLoc:away.team.location||"", hLoc:home.team.location||"",
+        aName:rk(away.team)+away.team.abbreviation, hName:rk(home.team)+home.team.abbreviation,
+        aLogo:logoOf(away.team), hLogo:logoOf(home.team), aTC:teamColors(away.team.color), hTC:teamColors(home.team.color),
+        aColUnder:teamColors(away.team.color).bg, hColUnder:teamColors(home.team.color).bg,
+        aS,hS,state, detail:st.shortDetail||"", channel:channelOf(c), line, ou,
+        ranked:(aR<99||hR<99), topRank:Math.min(aR,hR),
+        redzone:!!c.situation?.isRedZone, possText:c.situation?.possessionText||"", dd:c.situation?.shortDownDistanceText||"",
+        isUpset, isClose, watch, start: new Date(ev.date).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) };
+    });
+    games.forEach(g=>{ const p=lastScores[g.id];
+      if(p&&!firstLoad){ if(g.aS>p.a) celebrate(g.aAbbr,g.aTC.bg,g.aS-p.a); if(g.hS>p.h) celebrate(g.hAbbr,g.hTC.bg,g.hS-p.h); }
+      lastScores[g.id]={a:g.aS,h:g.hS}; });
+    firstLoad=false; render();
+  }catch(e){
+    document.getElementById("bug").innerHTML=`<span class="err" style="font-family:Oswald;font-size:4vh">scores failed: ${e.message}</span>`;
+    document.getElementById("t-ticker").innerHTML=`<span class="item err">CFB feed failed: ${e.message} — likely needs the backend</span>`;
+  }
+}
+
+let flashTimer;
+function celebrate(team,col,delta){
+  const label=delta>=6?"TOUCHDOWN":(delta===3?"FIELD GOAL":"SCORE");
+  document.getElementById("flash-big").innerHTML=`<span style="color:${col}">${label}</span>`;
+  document.getElementById("flash-sub").textContent=team;
+  const f=document.getElementById("flash"); f.classList.add("on");
+  clearTimeout(flashTimer); flashTimer=setTimeout(()=>f.classList.remove("on"),5000);
+  if(window.confetti){ confetti({colors:[col,"#ffffff"], particleCount:delta>=6?180:70, spread:100, startVelocity:45, origin:{y:0.5}, ticks:220}); }
+}
+
+function plate(logo){ return `<span class="plate"><img src="${logo}" onerror="this.closest('.plate').style.display='none'"></span>`; }
+function tmod(logo,name,score,tc,home){
+  const cell=`<span class="tcell" style="background:${tc.bg};color:${tc.text}">${name}</span>`;
+  const sc=score!==""?`<span class="tscore">${score}</span>`:"";
+  return `<div class="tmod ${home?'home':'away'}">${home ? sc+cell+plate(logo) : plate(logo)+cell+sc}</div>`;
+}
+const FLAGS={live:["LIVE","#FF6A00"],upset:["UPSET ALERT","#FF2D95"],close:["CLOSE GAME","#FF6A00"],rz:["RED ZONE","#FF6A00"],pre:["NEXT UP","#35E0E0"]};
+let FEATURE=["baylor","oregon"], showAll=false;
+function inFeature(g){ if(showAll||!FEATURE.length) return true;
+  const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(s=>(s||"").toLowerCase()); return FEATURE.some(f=>keys.includes(f)); }
+function centerHTML(g){
+  if(g.state==="in") return `<div id="status" class="live">${g.detail}</div>`
+    + `${(g.dd||g.possText)?`<div id="dd">${g.dd||""}${g.dd&&g.possText?" · ":""}${g.possText?"🏈 "+g.possText:""}</div>`:""}`;
+  if(g.state==="pre") return `<div id="status" class="pre">${g.start}</div>`;
+  return `<div id="status" class="final">FINAL</div>`;
+}
+function renderSpotlight(g){
+  let color,flagText;
+  if(g.state==="in"){ let k=g.isUpset?"upset":(g.redzone?"rz":(g.isClose?"close":"live")); flagText=FLAGS[k][0]; color=FLAGS[k][1]; }
+  else if(g.state==="pre"){ flagText="KICKOFF "+g.start; color=FLAGS.pre[1]; }
+  else { flagText="FINAL"; color="#d8dce2"; }
+  document.getElementById("flag").innerHTML=`<span class="fchip" style="background:${color}">${flagText}</span>`;
+  const s=g.state!=="pre";
+  document.getElementById("bug").innerHTML =
+    tmod(g.aLogo,g.aName,s?g.aS:"",g.aTC,false)+`<div id="center">${centerHTML(g)}</div>`+tmod(g.hLogo,g.hName,s?g.hS:"",g.hTC,true);
+  const strip=document.getElementById("infostrip"); strip.innerHTML="";
+  if(g.channel) strip.innerHTML+=`<span class="chip">${g.channel}</span>`;
+  const extra=[g.line,g.ou].filter(Boolean).join(' · '); if(extra) strip.innerHTML+=`<span>${extra}</span>`;
+}
+
+/* ticker item + section builder */
+const T=(logo,abbr,col)=>`<span class="plate tkplate"><img src="${logo}" onerror="this.closest('.plate').style.display='none'"></span><span class="tk" style="border-color:${col}">${abbr}</span>`;
+function tickItem(g){
+  const a=T(g.aLogo,g.aAbbr,g.aColUnder), h=T(g.hLogo,g.hAbbr,g.hColUnder);
+  const chan=g.channel?` <span class="sep">·</span> <span class="lbl">${g.channel}</span>`:"";
+  const ln=g.line?` <span class="sep">·</span> ${g.line}`:"";
+  if(g.state==="in"){ const f=g.isUpset?'<span class="upset">UPSET </span>':(g.isClose?'<span class="close">CLOSE </span>':'');
+    return `<span class="item"><span class="score">${a} ${g.aS} – ${h} ${g.hS}</span> <span class="sep">·</span> ${f}<span class="live">${g.detail}</span>${chan}${ln}</span>`; }
+  if(g.state==="pre"){ return `<span class="item"><span class="pre">${a} @ ${h}</span> <span class="sep">·</span> ${g.start}${chan}${ln}</span>`; }
+  return `<span class="item"><span class="score">${a} ${g.aS} – ${h} ${g.hS}</span> <span class="sep">·</span> <span class="final">${g.detail}</span></span>`;
+}
+const seclbl = t => `<span class="item"><span class="seclbl">${t}</span></span>`;
+
+let spotIx=0;
+function render(){
+  const view=games.filter(inFeature);
+  const live=view.filter(g=>g.state==="in"), pre=view.filter(g=>g.state==="pre"), post=view.filter(g=>g.state==="post");
+  document.getElementById("count").textContent = (showAll||!FEATURE.length)
+    ? `${games.filter(g=>g.state==="in").length} LIVE`
+    : `FEATURED · ${FEATURE.map(f=>f.toUpperCase()).join(" · ")}`;
+  const rotation=[...live.sort((a,b)=>b.watch-a.watch), ...pre, ...post];
+  if(rotation.length){ renderSpotlight(rotation[spotIx%rotation.length]); }
+  else { document.getElementById("flag").innerHTML=`<span class="fchip" style="background:#35E0E0">NO GAMES</span>`;
+    document.getElementById("bug").innerHTML=`<div class="tscore" style="font-size:4.5vh">No ${FEATURE.map(f=>f[0].toUpperCase()+f.slice(1)).join(" / ")} games</div>`;
+    document.getElementById("infostrip").innerHTML=""; }
+
+  /* ticker = wider slate: LIVE + upcoming PRIMETIME/ranked + RESULTS (marquee or featured) */
+  const liveT = games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,16);
+  const upT   = games.filter(g=>g.state==="pre" && (g.ranked||inFeature(g))).sort((a,b)=> a.date<b.date?-1:1).slice(0,16);
+  const resT  = games.filter(g=>g.state==="post" && (g.ranked||inFeature(g))).sort((a,b)=>a.topRank-b.topRank).slice(0,16);
+  let parts=[];
+  if(liveT.length){ parts.push(seclbl("LIVE")); liveT.forEach(g=>parts.push(tickItem(g))); }
+  if(upT.length){ parts.push(seclbl("PRIMETIME · UPCOMING")); upT.forEach(g=>parts.push(tickItem(g))); }
+  if(resT.length){ parts.push(seclbl("RESULTS")); resT.forEach(g=>parts.push(tickItem(g))); }
+  setTrack("t-ticker", parts.join("") || `<span class="item">No games</span>`);
+}
+setInterval(()=>{ spotIx++; render(); }, 10000);
+load(); setInterval(load, 30000);
+function setTrack(id,html){ const el=document.getElementById(id); el.innerHTML=html+html;
+  el.style.animationDuration=Math.max(45, Math.round(html.length/4))+"s"; }
+</script>
+</body>
+</html>
