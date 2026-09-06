@@ -98,8 +98,9 @@
   #cards { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; gap: 1.6vw; padding: 0 2vw; }
   body.cards #cards { display: flex; }
   body.cards #flag, body.cards #bug, body.cards #infostrip, body.cards #field, body.cards #stack { display: none; }
-  .gcard { flex: 1 1 0; min-width: 0; max-width: 46vw; max-height: 42vh; display: flex; flex-direction: column;
+  .gcard { flex: 0 1 32vw; width: 32vw; max-width: 34vw; max-height: 42vh; display: flex; flex-direction: column;
     border: 0.3vh solid #05070a; border-radius: 1vh; overflow: hidden; box-shadow: 0 0 0 1px #2a2f37, 0 1vh 3vh #0009; background: #0c0e12; }
+  body.cards.n1 .gcard { flex-basis: 40vw; width: 40vw; max-width: 44vw; }
   .gteam { flex: 1; min-height: 0; padding: 1.2vh 1.4vw; display: flex; flex-direction: row; align-items: center; gap: 1vw; overflow: hidden; }
   .gteam .gmain { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.3vh; }
   .gteam .glogo { flex: 0 0 auto; background: #f0f0f0; border-radius: 16%; padding: 0.7vh; display: flex; align-items: center; justify-content: center; }
@@ -469,6 +470,7 @@ function render(){
     if(cards.length){
       document.body.classList.add("cards"); document.body.classList.remove("stacked");
       const list=cards.slice(0,4);
+      document.body.classList.remove("n1","n2","n3","n4"); document.body.classList.add("n"+list.length);
       document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g, list.length===1);}).join("");
       _cdDate=(list.length===1 && list[0].state==="pre" && list[0].date) ? new Date(list[0].date).getTime() : null; tickCountdown();
     } else { noGames("No games for "+FEATURE.map(f=>f[0].toUpperCase()+f.slice(1).replace(/_/g," ")).join(" / ")); }
