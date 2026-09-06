@@ -234,7 +234,7 @@ let _ver=null;
 setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.text();})
   .then(function(v){ v=(v||"").trim(); if(!v) return; if(_ver===null){_ver=v;} else if(v!==_ver){location.reload();} })
   .catch(function(){}); }, 45000);
-const TICKER_PXPS = 220;   // ticker scroll speed in pixels/second -- raise to go faster
+const TICKER_PXPS = 95;   // ticker scroll speed in pixels/second -- raise to go faster
 function setTrack(id,html){ const el=document.getElementById(id); el.innerHTML=html+html;
   el.style.animationDuration="0s";
   requestAnimationFrame(function(){ const w=el.scrollWidth/2; el.style.animationDuration=Math.max(12, w/TICKER_PXPS)+"s"; }); }
