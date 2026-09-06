@@ -100,10 +100,11 @@
   body.cards #flag, body.cards #bug, body.cards #infostrip, body.cards #field, body.cards #stack { display: none; }
   .gcard { flex: 1 1 0; min-width: 0; max-width: 46vw; max-height: 42vh; display: flex; flex-direction: column;
     border: 0.3vh solid #05070a; border-radius: 1vh; overflow: hidden; box-shadow: 0 0 0 1px #2a2f37, 0 1vh 3vh #0009; background: #0c0e12; }
-  .gteam { position: relative; flex: 1; min-height: 0; padding: 1.4vh 1.4vw; display: flex; flex-direction: column; justify-content: center; gap: 0.4vh; overflow: hidden; }
-  .gteam .glogo { position: absolute; right: -1.4vw; top: 50%; transform: translateY(-50%); height: 14vh; opacity: 0.9; pointer-events: none; }
-  .gteam .glogo img { height: 100%; object-fit: contain; }
-  .gtop { display: flex; align-items: baseline; gap: 0.6vw; z-index: 1; }
+  .gteam { flex: 1; min-height: 0; padding: 1.2vh 1.4vw; display: flex; flex-direction: row; align-items: center; gap: 1vw; overflow: hidden; }
+  .gteam .gmain { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.3vh; }
+  .gteam .glogo { flex: 0 0 auto; background: #f0f0f0; border-radius: 16%; padding: 0.7vh; display: flex; align-items: center; justify-content: center; }
+  .gteam .glogo img { height: 8vh; width: 8vh; object-fit: contain; display: block; }
+  .gtop { display: flex; align-items: baseline; gap: 0.6vw; }
   .grank { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.6vh; opacity: 0.85; }
   .gname { font-family: "Oswald", sans-serif; font-weight: 700; font-style: italic; font-size: 4.4vh; text-transform: uppercase; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gscorerow { display: flex; align-items: center; gap: 0.9vw; z-index: 1; }
@@ -113,6 +114,7 @@
   .gstat { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.9vh; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; padding: 0.7vh 0 0.3vh; }
   .gstat.pre { color: #35E0E0; } .gstat.fin { color: #d8dce2; }
   .gdd { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 3vh; color: #FFE84D; text-transform: uppercase; text-align: center; padding: 0.2vh 0 0.8vh; letter-spacing: 0.03em; }
+  .gline { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 2.4vh; color: #cfd3d8; text-transform: uppercase; text-align: center; padding: 0 0 0.7vh; letter-spacing: 0.02em; }
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
@@ -350,16 +352,17 @@ function gameCard(g, single){
   const live=g.state==="in", pre=g.state==="pre", ps=possSide(g);
   const rankTag=(r)=> (r&&r<99&&r<=25) ? `<span class="grank">${r}</span>` : "";
   const band=(loc,abbr,logo,score,rank,tc,ball)=>{
-    const nm=(loc||abbr||"").toUpperCase();
+    const nm=((single?(loc||abbr):(abbr||loc))||"").toUpperCase();
     return `<div class="gteam" style="background:${tc.bg};color:${tc.text}">`
-      + `<span class="glogo"><img src="${logo}" onerror="this.style.display='none'"></span>`
-      + `<div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span></div>`
-      + `<div class="gscorerow"><span class="gscore">${score}</span>${ball?`<span class="gposs">${FBALL}</span>`:""}</div></div>`;
+      + `<div class="gmain"><div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span></div>`
+      + `<div class="gscorerow"><span class="gscore">${score}</span>${ball?`<span class="gposs">${FBALL}</span>`:""}</div></div>`
+      + `<span class="glogo"><img src="${logo}" onerror="this.closest('.glogo').style.visibility='hidden'"></span></div>`;
   };
   const aS=pre?"":g.aS, hS=pre?"":g.hS;
+  const lines=[g.channel,g.line,g.ou].filter(Boolean).join(" · ");
   let foot;
   if(live) foot=`<div class="gfoot"><div class="gstat">${g.detail}</div>${(g.dd||g.possText)?`<div class="gdd">${g.dd||""}${g.dd&&g.possText?" · ":""}${g.possText||""}</div>`:""}</div>`;
-  else if(pre) foot=`<div class="gfoot"><div class="gstat pre">${g.start}</div>${single?`<div class="gdd" id="cd"></div>`:`<div class="gdd">${g.channel||""}</div>`}</div>`;
+  else if(pre) foot=`<div class="gfoot"><div class="gstat pre">${g.start}</div>${single?`<div class="gdd" id="cd"></div>`:""}${lines?`<div class="gline">${lines}</div>`:""}</div>`;
   else foot=`<div class="gfoot"><div class="gstat fin">FINAL</div></div>`;
   return `<div class="gcard">`+band(g.aLoc,g.aAbbr,g.aLogo,aS,g.aRank,g.aTC,ps==="away")
     +band(g.hLoc,g.hAbbr,g.hLogo,hS,g.hRank,g.hTC,ps==="home")+foot+`</div>`;
