@@ -54,18 +54,15 @@
   .fp-ball .ball { position: absolute; inset: 0; background: #8a4b1f; border: 0.3vh solid #e8cfa8; border-radius: 50%; }
   .fp-ball .ball::after { content: ""; position: absolute; left: 50%; top: 18%; bottom: 18%; width: 2px; background: #f2e8d5; transform: translateX(-50%); }
   .fp-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 0; height: 0;
-    border-top: 1.1vh solid transparent; border-bottom: 1.1vh solid transparent; }
-  .fp-arrow.right { left: 132%; border-left: 1.4vh solid #FF6A00; }
-  .fp-arrow.left { right: 132%; border-right: 1.4vh solid #FF6A00; }
+    border-top: 1.3vh solid transparent; border-bottom: 1.3vh solid transparent; }
+  .fp-arrow.right { left: 145%; border-left: 1.7vh solid #FF6A00; }
+  .fp-arrow.left { right: 145%; border-right: 1.7vh solid #FF6A00; }
   /* timeouts: 3 stacked skewed bars, sit between the score and the abbrev pill */
   .tos { display: inline-flex; flex-direction: column; justify-content: center; gap: 0.55vh; padding: 0 0.7vw; }
   .to-bar { width: 1.5vw; height: 0.7vh; background: #fff; transform: skewX(-14deg); }
   .to-bar.off { background: #494e54; }
-  /* white possession football on the OUTER side of whichever team has the ball */
-  .poss-slot { flex: 0 0 auto; width: 4.6vw; display: flex; align-items: center; }
-  .poss-slot.left { justify-content: flex-start; padding-left: 0.5vw; }
-  .poss-slot.right { justify-content: flex-end; padding-right: 0.5vw; }
-  .fbico { height: 4.6vh; width: auto; display: block; }
+  /* white possession football, sits just outside the ball-carrier's logo */
+  .fbico { height: 6vh; width: auto; display: block; flex: 0 0 auto; }
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
@@ -211,11 +208,12 @@ function celebrate(team,col,delta){
 }
 
 function plate(logo){ return `<span class="plate"><img src="${logo}" onerror="this.closest('.plate').style.display='none'"></span>`; }
-function tmod(logo,name,score,tc,home,to){
+function tmod(logo,name,score,tc,home,to,ball){
   const cell=`<span class="tcell" style="background:${tc.bg};color:${tc.text}">${name}</span>`;
   const sc=score!==""?`<span class="tscore">${score}</span>`:"";
   const tos=tosBars(to);
-  return `<div class="tmod ${home?'home':'away'}">${home ? sc+tos+cell+plate(logo) : plate(logo)+cell+tos+sc}</div>`;
+  const fb=ball?FBALL:"";
+  return `<div class="tmod ${home?'home':'away'}">${home ? sc+tos+cell+plate(logo)+fb : fb+plate(logo)+cell+tos+sc}</div>`;
 }
 const FLAGS={live:["LIVE","#FF6A00"],upset:["UPSET ALERT","#FF2D95"],close:["CLOSE GAME","#FF6A00"],rz:["RED ZONE","#FF6A00"],pre:["NEXT UP","#35E0E0"]};
 let FEATURE=["baylor","oregon"], showAll=true;   // regular full CFB by default; press A for featured
@@ -254,7 +252,7 @@ function fieldHTML(fp){
 function setField(g){ const el=document.getElementById("field"); const fp=g?fieldPos(g):null;
   if(fp){ el.className="on"; el.innerHTML=fieldHTML(fp); } else { el.className=""; el.innerHTML=""; } }
 /* white possession football (SVG silhouette) + which side has the ball */
-const FBALL='<svg class="fbico" viewBox="0 0 100 62"><path d="M8 31 Q50 3 92 31 Q50 59 8 31 Z" fill="#fff" stroke="#0a0a0a" stroke-width="3"/><path d="M50 20 V42" stroke="#0a0a0a" stroke-width="3"/><path d="M44 26 H56 M44 31 H56 M44 36 H56" stroke="#0a0a0a" stroke-width="2.4"/></svg>';
+const FBALL='<svg class="fbico" viewBox="0 0 60 40"><path d="M6 20 C18 4 42 4 54 20 C42 36 18 36 6 20 Z" fill="#fff" stroke="#111" stroke-width="2.2"/><path d="M30 13 V27" stroke="#111" stroke-width="2"/><path d="M25 20 H35" stroke="#111" stroke-width="1.6"/></svg>';
 function possSide(g){ if(g.state!=="in"||!g.poss) return null;
   if(String(g.poss)===String(g.hId)) return "home";
   if(String(g.poss)===String(g.aId)) return "away"; return null; }
@@ -288,10 +286,8 @@ function renderSpotlight(g){
   document.getElementById("flag").innerHTML=`<span class="fchip" style="background:${color}">${flagText}</span>`;
   const s=g.state!=="pre";
   const ps=possSide(g);
-  const lslot=`<div class="poss-slot left">${ps==="away"?FBALL:""}</div>`;
-  const rslot=`<div class="poss-slot right">${ps==="home"?FBALL:""}</div>`;
   document.getElementById("bug").innerHTML =
-    lslot+tmod(g.aLogo,g.aName,s?g.aS:"",g.aTC,false,g.aTO)+`<div id="center">${centerHTML(g)}</div>`+tmod(g.hLogo,g.hName,s?g.hS:"",g.hTC,true,g.hTO)+rslot;
+    tmod(g.aLogo,g.aName,s?g.aS:"",g.aTC,false,g.aTO,ps==="away")+`<div id="center">${centerHTML(g)}</div>`+tmod(g.hLogo,g.hName,s?g.hS:"",g.hTC,true,g.hTO,ps==="home");
   const strip=document.getElementById("infostrip"); strip.innerHTML="";
   if(g.channel) strip.innerHTML+=`<span class="chip">${g.channel}</span>`;
   const extra=[g.line,g.ou].filter(Boolean).join(' · '); if(extra) strip.innerHTML+=`<span>${extra}</span>`;
@@ -409,7 +405,7 @@ function drawMap(){ if(!mapOn) return;
     `MAPPING &mdash; editing <b>${ZNAME[mapSel]}</b> &middot; step ${MAPSTEPS[mapStepIx]}<br>`+
     `top ${z.t} &nbsp; right ${z.r} &nbsp; bottom ${z.b} &nbsp; left ${z.l}<br>`+
     `<span style="font-size:1.9vh;color:#9aa0a6">Arrows move &middot; Shift+Arrows resize &middot; Enter = next zone (Main/Ticker/Gaps) &middot; F fine</span>`; }
-if(mapOn){ document.body.classList.add("mapon"); drawMap(); pushZones(); }
+if(mapOn){ document.body.classList.add("mapon"); drawMap(); }   // don't hijack the projector on load; broadcast only on an actual edit
 document.addEventListener("keydown",function(e){ if(!mapOn) return;
   const z=Z[mapSel], st=MAPSTEPS[mapStepIx], sh=e.shiftKey, r2=x=>Math.round(x*100)/100;
   if((mapSel==="gA"||mapSel==="gB")&&(e.key==="ArrowUp"||e.key==="ArrowDown")){ e.preventDefault(); return; }  /* gaps: width only */
