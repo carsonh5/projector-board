@@ -28,8 +28,8 @@
   #date { font-size: 2.8vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
   #count { font-family: "Oswald", sans-serif; font-size: 3vh; color: #FFE84D; font-weight: 600; letter-spacing: 0.06em; }
 
-  #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4vh; min-height: 0; padding: 0 3vw 1.6vh; }
-  #venue { flex: 0 0 auto; margin: 0.4vh 0 0.2vh; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.9vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1vh; min-height: 0; padding: 0 3vw 1.2vh; }
+  #venue { flex: 0 0 auto; margin: 0.6vh 0 0.9vh; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.9vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #venue:empty { display: none; }
   body.cards #venue, body.stacked #venue, body.hl #venue, body.ps #venue, body.standings #venue, body.schedule #venue { display: none; }
   #lastplay { font-family: "Barlow Condensed", sans-serif; font-size: 3.6vh; font-weight: 600; color: #c4c8ce; text-align: center; max-width: 82%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -66,22 +66,23 @@
   .plate img { height: 6.5vh; object-fit: contain; display: block; }
   body.white-logos .plate { background: transparent; }
   body.white-logos .plate img { filter: brightness(0) invert(1); }
-  .tcell { height: 10vh; display: inline-flex; align-items: center; padding: 0 1.5vw; font-family: "Oswald", sans-serif;
+  .tcell { height: 9vh; display: inline-flex; align-items: center; padding: 0 1.5vw; font-family: "Oswald", sans-serif;
     font-size: 4.8vh; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;
     clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%); }
-  .tscore { height: 10vh; min-width: 8vw; display: inline-flex; align-items: center; justify-content: center;
-    font-family: "Oswald", sans-serif; font-size: 8.6vh; font-weight: 700; font-variant-numeric: tabular-nums; }
-  #center { flex: 0 0 auto; height: 10vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3vh; padding: 0 1.5vw; }
+  .tscore { height: 9vh; min-width: 8vw; display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Oswald", sans-serif; font-size: 8.4vh; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #center { flex: 0 0 auto; height: 9vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3vh; padding: 0 1.5vw; }
   #status { font-family: "Oswald", sans-serif; font-size: 4.4vh; font-weight: 600; white-space: nowrap; }
   #dd { font-family: "Barlow Condensed", sans-serif; font-size: 3.4vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; white-space: nowrap; display: flex; align-items: center; }
   .rvl { display: inline-block; width: 3px; height: 3vh; background: #FF2400; margin: 0 0.8vw; border-radius: 1px; }
   #infostrip { font-family: "Barlow Condensed", sans-serif; font-size: 3vh; font-weight: 600; display: flex; align-items: center; gap: 1vw; }
+  #infostrip:empty { display: none; }
   .chip { background: #f0f0f0; color: #111; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.8vh; padding: 0.1vh 0.8vw; border-radius: 4px; }
 
   /* ===== field-position strip (live spotlight): white line + ball + arrow + first-down tick ===== */
   #field { width: 58%; display: none; align-items: center; }
   #field.on { display: flex; }
-  .fp-field { position: relative; width: 100%; height: 4.6vh; }
+  .fp-field { position: relative; width: 100%; height: 4vh; }
   .fp-line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #fff; transform: translateY(-50%); }
   .fp-first { position: absolute; top: 8%; bottom: 8%; width: 0.35vw; background: #FFE84D; }
   .fp-tick { position: absolute; top: 30%; bottom: 30%; width: 2.5px; background: rgba(255,255,255,.6); transform: translateX(-50%); }
@@ -351,7 +352,13 @@ function fieldHTML(fp){
   const ball=`<div class="fp-ball" style="left:${fp.ballX}%"><span class="ball"></span>${arrow}</div>`;
   return `<div class="fp-field"><div class="fp-line"></div>${ticks}${first}${ball}</div>`;
 }
-var _lastFP={};   // hold last known ball spot per game — ESPN blanks possession during timeouts/kicks/reviews
+var _lastFP={}, _lastPoss={}, _lastPT={}, _lastDD={};   // hold last known situation per game — ESPN blanks it during timeouts/kicks/reviews
+function holdSituation(g){   // restore poss/possText/down-distance from last play so the bug doesn't flicker between plays
+  if(!g || g.state!=="in") return;
+  if(g.poss) _lastPoss[g.id]=g.poss; else if(_lastPoss[g.id]) g.poss=_lastPoss[g.id];
+  if(g.possText) _lastPT[g.id]=g.possText; else if(_lastPT[g.id]) g.possText=_lastPT[g.id];
+  if(g.dd) _lastDD[g.id]=g.dd; else if(_lastDD[g.id]) g.dd=_lastDD[g.id];
+}
 function fieldLineOnly(){ let ticks=""; for(let x=10;x<100;x+=10) ticks+=`<div class="fp-tick" style="left:${x}%"></div>`;
   return `<div class="fp-field"><div class="fp-line"></div>${ticks}</div>`; }
 function setField(g){ const el=document.getElementById("field");
@@ -526,6 +533,7 @@ const DEMOS=[
 let DEMO=null, demoIx=0;
 
 function renderSpotlight(g){
+  holdSituation(g);   // keep down/distance + ball spot visible through timeouts and between-play gaps
   let color,flagText,chipText="#111";
   if(g.state==="in"){ let k=g.isUpset?"upset":(g.redzone?"rz":(g.isClose?"close":"live")); flagText=FLAGS[k][0]; color=FLAGS[k][1]; if(k==="live") chipText="#fff"; }
   else if(g.state==="pre"){ flagText="KICKOFF "+g.start; color=FLAGS.pre[1]; }

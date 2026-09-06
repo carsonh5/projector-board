@@ -61,9 +61,6 @@
     rank:     "#FFE84D",
   };
 
-  // Maximum number of rows per column (two-column layout kicks in when > this)
-  const SINGLE_COL_MAX = 8;
-
   // ── Module state ───────────────────────────────────────────────────────────
   let _container = null;
   let _active    = false;
@@ -261,121 +258,152 @@
 
   // ── DOM builder ────────────────────────────────────────────────────────────
 
-  function _logoUrl(teamId, localLogosAvailable) {
-    if (localLogosAvailable && teamId) {
-      // Caller signals that ../logos/<id>.png exists; use it for offline/LAN use
-      return "../logos/" + teamId + ".png";
-    }
-    return teamId ? LOGO_BASE + teamId + ".png" : "";
+  /**
+   * Determine how many columns to use.
+   * ≤ 9 games  → 3 columns (3×3)
+   * 10-12 games → 3 columns (4/4/4 or similar)
+   * > 12 games  → 4 columns
+   */
+  function _colCount(gameCount) {
+    return gameCount > 12 ? 4 : 3;
   }
 
-  function _buildHeader(container, teamInfo, record) {
+  /** Derive season year from the first game's ISO date string. Falls back to current year. */
+  function _seasonYear(rows) {
+    if (rows && rows.length && rows[0].dateISO) {
+      const y = parseInt(rows[0].dateISO.slice(0, 4), 10);
+      if (y > 2000 && y < 2100) return String(y);
+    }
+    return String(new Date().getFullYear());
+  }
+
+  function _buildCenteredHeader(container, teamInfo, record, rows) {
     const bar = _el("div",
-      "display:flex;align-items:center;justify-content:space-between;" +
-      "padding:1.4vh 2vw 1.2vh;" +
+      "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
+      "padding:1.6vh 2vw 1.4vh;" +
       "background:" + P.header + ";" +
       "border-bottom:2px solid " + P.border + ";" +
       "flex-shrink:0;" +
-      "gap:1.2vw;"
+      "gap:0.5vh;"
     );
 
-    // Left: team logo + name
-    const left = _el("div", "display:flex;align-items:center;gap:1.2vw;min-width:0;");
+    // Top row: logo + team name (large, centered)
+    const nameRow = _el("div",
+      "display:flex;align-items:center;justify-content:center;gap:1.4vw;"
+    );
 
     if (teamInfo.id) {
       const logoWrap = _el("div",
-        "width:5.8vh;height:5.8vh;flex-shrink:0;" +
+        "width:7vh;height:7vh;flex-shrink:0;" +
         "background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;" +
         "overflow:hidden;"
       );
       const img = document.createElement("img");
       img.src = LOGO_BASE + teamInfo.id + ".png";
       img.alt = "";
-      img.style.cssText = "width:4.6vh;height:4.6vh;object-fit:contain;display:block;";
+      img.style.cssText = "width:5.6vh;height:5.6vh;object-fit:contain;display:block;";
       img.onerror = function () { logoWrap.style.display = "none"; };
       logoWrap.appendChild(img);
-      left.appendChild(logoWrap);
+      nameRow.appendChild(logoWrap);
     }
 
     const nameEl = _el("span",
-      "font-family:'Oswald',sans-serif;font-size:3.2vh;font-weight:700;" +
+      "font-family:'Oswald',sans-serif;font-size:5vh;font-weight:700;" +
       "letter-spacing:0.04em;color:" + P.text + ";text-transform:uppercase;" +
-      "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+      "white-space:nowrap;"
     );
     nameEl.textContent = teamInfo.displayName || teamInfo.location || "";
-    left.appendChild(nameEl);
+    nameRow.appendChild(nameEl);
 
-    bar.appendChild(left);
+    bar.appendChild(nameRow);
 
-    // Right: record + season label
-    const right = _el("div", "display:flex;align-items:center;gap:1.4vw;flex-shrink:0;");
-
-    if (record) {
-      const recEl = _el("span",
-        "font-family:'Oswald',sans-serif;font-size:2.6vh;font-weight:600;" +
-        "color:" + P.label + ";letter-spacing:0.06em;"
-      );
-      recEl.textContent = record;
-      right.appendChild(recEl);
-    }
+    // Bottom row: season label + record
+    const subRow = _el("div",
+      "display:flex;align-items:center;justify-content:center;gap:2vw;"
+    );
 
     const seasonEl = _el("span",
-      "font-family:'Barlow Condensed',sans-serif;font-size:2vh;font-weight:600;" +
-      "color:" + P.dim + ";letter-spacing:0.08em;text-transform:uppercase;"
+      "font-family:'Barlow Condensed',sans-serif;font-size:2.4vh;font-weight:600;" +
+      "color:" + P.label + ";letter-spacing:0.14em;text-transform:uppercase;"
     );
-    seasonEl.textContent = "2026 SEASON";
-    right.appendChild(seasonEl);
+    seasonEl.textContent = _seasonYear(rows) + " SCHEDULE";
+    subRow.appendChild(seasonEl);
 
-    bar.appendChild(right);
+    if (record) {
+      const sep = _el("span",
+        "font-family:'Barlow Condensed',sans-serif;font-size:2.2vh;color:" + P.border + ";"
+      );
+      sep.textContent = "|";
+      subRow.appendChild(sep);
+
+      const recEl = _el("span",
+        "font-family:'Oswald',sans-serif;font-size:2.4vh;font-weight:600;" +
+        "color:" + P.dim + ";letter-spacing:0.08em;"
+      );
+      recEl.textContent = record;
+      subRow.appendChild(recEl);
+    }
+
+    bar.appendChild(subRow);
     container.appendChild(bar);
   }
 
-  function _buildRow(row, colCount) {
-    // isCurrent row gets subtle highlight
+  /**
+   * Build a single compact game card.
+   * Layout (three lines stacked):
+   *   Line 1: DATE  ·  vs/@ [#RANK] OPPABBR  (opp logo inline)
+   *   Line 2: result string (W/L+score) OR kickoff time
+   *   Line 3: TV network (only for upcoming games)
+   *
+   * Deliberately taller and larger text than the old row design.
+   */
+  function _buildCard(row) {
     const bgColor = row.isCurrent ? P.current : "transparent";
     const borderLeft = row.isCurrent
       ? "border-left:3px solid " + P.label + ";"
       : "border-left:3px solid transparent;";
 
-    const tr = _el("div",
-      "display:grid;" +
-      "grid-template-columns:4.5ch 5.5ch 3.2vh 1fr 1fr 6ch;" +
-      "align-items:center;gap:0 0.8vw;" +
-      "padding:0.8vh 1.2vw 0.8vh 0.9vw;" +
+    const card = _el("div",
+      "display:flex;flex-direction:column;justify-content:center;" +
+      "padding:1.1vh 1.1vw 1.0vh 0.9vw;" +
       "background:" + bgColor + ";" +
       borderLeft +
       "border-bottom:1px solid " + P.border + ";" +
-      "min-width:0;"
+      "min-width:0;box-sizing:border-box;"
     );
 
-    // ── Week ──
-    const weekEl = _el("div",
-      "font-family:'Oswald',sans-serif;font-size:1.5vh;font-weight:700;" +
-      "color:" + P.dim + ";letter-spacing:0.10em;text-transform:uppercase;" +
-      "white-space:nowrap;"
+    // ── Line 1: date + opponent ──────────────────────────────────────────────
+    const line1 = _el("div",
+      "display:flex;align-items:center;gap:0.55vw;min-width:0;flex-wrap:nowrap;"
     );
-    weekEl.textContent = "W" + (row.week !== undefined ? row.week : "?");
-    tr.appendChild(weekEl);
 
-    // ── Date ──
-    const dateEl = _el("div",
-      "font-family:'Barlow Condensed',sans-serif;font-size:1.8vh;font-weight:600;" +
-      "color:" + P.dim + ";white-space:nowrap;"
+    // Date chip
+    const dateEl = _el("span",
+      "font-family:'Oswald',sans-serif;font-size:2.3vh;font-weight:600;" +
+      "color:" + P.dim + ";white-space:nowrap;flex-shrink:0;" +
+      "letter-spacing:0.04em;"
     );
     dateEl.textContent = row.dateDisp;
-    tr.appendChild(dateEl);
+    line1.appendChild(dateEl);
 
-    // ── Opponent logo ──
+    // Thin separator dot
+    const dot = _el("span",
+      "color:" + P.border + ";font-size:2.3vh;flex-shrink:0;margin:0 0.1vw;"
+    );
+    dot.textContent = "·";
+    line1.appendChild(dot);
+
+    // Opponent logo (small)
     const logoWrap = _el("div",
-      "width:3.2vh;height:3.2vh;" +
+      "width:3vh;height:3vh;flex-shrink:0;" +
       "background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;" +
-      "overflow:hidden;flex-shrink:0;"
+      "overflow:hidden;"
     );
     if (row.oppId) {
       const img = document.createElement("img");
       img.src = LOGO_BASE + row.oppId + ".png";
       img.alt = "";
-      img.style.cssText = "width:2.5vh;height:2.5vh;object-fit:contain;display:block;";
+      img.style.cssText = "width:2.3vh;height:2.3vh;object-fit:contain;display:block;";
       img.onerror = function () {
         logoWrap.style.background = P.surface;
         logoWrap.style.border = "1px solid " + P.border;
@@ -384,128 +412,165 @@
     } else {
       logoWrap.style.background = P.surface;
     }
-    tr.appendChild(logoWrap);
+    line1.appendChild(logoWrap);
 
-    // ── Opponent label: vs/@ + [rank] + ABBR ──
-    const oppEl = _el("div",
-      "font-family:'Barlow Condensed',sans-serif;font-size:2vh;font-weight:600;" +
-      "color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
-      "min-width:0;"
-    );
-    // Build the text in safe pieces
+    // vs/@ marker
     const vsSpan = _el("span",
-      "color:" + P.dim + ";font-size:1.8vh;margin-right:0.35ch;"
+      "font-family:'Barlow Condensed',sans-serif;font-size:2.2vh;font-weight:500;" +
+      "color:" + P.dim + ";flex-shrink:0;"
     );
     vsSpan.textContent = row.vsAt;
-    oppEl.appendChild(vsSpan);
+    line1.appendChild(vsSpan);
 
+    // Rank (if any)
     if (row.oppRank) {
       const rnk = _el("span",
-        "color:" + P.rank + ";font-size:1.6vh;font-weight:700;margin-right:0.3ch;" +
-        "font-family:'Oswald',sans-serif;letter-spacing:0.04em;"
+        "font-family:'Oswald',sans-serif;font-size:2vh;font-weight:700;" +
+        "color:" + P.rank + ";flex-shrink:0;letter-spacing:0.02em;"
       );
       rnk.textContent = "#" + row.oppRank;
-      oppEl.appendChild(rnk);
+      line1.appendChild(rnk);
     }
 
-    const abbrSpan = document.createElement("span");
-    abbrSpan.textContent = row.oppAbbr;
-    oppEl.appendChild(abbrSpan);
+    // Opponent abbreviation
+    const abbrEl = _el("span",
+      "font-family:'Barlow Condensed',sans-serif;font-size:2.6vh;font-weight:700;" +
+      "color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
+      "min-width:0;letter-spacing:0.03em;"
+    );
+    abbrEl.textContent = row.oppAbbr;
+    line1.appendChild(abbrEl);
 
-    tr.appendChild(oppEl);
+    card.appendChild(line1);
 
-    // ── Result / time ──
-    let resultColor = P.text;
+    // ── Line 2: result or kickoff time ───────────────────────────────────────
+    let resultColor = P.dim;
     if (row.resultClass === "win")  resultColor = P.win;
     if (row.resultClass === "loss") resultColor = P.loss;
     if (row.resultClass === "live") resultColor = P.live;
 
-    const resEl = _el("div",
-      "font-family:'Barlow Condensed',sans-serif;font-size:1.9vh;font-weight:600;" +
-      "color:" + resultColor + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
-      "min-width:0;" +
-      (row.resultClass === "live"
-        ? "background:rgba(255,106,0,0.12);border-radius:3px;padding:0.15vh 0.4vw;"
-        : "")
+    // For win/loss: show W/L bold + score dimmer
+    const line2 = _el("div",
+      "display:flex;align-items:baseline;gap:0.4vw;margin-top:0.35vh;min-width:0;"
     );
-    resEl.textContent = row.result;
-    tr.appendChild(resEl);
 
-    // ── TV ──
-    const tvEl = _el("div",
-      "font-family:'Barlow Condensed',sans-serif;font-size:1.6vh;font-weight:600;" +
-      "color:" + P.dim + ";text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-    );
-    tvEl.textContent = row.tv || "";
-    tr.appendChild(tvEl);
+    if (row.resultClass === "win" || row.resultClass === "loss") {
+      // Split "W 35-14" → badge + score
+      const parts = row.result.split(" ");
+      const badge = parts[0] || "";   // "W" or "L"
+      const score = parts.slice(1).join(" ");
 
-    return tr;
+      const badgeEl = _el("span",
+        "font-family:'Oswald',sans-serif;font-size:2.6vh;font-weight:700;" +
+        "color:" + resultColor + ";letter-spacing:0.06em;flex-shrink:0;"
+      );
+      badgeEl.textContent = badge;
+      line2.appendChild(badgeEl);
+
+      if (score) {
+        const scoreEl = _el("span",
+          "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:600;" +
+          "color:" + P.dim + ";white-space:nowrap;"
+        );
+        scoreEl.textContent = score;
+        line2.appendChild(scoreEl);
+      }
+    } else if (row.resultClass === "live") {
+      const liveEl = _el("span",
+        "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:700;" +
+        "color:" + P.live + ";white-space:nowrap;" +
+        "background:rgba(255,106,0,0.12);border-radius:3px;padding:0.1vh 0.4vw;"
+      );
+      liveEl.textContent = row.result;
+      line2.appendChild(liveEl);
+    } else {
+      // Upcoming: kickoff time
+      const timeEl = _el("span",
+        "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:600;" +
+        "color:" + P.dim + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+      );
+      timeEl.textContent = row.result;  // e.g. "9/12 - 3:30 PM EDT" or "TBD"
+      line2.appendChild(timeEl);
+
+      // TV network inline on the same line for upcoming games (saves vertical space)
+      if (row.tv) {
+        const tvSep = _el("span",
+          "color:" + P.border + ";font-size:2.2vh;flex-shrink:0;margin:0 0.2vw;"
+        );
+        tvSep.textContent = "·";
+        line2.appendChild(tvSep);
+
+        const tvEl = _el("span",
+          "font-family:'Barlow Condensed',sans-serif;font-size:2.2vh;font-weight:600;" +
+          "color:" + P.dim + ";white-space:nowrap;flex-shrink:0;"
+        );
+        tvEl.textContent = row.tv;
+        line2.appendChild(tvEl);
+      }
+    }
+
+    card.appendChild(line2);
+
+    return card;
   }
 
   function _buildSchedule(container, teamInfo, record, rows) {
     container.replaceChildren();
     container.style.cssText =
       "display:flex;flex-direction:column;width:100%;height:100%;" +
-      "background:" + P.bg + ";overflow:hidden;font-size:1vh;";
+      "background:" + P.bg + ";overflow:hidden;box-sizing:border-box;";
 
-    _buildHeader(container, teamInfo, record);
+    _buildCenteredHeader(container, teamInfo, record, rows);
 
-    // Column header row (labels)
-    const colHdr = _el("div",
-      "display:grid;" +
-      "grid-template-columns:4.5ch 5.5ch 3.2vh 1fr 1fr 6ch;" +
-      "align-items:center;gap:0 0.8vw;" +
-      "padding:0.45vh 1.2vw 0.45vh 0.9vw;" +
-      "background:" + P.header + ";" +
-      "border-bottom:1px solid " + P.border + ";" +
-      "border-left:3px solid transparent;" +
-      "flex-shrink:0;"
-    );
+    // ── Multi-column grid body ──────────────────────────────────────────────
+    const numCols = _colCount(rows.length);
+    const colSize = Math.ceil(rows.length / numCols);
 
-    const hdrLabels = ["WEEK", "DATE", "", "OPPONENT", "RESULT / KICKOFF", "TV"];
-    hdrLabels.forEach(function (lbl) {
-      const h = _el("div",
-        "font-family:'Oswald',sans-serif;font-size:1.3vh;font-weight:700;" +
-        "letter-spacing:0.12em;color:" + P.dim + ";text-transform:uppercase;"
-      );
-      h.textContent = lbl;
-      colHdr.appendChild(h);
-    });
-    container.appendChild(colHdr);
-
-    // Scrollable rows area
-    const body = _el("div",
-      "flex:1;overflow-y:auto;min-height:0;" +
-      // Hide scrollbar visually — projector display
-      "scrollbar-width:none;"
-    );
-    body.style.msOverflowStyle = "none";
-
-    const useTwoCol = rows.length > SINGLE_COL_MAX;
-
-    if (useTwoCol) {
-      // Two-column grid: split rows roughly evenly
-      const mid = Math.ceil(rows.length / 2);
-      const col1 = rows.slice(0, mid);
-      const col2 = rows.slice(mid);
-
-      const grid = _el("div",
-        "display:grid;grid-template-columns:1fr 1fr;" +
-        "gap:0;height:100%;"
-      );
-
-      const leftCol  = _el("div", "display:flex;flex-direction:column;border-right:2px solid " + P.border + ";");
-      const rightCol = _el("div", "display:flex;flex-direction:column;");
-
-      col1.forEach(function (r) { leftCol.appendChild(_buildRow(r, 2)); });
-      col2.forEach(function (r) { rightCol.appendChild(_buildRow(r, 2)); });
-
-      grid.appendChild(leftCol);
-      grid.appendChild(rightCol);
-      body.appendChild(grid);
-    } else {
-      rows.forEach(function (r) { body.appendChild(_buildRow(r, 1)); });
+    // Build column arrays: top-to-bottom reading order within each column
+    const columns = [];
+    for (let c = 0; c < numCols; c++) {
+      columns.push(rows.slice(c * colSize, c * colSize + colSize));
     }
+
+    // Outer body: takes all remaining height, no scroll (projector — fit it)
+    const body = _el("div",
+      "flex:1;display:grid;min-height:0;" +
+      "grid-template-columns:repeat(" + numCols + ",1fr);" +
+      "gap:0;"
+    );
+
+    columns.forEach(function (colRows, ci) {
+      const borderStyle = ci < numCols - 1
+        ? "border-right:1px solid " + P.border + ";"
+        : "";
+
+      const colEl = _el("div",
+        "display:flex;flex-direction:column;" + borderStyle
+      );
+
+      // Column header label bar
+      const colHdrEl = _el("div",
+        "display:flex;align-items:center;gap:0.6vw;" +
+        "padding:0.5vh 1.1vw 0.45vh 0.9vw;" +
+        "background:" + P.header + ";" +
+        "border-bottom:1px solid " + P.border + ";" +
+        "flex-shrink:0;"
+      );
+      const colHdrText = _el("span",
+        "font-family:'Oswald',sans-serif;font-size:1.5vh;font-weight:700;" +
+        "letter-spacing:0.14em;color:" + P.dim + ";text-transform:uppercase;"
+      );
+      colHdrText.textContent = "DATE  ·  OPPONENT";
+      colHdrEl.appendChild(colHdrText);
+      colEl.appendChild(colHdrEl);
+
+      // Cards
+      colRows.forEach(function (r) {
+        colEl.appendChild(_buildCard(r));
+      });
+
+      body.appendChild(colEl);
+    });
 
     container.appendChild(body);
   }
@@ -522,11 +587,12 @@
    *   @param {function} [opts.onEmpty]  — called if ESPN returns no games for this team/season
    *   @param {function} [opts.onError]  — called on fetch/parse failure: onError(err)
    *
-   * Renders a full-season schedule list optimized for a dark projector screen.
-   * Layout: header (team logo + name + record) then one row per game showing
-   * WEEK · DATE · opponent logo · vs/@[rank]ABBR · result or kickoff time · TV network.
-   * The current or next game is subtly highlighted. Bye weeks are absent (ESPN omits them).
-   * Switches to a two-column layout automatically when the season has > 8 games.
+   * Renders a full-season schedule optimized for a dark projector screen.
+   * Layout: centered header (team logo + name + season label + record), then
+   * a 3-column grid (4 columns if > 12 games). Each game card shows date,
+   * opponent logo + vs/@[rank]ABBR, and either the final result (W/L + score)
+   * or kickoff time + TV for upcoming games. Current/next game is highlighted.
+   * Bye weeks are absent (ESPN omits them from events[]).
    *
    * Security: all ESPN-sourced strings are assigned via textContent only. No innerHTML
    * is ever used with API data.
