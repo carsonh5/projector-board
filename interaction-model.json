@@ -1,0 +1,2550 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "scoreboard",
+      "intents": [
+        {
+          "name": "StartFeatureGameIntent",
+          "slots": [
+            {
+              "name": "TEAM",
+              "type": "FOOTBALL_TEAM"
+            },
+            {
+              "name": "OPPONENT",
+              "type": "FOOTBALL_TEAM"
+            }
+          ],
+          "samples": [
+            "feature {TEAM}",
+            "feature {TEAM} versus {OPPONENT}",
+            "feature {TEAM} and {OPPONENT}",
+            "feature {TEAM} against {OPPONENT}",
+            "pull up the {TEAM} game",
+            "pull up {TEAM}",
+            "put on {TEAM}",
+            "put on the {TEAM} game",
+            "show {TEAM}",
+            "show me the {TEAM} game",
+            "show me {TEAM}",
+            "watch {TEAM}",
+            "watch the {TEAM} game",
+            "bring up {TEAM}",
+            "switch to {TEAM}",
+            "go to {TEAM}",
+            "switch to the {TEAM} game",
+            "go to the {TEAM} game",
+            "feature the {TEAM} game",
+            "feature {TEAM} versus {OPPONENT} game",
+            "show me {TEAM} and {OPPONENT}",
+            "show {TEAM} and {OPPONENT}",
+            "put on {TEAM} and {OPPONENT}"
+          ]
+        },
+        {
+          "name": "AddFeatureGameIntent",
+          "slots": [
+            {
+              "name": "TEAM",
+              "type": "FOOTBALL_TEAM"
+            }
+          ],
+          "samples": [
+            "add {TEAM}",
+            "also add {TEAM}",
+            "add {TEAM} to the board",
+            "also show {TEAM}",
+            "throw {TEAM} up there",
+            "also feature {TEAM}",
+            "add the {TEAM} game",
+            "also add the {TEAM} game",
+            "put {TEAM} up too",
+            "include {TEAM}",
+            "and also {TEAM}",
+            "and {TEAM} too"
+          ]
+        },
+        {
+          "name": "RemoveFeatureGameIntent",
+          "slots": [
+            {
+              "name": "TEAM",
+              "type": "FOOTBALL_TEAM"
+            }
+          ],
+          "samples": [
+            "remove {TEAM}",
+            "drop {TEAM}",
+            "take off {TEAM}",
+            "take {TEAM} off",
+            "get rid of {TEAM}",
+            "hide {TEAM}",
+            "stop showing {TEAM}",
+            "remove the {TEAM} game",
+            "drop the {TEAM} game",
+            "take off the {TEAM} game",
+            "get rid of the {TEAM} game"
+          ]
+        },
+        {
+          "name": "ShowAllGamesIntent",
+          "slots": [],
+          "samples": [
+            "show all games",
+            "all games",
+            "show everything",
+            "the whole slate",
+            "show all",
+            "everything",
+            "show the whole slate",
+            "all of them",
+            "show all the games",
+            "show me everything",
+            "show me all games",
+            "show me all the games",
+            "full board",
+            "show the full board"
+          ]
+        },
+        {
+          "name": "PlayerStatsIntent",
+          "slots": [
+            {
+              "name": "TEAM",
+              "type": "FOOTBALL_TEAM"
+            }
+          ],
+          "samples": [
+            "feature {TEAM} player stats",
+            "show {TEAM} player stats",
+            "{TEAM} player stats",
+            "{TEAM} stats",
+            "player stats for {TEAM}",
+            "show me {TEAM} stats",
+            "show me {TEAM} player stats",
+            "pull up {TEAM} stats",
+            "pull up {TEAM} player stats",
+            "get {TEAM} stats",
+            "{TEAM} player statistics",
+            "show {TEAM} stats"
+          ]
+        },
+        {
+          "name": "ScheduleIntent",
+          "slots": [
+            {
+              "name": "TEAM",
+              "type": "FOOTBALL_TEAM"
+            }
+          ],
+          "samples": [
+            "show {TEAM} schedule",
+            "{TEAM} schedule",
+            "pull up {TEAM} schedule",
+            "what is {TEAM} schedule",
+            "show me {TEAM} schedule",
+            "get {TEAM} schedule",
+            "{TEAM}'s schedule",
+            "show the {TEAM} schedule",
+            "pull up the {TEAM} schedule"
+          ]
+        },
+        {
+          "name": "StandingsIntent",
+          "slots": [
+            {
+              "name": "CONFERENCE",
+              "type": "CONFERENCE"
+            }
+          ],
+          "samples": [
+            "show {CONFERENCE} standings",
+            "{CONFERENCE} standings",
+            "conference standings",
+            "standings",
+            "show me {CONFERENCE} standings",
+            "pull up {CONFERENCE} standings",
+            "show the {CONFERENCE} standings",
+            "get {CONFERENCE} standings",
+            "show me the standings",
+            "show standings"
+          ]
+        },
+        {
+          "name": "AskIntent",
+          "slots": [ { "name": "query", "type": "AMAZON.SearchQuery" } ],
+          "samples": [ "show {query}", "show me {query}", "pull up {query}", "pull up the {query}", "put on {query}", "put up {query}", "give me {query}", "i want {query}", "how about {query}", "what about {query}", "bring up {query}", "let me see {query}", "for {query}" ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "slots": [],
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "slots": [],
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "slots": [],
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "slots": [],
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "FOOTBALL_TEAM",
+          "values": [
+            {
+              "id": "cfb_boston_college_eagles",
+              "name": {
+                "value": "Boston College",
+                "synonyms": [
+                  "Eagles",
+                  "BC",
+                  "Boston College Eagles",
+                  "Boston College"
+                ]
+              }
+            },
+            {
+              "id": "cfb_clemson_tigers",
+              "name": {
+                "value": "Clemson",
+                "synonyms": [
+                  "Tigers",
+                  "CLEM",
+                  "Clemson Tigers",
+                  "Clemson",
+                  "the Tigers",
+                  "CU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_duke_blue_devils",
+              "name": {
+                "value": "Duke",
+                "synonyms": [
+                  "Blue Devils",
+                  "Duke Blue Devils",
+                  "Duke",
+                  "the Blue Devils"
+                ]
+              }
+            },
+            {
+              "id": "cfb_florida_state_seminoles",
+              "name": {
+                "value": "Florida State",
+                "synonyms": [
+                  "Seminoles",
+                  "FSU",
+                  "Florida State Seminoles",
+                  "Florida State",
+                  "the Seminoles",
+                  "Noles",
+                  "the Noles"
+                ]
+              }
+            },
+            {
+              "id": "cfb_georgia_tech_yellow_jackets",
+              "name": {
+                "value": "Georgia Tech",
+                "synonyms": [
+                  "Yellow Jackets",
+                  "GT",
+                  "Georgia Tech Yellow Jackets",
+                  "Georgia Tech",
+                  "the Jackets",
+                  "Tech"
+                ]
+              }
+            },
+            {
+              "id": "cfb_louisville_cardinals",
+              "name": {
+                "value": "Louisville",
+                "synonyms": [
+                  "Cardinals",
+                  "LOU",
+                  "Louisville Cardinals",
+                  "Louisville",
+                  "UofL",
+                  "Cards",
+                  "the Cards"
+                ]
+              }
+            },
+            {
+              "id": "cfb_miami_hurricanes",
+              "name": {
+                "value": "Miami",
+                "synonyms": [
+                  "Hurricanes",
+                  "MIA",
+                  "Miami Hurricanes",
+                  "Miami",
+                  "Dolphins",
+                  "the Dolphins",
+                  "Fins"
+                ]
+              }
+            },
+            {
+              "id": "cfb_nc_state_wolfpack",
+              "name": {
+                "value": "NC State",
+                "synonyms": [
+                  "Wolfpack",
+                  "NCSU",
+                  "NC State Wolfpack",
+                  "NC State",
+                  "the Wolfpack"
+                ]
+              }
+            },
+            {
+              "id": "cfb_north_carolina_tar_heels",
+              "name": {
+                "value": "North Carolina",
+                "synonyms": [
+                  "Tar Heels",
+                  "UNC",
+                  "North Carolina Tar Heels",
+                  "North Carolina",
+                  "the Tar Heels",
+                  "Chapel Hill"
+                ]
+              }
+            },
+            {
+              "id": "cfb_pittsburgh_panthers",
+              "name": {
+                "value": "Pittsburgh",
+                "synonyms": [
+                  "Panthers",
+                  "PITT",
+                  "Pittsburgh Panthers",
+                  "Pittsburgh",
+                  "Steelers",
+                  "the Steelers",
+                  "Steel Curtain"
+                ]
+              }
+            },
+            {
+              "id": "cfb_stanford_cardinal",
+              "name": {
+                "value": "Stanford",
+                "synonyms": [
+                  "Cardinal",
+                  "STAN",
+                  "Stanford Cardinal",
+                  "Stanford",
+                  "the Cardinal",
+                  "Farm",
+                  "the Farm"
+                ]
+              }
+            },
+            {
+              "id": "cfb_syracuse_orange",
+              "name": {
+                "value": "Syracuse",
+                "synonyms": [
+                  "Orange",
+                  "SYR",
+                  "Syracuse Orange",
+                  "Syracuse",
+                  "the Orange",
+                  "Cuse",
+                  "SU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_virginia_cavaliers",
+              "name": {
+                "value": "Virginia",
+                "synonyms": [
+                  "Cavaliers",
+                  "UVA",
+                  "Virginia Cavaliers",
+                  "Virginia",
+                  "Wahoos",
+                  "Hoos"
+                ]
+              }
+            },
+            {
+              "id": "cfb_virginia_tech_hokies",
+              "name": {
+                "value": "Virginia Tech",
+                "synonyms": [
+                  "Hokies",
+                  "VT",
+                  "Virginia Tech Hokies",
+                  "Virginia Tech",
+                  "the Hokies",
+                  "Blacksburg"
+                ]
+              }
+            },
+            {
+              "id": "cfb_wake_forest_demon_deacons",
+              "name": {
+                "value": "Wake Forest",
+                "synonyms": [
+                  "Demon Deacons",
+                  "WAKE",
+                  "Wake Forest Demon Deacons",
+                  "Wake Forest",
+                  "Deacs"
+                ]
+              }
+            },
+            {
+              "id": "cfb_illinois_fighting_illini",
+              "name": {
+                "value": "Illinois",
+                "synonyms": [
+                  "Fighting Illini",
+                  "ILL",
+                  "Illinois Fighting Illini",
+                  "Illinois",
+                  "the Illini",
+                  "Illini",
+                  "U of I"
+                ]
+              }
+            },
+            {
+              "id": "cfb_indiana_hoosiers",
+              "name": {
+                "value": "Indiana",
+                "synonyms": [
+                  "Hoosiers",
+                  "IU",
+                  "Indiana Hoosiers",
+                  "Indiana",
+                  "the Hoosiers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_iowa_hawkeyes",
+              "name": {
+                "value": "Iowa",
+                "synonyms": [
+                  "Hawkeyes",
+                  "Iowa Hawkeyes",
+                  "Iowa",
+                  "the Hawkeyes"
+                ]
+              }
+            },
+            {
+              "id": "cfb_maryland_terrapins",
+              "name": {
+                "value": "Maryland",
+                "synonyms": [
+                  "Terrapins",
+                  "MD",
+                  "Maryland Terrapins",
+                  "Maryland",
+                  "UMD",
+                  "Terps",
+                  "the Terrapins"
+                ]
+              }
+            },
+            {
+              "id": "cfb_michigan_wolverines",
+              "name": {
+                "value": "Michigan",
+                "synonyms": [
+                  "Wolverines",
+                  "MICH",
+                  "Michigan Wolverines",
+                  "Michigan",
+                  "U of M",
+                  "the Wolverines",
+                  "the Big House",
+                  "Ann Arbor"
+                ]
+              }
+            },
+            {
+              "id": "cfb_michigan_state_spartans",
+              "name": {
+                "value": "Michigan State",
+                "synonyms": [
+                  "Spartans",
+                  "MSU",
+                  "Michigan State Spartans",
+                  "Michigan State",
+                  "the Spartans",
+                  "East Lansing"
+                ]
+              }
+            },
+            {
+              "id": "cfb_minnesota_golden_gophers",
+              "name": {
+                "value": "Minnesota",
+                "synonyms": [
+                  "Golden Gophers",
+                  "MINN",
+                  "Minnesota Golden Gophers",
+                  "Minnesota",
+                  "Vikings",
+                  "the Vikings"
+                ]
+              }
+            },
+            {
+              "id": "cfb_nebraska_cornhuskers",
+              "name": {
+                "value": "Nebraska",
+                "synonyms": [
+                  "Cornhuskers",
+                  "NEB",
+                  "Nebraska Cornhuskers",
+                  "Nebraska",
+                  "Huskers",
+                  "the Huskers",
+                  "Big Red"
+                ]
+              }
+            },
+            {
+              "id": "cfb_northwestern_wildcats",
+              "name": {
+                "value": "Northwestern",
+                "synonyms": [
+                  "Wildcats",
+                  "NU",
+                  "Northwestern Wildcats",
+                  "Northwestern"
+                ]
+              }
+            },
+            {
+              "id": "cfb_ohio_state_buckeyes",
+              "name": {
+                "value": "Ohio State",
+                "synonyms": [
+                  "Buckeyes",
+                  "OSU",
+                  "Ohio State Buckeyes",
+                  "Ohio State",
+                  "the Buckeyes",
+                  "the Bucks",
+                  "tOSU",
+                  "Columbus"
+                ]
+              }
+            },
+            {
+              "id": "cfb_oregon_ducks",
+              "name": {
+                "value": "Oregon",
+                "synonyms": [
+                  "Ducks",
+                  "ORE",
+                  "Oregon Ducks",
+                  "Oregon",
+                  "the Ducks",
+                  "UO",
+                  "Eugene"
+                ]
+              }
+            },
+            {
+              "id": "cfb_penn_state_nittany_lions",
+              "name": {
+                "value": "Penn State",
+                "synonyms": [
+                  "Nittany Lions",
+                  "PSU",
+                  "Penn State Nittany Lions",
+                  "Penn State",
+                  "the Lions",
+                  "Happy Valley"
+                ]
+              }
+            },
+            {
+              "id": "cfb_purdue_boilermakers",
+              "name": {
+                "value": "Purdue",
+                "synonyms": [
+                  "Boilermakers",
+                  "PUR",
+                  "Purdue Boilermakers",
+                  "Purdue",
+                  "the Boilermakers",
+                  "the Purdue Boilermakers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_rutgers_scarlet_knights",
+              "name": {
+                "value": "Rutgers",
+                "synonyms": [
+                  "Scarlet Knights",
+                  "RUTG",
+                  "Rutgers Scarlet Knights",
+                  "Rutgers",
+                  "the Scarlet Knights",
+                  "RU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_ucla_bruins",
+              "name": {
+                "value": "UCLA",
+                "synonyms": [
+                  "Bruins",
+                  "UCLA Bruins",
+                  "UCLA",
+                  "the Bruins",
+                  "Los Angeles"
+                ]
+              }
+            },
+            {
+              "id": "cfb_usc_trojans",
+              "name": {
+                "value": "USC",
+                "synonyms": [
+                  "Trojans",
+                  "USC Trojans",
+                  "USC",
+                  "the Trojans",
+                  "Los Angeles USC"
+                ]
+              }
+            },
+            {
+              "id": "cfb_washington_huskies",
+              "name": {
+                "value": "Washington",
+                "synonyms": [
+                  "Huskies",
+                  "WASH",
+                  "Washington Huskies",
+                  "Washington",
+                  "Commanders",
+                  "the Commanders"
+                ]
+              }
+            },
+            {
+              "id": "cfb_wisconsin_badgers",
+              "name": {
+                "value": "Wisconsin",
+                "synonyms": [
+                  "Badgers",
+                  "WIS",
+                  "Wisconsin Badgers",
+                  "Wisconsin",
+                  "the Badgers",
+                  "UW Madison"
+                ]
+              }
+            },
+            {
+              "id": "cfb_arizona_wildcats",
+              "name": {
+                "value": "Arizona",
+                "synonyms": [
+                  "Wildcats",
+                  "ARIZ",
+                  "Arizona Wildcats",
+                  "Arizona",
+                  "Cards",
+                  "Cardinals",
+                  "Phoenix"
+                ]
+              }
+            },
+            {
+              "id": "cfb_arizona_state_sun_devils",
+              "name": {
+                "value": "Arizona State",
+                "synonyms": [
+                  "Sun Devils",
+                  "ASU",
+                  "Arizona State Sun Devils",
+                  "Arizona State",
+                  "the Sun Devils",
+                  "Tempe"
+                ]
+              }
+            },
+            {
+              "id": "cfb_baylor_bears",
+              "name": {
+                "value": "Baylor",
+                "synonyms": [
+                  "Bears",
+                  "BAY",
+                  "Baylor Bears",
+                  "Baylor",
+                  "the Bears",
+                  "BU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_byu_cougars",
+              "name": {
+                "value": "BYU",
+                "synonyms": [
+                  "Cougars",
+                  "BYU Cougars",
+                  "BYU",
+                  "Brigham Young",
+                  "the Cougars",
+                  "Cougs"
+                ]
+              }
+            },
+            {
+              "id": "cfb_cincinnati_bearcats",
+              "name": {
+                "value": "Cincinnati",
+                "synonyms": [
+                  "Bearcats",
+                  "CIN",
+                  "Cincinnati Bearcats",
+                  "Cincinnati",
+                  "Bengals",
+                  "Who Dey",
+                  "Cincy"
+                ]
+              }
+            },
+            {
+              "id": "cfb_colorado_buffaloes",
+              "name": {
+                "value": "Colorado",
+                "synonyms": [
+                  "Buffaloes",
+                  "COLO",
+                  "Colorado Buffaloes",
+                  "Colorado",
+                  "CU",
+                  "the Buffs",
+                  "Buffs",
+                  "CU Buffs",
+                  "Boulder"
+                ]
+              }
+            },
+            {
+              "id": "cfb_houston_cougars",
+              "name": {
+                "value": "Houston",
+                "synonyms": [
+                  "Cougars",
+                  "HOU",
+                  "Houston Cougars",
+                  "Houston",
+                  "Texans",
+                  "the Texans"
+                ]
+              }
+            },
+            {
+              "id": "cfb_iowa_state_cyclones",
+              "name": {
+                "value": "Iowa State",
+                "synonyms": [
+                  "Cyclones",
+                  "ISU",
+                  "Iowa State Cyclones",
+                  "Iowa State",
+                  "the Cyclones"
+                ]
+              }
+            },
+            {
+              "id": "cfb_kansas_jayhawks",
+              "name": {
+                "value": "Kansas",
+                "synonyms": [
+                  "Jayhawks",
+                  "KU",
+                  "Kansas Jayhawks",
+                  "Kansas",
+                  "the Jayhawks",
+                  "Rock Chalk"
+                ]
+              }
+            },
+            {
+              "id": "cfb_kansas_state_wildcats",
+              "name": {
+                "value": "Kansas State",
+                "synonyms": [
+                  "Wildcats",
+                  "KSU",
+                  "Kansas State Wildcats",
+                  "Kansas State",
+                  "K-State"
+                ]
+              }
+            },
+            {
+              "id": "cfb_oklahoma_state_cowboys",
+              "name": {
+                "value": "Oklahoma State",
+                "synonyms": [
+                  "Cowboys",
+                  "OKST",
+                  "Oklahoma State Cowboys",
+                  "Oklahoma State",
+                  "OSU",
+                  "Pokes",
+                  "the Cowboys",
+                  "OK State"
+                ]
+              }
+            },
+            {
+              "id": "cfb_tcu_horned_frogs",
+              "name": {
+                "value": "TCU",
+                "synonyms": [
+                  "Horned Frogs",
+                  "TCU Horned Frogs",
+                  "TCU",
+                  "Texas Christian",
+                  "Frogs"
+                ]
+              }
+            },
+            {
+              "id": "cfb_texas_tech_red_raiders",
+              "name": {
+                "value": "Texas Tech",
+                "synonyms": [
+                  "Red Raiders",
+                  "TTU",
+                  "Texas Tech Red Raiders",
+                  "Texas Tech",
+                  "the Red Raiders",
+                  "Guns Up"
+                ]
+              }
+            },
+            {
+              "id": "cfb_ucf_knights",
+              "name": {
+                "value": "UCF",
+                "synonyms": [
+                  "Knights",
+                  "UCF Knights",
+                  "UCF",
+                  "the Knights",
+                  "University of Central Florida"
+                ]
+              }
+            },
+            {
+              "id": "cfb_utah_utes",
+              "name": {
+                "value": "Utah",
+                "synonyms": [
+                  "Utes",
+                  "Utah Utes",
+                  "Utah",
+                  "the Utes",
+                  "UU",
+                  "Salt Lake"
+                ]
+              }
+            },
+            {
+              "id": "cfb_west_virginia_mountaineers",
+              "name": {
+                "value": "West Virginia",
+                "synonyms": [
+                  "Mountaineers",
+                  "WVU",
+                  "West Virginia Mountaineers",
+                  "West Virginia",
+                  "the Mountaineers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_alabama_crimson_tide",
+              "name": {
+                "value": "Alabama",
+                "synonyms": [
+                  "Crimson Tide",
+                  "ALA",
+                  "Alabama Crimson Tide",
+                  "Alabama",
+                  "Bama",
+                  "Roll Tide",
+                  "the Tide"
+                ]
+              }
+            },
+            {
+              "id": "cfb_arkansas_razorbacks",
+              "name": {
+                "value": "Arkansas",
+                "synonyms": [
+                  "Razorbacks",
+                  "ARK",
+                  "Arkansas Razorbacks",
+                  "Arkansas",
+                  "Hogs",
+                  "Woo Pig",
+                  "the Hogs"
+                ]
+              }
+            },
+            {
+              "id": "cfb_auburn_tigers",
+              "name": {
+                "value": "Auburn",
+                "synonyms": [
+                  "Tigers",
+                  "AUB",
+                  "Auburn Tigers",
+                  "Auburn",
+                  "War Eagles",
+                  "War Eagle",
+                  "the Tigers",
+                  "AU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_florida_gators",
+              "name": {
+                "value": "Florida",
+                "synonyms": [
+                  "Gators",
+                  "FLA",
+                  "Florida Gators",
+                  "Florida",
+                  "UF",
+                  "the Gators",
+                  "Gainesville"
+                ]
+              }
+            },
+            {
+              "id": "cfb_georgia_bulldogs",
+              "name": {
+                "value": "Georgia",
+                "synonyms": [
+                  "Bulldogs",
+                  "UGA",
+                  "Georgia Bulldogs",
+                  "Georgia",
+                  "the Bulldogs",
+                  "G-Day",
+                  "Athens",
+                  "Dawgs",
+                  "the Dawgs"
+                ]
+              }
+            },
+            {
+              "id": "cfb_kentucky_wildcats",
+              "name": {
+                "value": "Kentucky",
+                "synonyms": [
+                  "Wildcats",
+                  "UK",
+                  "Kentucky Wildcats",
+                  "Kentucky",
+                  "the Wildcats",
+                  "Big Blue"
+                ]
+              }
+            },
+            {
+              "id": "cfb_lsu_tigers",
+              "name": {
+                "value": "LSU",
+                "synonyms": [
+                  "Tigers",
+                  "LSU Tigers",
+                  "LSU",
+                  "Louisiana State",
+                  "the Tigers",
+                  "Tiger Stadium",
+                  "Baton Rouge"
+                ]
+              }
+            },
+            {
+              "id": "cfb_mississippi_state_bulldogs",
+              "name": {
+                "value": "Mississippi State",
+                "synonyms": [
+                  "Bulldogs",
+                  "MSST",
+                  "Mississippi State Bulldogs",
+                  "Mississippi State",
+                  "Miss State",
+                  "MSU",
+                  "the Bulldogs",
+                  "Starkville",
+                  "Cowbell"
+                ]
+              }
+            },
+            {
+              "id": "cfb_missouri_tigers",
+              "name": {
+                "value": "Missouri",
+                "synonyms": [
+                  "Tigers",
+                  "MIZ",
+                  "Missouri Tigers",
+                  "Missouri",
+                  "Mizzou",
+                  "the Tigers",
+                  "MU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_ole_miss_rebels",
+              "name": {
+                "value": "Ole Miss",
+                "synonyms": [
+                  "Rebels",
+                  "MISS",
+                  "Ole Miss Rebels",
+                  "Ole Miss",
+                  "Mississippi",
+                  "the Rebels",
+                  "OM",
+                  "Oxford"
+                ]
+              }
+            },
+            {
+              "id": "cfb_south_carolina_gamecocks",
+              "name": {
+                "value": "South Carolina",
+                "synonyms": [
+                  "Gamecocks",
+                  "SC",
+                  "South Carolina Gamecocks",
+                  "South Carolina",
+                  "USC",
+                  "the Gamecocks",
+                  "Carolina"
+                ]
+              }
+            },
+            {
+              "id": "cfb_tennessee_volunteers",
+              "name": {
+                "value": "Tennessee",
+                "synonyms": [
+                  "Volunteers",
+                  "TENN",
+                  "Tennessee Volunteers",
+                  "Tennessee",
+                  "Titans",
+                  "the Titans"
+                ]
+              }
+            },
+            {
+              "id": "cfb_texas_longhorns",
+              "name": {
+                "value": "Texas",
+                "synonyms": [
+                  "Longhorns",
+                  "TEX",
+                  "Texas Longhorns",
+                  "Texas",
+                  "UT",
+                  "the Longhorns",
+                  "Horns",
+                  "the Horns",
+                  "Austin"
+                ]
+              }
+            },
+            {
+              "id": "cfb_texas_a_m_aggies",
+              "name": {
+                "value": "Texas A&M",
+                "synonyms": [
+                  "Aggies",
+                  "TA&M",
+                  "Texas A&M Aggies",
+                  "Texas A&M",
+                  "A&M",
+                  "the Aggies",
+                  "Gig Em",
+                  "Gig 'em",
+                  "TAMU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_vanderbilt_commodores",
+              "name": {
+                "value": "Vanderbilt",
+                "synonyms": [
+                  "Commodores",
+                  "VAN",
+                  "Vanderbilt Commodores",
+                  "Vanderbilt",
+                  "Vandy",
+                  "the Commodores",
+                  "Nashville"
+                ]
+              }
+            },
+            {
+              "id": "cfb_charlotte_saints",
+              "name": {
+                "value": "Charlotte",
+                "synonyms": [
+                  "Saints",
+                  "COLLE",
+                  "Charlotte Saints",
+                  "Charlotte",
+                  "UNCC",
+                  "the 49ers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_east_carolina_pirates",
+              "name": {
+                "value": "East Carolina",
+                "synonyms": [
+                  "Pirates",
+                  "ECU",
+                  "East Carolina Pirates",
+                  "East Carolina"
+                ]
+              }
+            },
+            {
+              "id": "cfb_florida_atlantic_owls",
+              "name": {
+                "value": "Florida Atlantic",
+                "synonyms": [
+                  "Owls",
+                  "FAU",
+                  "Florida Atlantic Owls",
+                  "Florida Atlantic"
+                ]
+              }
+            },
+            {
+              "id": "cfb_memphis_tigers",
+              "name": {
+                "value": "Memphis",
+                "synonyms": [
+                  "Tigers",
+                  "MEM",
+                  "Memphis Tigers",
+                  "Memphis",
+                  "U of M",
+                  "the Tigers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_navy_midshipmen",
+              "name": {
+                "value": "Navy",
+                "synonyms": [
+                  "Midshipmen",
+                  "Navy Midshipmen",
+                  "Navy"
+                ]
+              }
+            },
+            {
+              "id": "cfb_north_texas_mean_green",
+              "name": {
+                "value": "North Texas",
+                "synonyms": [
+                  "Mean Green",
+                  "UNT",
+                  "North Texas Mean Green",
+                  "North Texas"
+                ]
+              }
+            },
+            {
+              "id": "cfb_rice_owls",
+              "name": {
+                "value": "Rice",
+                "synonyms": [
+                  "Owls",
+                  "Rice Owls",
+                  "Rice"
+                ]
+              }
+            },
+            {
+              "id": "cfb_south_florida_bulls",
+              "name": {
+                "value": "South Florida",
+                "synonyms": [
+                  "Bulls",
+                  "USF",
+                  "South Florida Bulls",
+                  "South Florida",
+                  "the Bulls",
+                  "Tampa"
+                ]
+              }
+            },
+            {
+              "id": "cfb_temple_owls",
+              "name": {
+                "value": "Temple",
+                "synonyms": [
+                  "Owls",
+                  "TEM",
+                  "Temple Owls",
+                  "Temple",
+                  "the Owls",
+                  "TU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_tulane_green_wave",
+              "name": {
+                "value": "Tulane",
+                "synonyms": [
+                  "Green Wave",
+                  "TULN",
+                  "Tulane Green Wave",
+                  "Tulane",
+                  "the Green Wave",
+                  "TU Tulane"
+                ]
+              }
+            },
+            {
+              "id": "cfb_tulsa_golden_hurricane",
+              "name": {
+                "value": "Tulsa",
+                "synonyms": [
+                  "Golden Hurricane",
+                  "TLSA",
+                  "Tulsa Golden Hurricane",
+                  "Tulsa",
+                  "the Hurricane",
+                  "TU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_uab_blazers",
+              "name": {
+                "value": "UAB",
+                "synonyms": [
+                  "Blazers",
+                  "UAB Blazers",
+                  "UAB",
+                  "the Blazers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_utsa_roadrunners",
+              "name": {
+                "value": "UTSA",
+                "synonyms": [
+                  "Roadrunners",
+                  "UTSA Roadrunners",
+                  "UTSA"
+                ]
+              }
+            },
+            {
+              "id": "cfb_florida_international_panthers",
+              "name": {
+                "value": "Florida International",
+                "synonyms": [
+                  "Panthers",
+                  "FIU",
+                  "Florida International Panthers",
+                  "Florida International"
+                ]
+              }
+            },
+            {
+              "id": "cfb_jacksonville_state_gamecocks",
+              "name": {
+                "value": "Jacksonville State",
+                "synonyms": [
+                  "Gamecocks",
+                  "JXST",
+                  "Jacksonville State Gamecocks",
+                  "Jacksonville State",
+                  "Jax State",
+                  "JSU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_louisiana_tech_bulldogs",
+              "name": {
+                "value": "Louisiana Tech",
+                "synonyms": [
+                  "Bulldogs",
+                  "LT",
+                  "Louisiana Tech Bulldogs",
+                  "Louisiana Tech"
+                ]
+              }
+            },
+            {
+              "id": "cfb_middle_tennessee_blue_raiders",
+              "name": {
+                "value": "Middle Tennessee",
+                "synonyms": [
+                  "Blue Raiders",
+                  "MTSU",
+                  "Middle Tennessee Blue Raiders",
+                  "Middle Tennessee"
+                ]
+              }
+            },
+            {
+              "id": "cfb_new_mexico_state_aggies",
+              "name": {
+                "value": "New Mexico State",
+                "synonyms": [
+                  "Aggies",
+                  "NMSU",
+                  "New Mexico State Aggies",
+                  "New Mexico State"
+                ]
+              }
+            },
+            {
+              "id": "cfb_sam_houston_bearkats",
+              "name": {
+                "value": "Sam Houston",
+                "synonyms": [
+                  "Bearkats",
+                  "SHSU",
+                  "Sam Houston Bearkats",
+                  "Sam Houston",
+                  "Sam Houston State"
+                ]
+              }
+            },
+            {
+              "id": "cfb_utep_miners",
+              "name": {
+                "value": "UTEP",
+                "synonyms": [
+                  "Miners",
+                  "UTEP Miners",
+                  "UTEP"
+                ]
+              }
+            },
+            {
+              "id": "cfb_western_kentucky_hilltoppers",
+              "name": {
+                "value": "Western Kentucky",
+                "synonyms": [
+                  "Hilltoppers",
+                  "WKU",
+                  "Western Kentucky Hilltoppers",
+                  "Western Kentucky",
+                  "the Hilltoppers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_akron_zips",
+              "name": {
+                "value": "Akron",
+                "synonyms": [
+                  "Zips",
+                  "AKR",
+                  "Akron Zips",
+                  "Akron"
+                ]
+              }
+            },
+            {
+              "id": "cfb_ball_state_cardinals",
+              "name": {
+                "value": "Ball State",
+                "synonyms": [
+                  "Cardinals",
+                  "BALL",
+                  "Ball State Cardinals",
+                  "Ball State"
+                ]
+              }
+            },
+            {
+              "id": "cfb_bowling_green_falcons",
+              "name": {
+                "value": "Bowling Green",
+                "synonyms": [
+                  "Falcons",
+                  "BGSU",
+                  "Bowling Green Falcons",
+                  "Bowling Green"
+                ]
+              }
+            },
+            {
+              "id": "cfb_buffalo_bulls",
+              "name": {
+                "value": "Buffalo",
+                "synonyms": [
+                  "Bulls",
+                  "BUF",
+                  "Buffalo Bulls",
+                  "Buffalo",
+                  "Bills",
+                  "the Bills"
+                ]
+              }
+            },
+            {
+              "id": "cfb_central_michigan_chippewas",
+              "name": {
+                "value": "Central Michigan",
+                "synonyms": [
+                  "Chippewas",
+                  "CMU",
+                  "Central Michigan Chippewas",
+                  "Central Michigan"
+                ]
+              }
+            },
+            {
+              "id": "cfb_eastern_michigan_eagles",
+              "name": {
+                "value": "Eastern Michigan",
+                "synonyms": [
+                  "Eagles",
+                  "EMU",
+                  "Eastern Michigan Eagles",
+                  "Eastern Michigan"
+                ]
+              }
+            },
+            {
+              "id": "cfb_kent_state_golden_flashes",
+              "name": {
+                "value": "Kent State",
+                "synonyms": [
+                  "Golden Flashes",
+                  "KENT",
+                  "Kent State Golden Flashes",
+                  "Kent State"
+                ]
+              }
+            },
+            {
+              "id": "cfb_miami_oh_redhawks",
+              "name": {
+                "value": "Miami (OH)",
+                "synonyms": [
+                  "RedHawks",
+                  "M-OH",
+                  "Miami (OH) RedHawks",
+                  "Miami (OH)",
+                  "Miami Ohio",
+                  "Miami of Ohio"
+                ]
+              }
+            },
+            {
+              "id": "cfb_northern_illinois_huskies",
+              "name": {
+                "value": "Northern Illinois",
+                "synonyms": [
+                  "Huskies",
+                  "NIU",
+                  "Northern Illinois Huskies",
+                  "Northern Illinois"
+                ]
+              }
+            },
+            {
+              "id": "cfb_ohio_bobcats",
+              "name": {
+                "value": "Ohio",
+                "synonyms": [
+                  "Bobcats",
+                  "Ohio Bobcats",
+                  "Ohio"
+                ]
+              }
+            },
+            {
+              "id": "cfb_toledo_rockets",
+              "name": {
+                "value": "Toledo",
+                "synonyms": [
+                  "Rockets",
+                  "TOL",
+                  "Toledo Rockets",
+                  "Toledo",
+                  "the Rockets",
+                  "TU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_western_michigan_broncos",
+              "name": {
+                "value": "Western Michigan",
+                "synonyms": [
+                  "Broncos",
+                  "WMU",
+                  "Western Michigan Broncos",
+                  "Western Michigan"
+                ]
+              }
+            },
+            {
+              "id": "cfb_air_force_falcons",
+              "name": {
+                "value": "Air Force",
+                "synonyms": [
+                  "Falcons",
+                  "AF",
+                  "Air Force Falcons",
+                  "Air Force"
+                ]
+              }
+            },
+            {
+              "id": "cfb_boise_state_broncos",
+              "name": {
+                "value": "Boise State",
+                "synonyms": [
+                  "Broncos",
+                  "BOIS",
+                  "Boise State Broncos",
+                  "Boise State",
+                  "Boise",
+                  "the Broncos",
+                  "BSU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_colorado_state_rams",
+              "name": {
+                "value": "Colorado State",
+                "synonyms": [
+                  "Rams",
+                  "CSU",
+                  "Colorado State Rams",
+                  "Colorado State",
+                  "the Rams",
+                  "Fort Collins"
+                ]
+              }
+            },
+            {
+              "id": "cfb_fresno_state_bulldogs",
+              "name": {
+                "value": "Fresno State",
+                "synonyms": [
+                  "Bulldogs",
+                  "FRES",
+                  "Fresno State Bulldogs",
+                  "Fresno State",
+                  "Fresno",
+                  "the Bulldogs",
+                  "FSU Fresno"
+                ]
+              }
+            },
+            {
+              "id": "cfb_hawai_i_rainbow_warriors",
+              "name": {
+                "value": "Hawai'i",
+                "synonyms": [
+                  "Rainbow Warriors",
+                  "HAW",
+                  "Hawai'i Rainbow Warriors",
+                  "Hawai'i",
+                  "Hawaii",
+                  "the Warriors"
+                ]
+              }
+            },
+            {
+              "id": "cfb_nevada_wolf_pack",
+              "name": {
+                "value": "Nevada",
+                "synonyms": [
+                  "Wolf Pack",
+                  "NEV",
+                  "Nevada Wolf Pack",
+                  "Nevada",
+                  "the Wolf Pack",
+                  "UNR",
+                  "Reno"
+                ]
+              }
+            },
+            {
+              "id": "cfb_new_mexico_lobos",
+              "name": {
+                "value": "New Mexico",
+                "synonyms": [
+                  "Lobos",
+                  "UNM",
+                  "New Mexico Lobos",
+                  "New Mexico",
+                  "the Lobos"
+                ]
+              }
+            },
+            {
+              "id": "cfb_san_diego_state_aztecs",
+              "name": {
+                "value": "San Diego State",
+                "synonyms": [
+                  "Aztecs",
+                  "SDSU",
+                  "San Diego State Aztecs",
+                  "San Diego State",
+                  "the Aztecs"
+                ]
+              }
+            },
+            {
+              "id": "cfb_unlv_rebels",
+              "name": {
+                "value": "UNLV",
+                "synonyms": [
+                  "Rebels",
+                  "UNLV Rebels",
+                  "UNLV",
+                  "the Rebels",
+                  "Las Vegas UNLV"
+                ]
+              }
+            },
+            {
+              "id": "cfb_utah_state_aggies",
+              "name": {
+                "value": "Utah State",
+                "synonyms": [
+                  "Aggies",
+                  "USU",
+                  "Utah State Aggies",
+                  "Utah State"
+                ]
+              }
+            },
+            {
+              "id": "cfb_wyoming_cowboys",
+              "name": {
+                "value": "Wyoming",
+                "synonyms": [
+                  "Cowboys",
+                  "WYO",
+                  "Wyoming Cowboys",
+                  "Wyoming",
+                  "Pokes",
+                  "the Cowboys"
+                ]
+              }
+            },
+            {
+              "id": "cfb_app_state_mountaineers",
+              "name": {
+                "value": "App State",
+                "synonyms": [
+                  "Mountaineers",
+                  "APP",
+                  "App State Mountaineers",
+                  "App State",
+                  "Appalachian State",
+                  "App",
+                  "the Mountaineers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_arkansas_state_red_wolves",
+              "name": {
+                "value": "Arkansas State",
+                "synonyms": [
+                  "Red Wolves",
+                  "ARST",
+                  "Arkansas State Red Wolves",
+                  "Arkansas State"
+                ]
+              }
+            },
+            {
+              "id": "cfb_coastal_carolina_chanticleers",
+              "name": {
+                "value": "Coastal Carolina",
+                "synonyms": [
+                  "Chanticleers",
+                  "CCU",
+                  "Coastal Carolina Chanticleers",
+                  "Coastal Carolina",
+                  "Coastal",
+                  "the Chanticleers",
+                  "Chants"
+                ]
+              }
+            },
+            {
+              "id": "cfb_georgia_southern_eagles",
+              "name": {
+                "value": "Georgia Southern",
+                "synonyms": [
+                  "Eagles",
+                  "GASO",
+                  "Georgia Southern Eagles",
+                  "Georgia Southern",
+                  "GSU",
+                  "the Eagles"
+                ]
+              }
+            },
+            {
+              "id": "cfb_james_madison_dukes",
+              "name": {
+                "value": "James Madison",
+                "synonyms": [
+                  "Dukes",
+                  "JMU",
+                  "James Madison Dukes",
+                  "James Madison"
+                ]
+              }
+            },
+            {
+              "id": "cfb_louisiana_ragin_cajuns",
+              "name": {
+                "value": "Louisiana",
+                "synonyms": [
+                  "Ragin' Cajuns",
+                  "UL",
+                  "Louisiana Ragin' Cajuns",
+                  "Louisiana",
+                  "Louisiana Ragin Cajuns",
+                  "UL Lafayette",
+                  "Cajuns"
+                ]
+              }
+            },
+            {
+              "id": "cfb_ul_monroe_warhawks",
+              "name": {
+                "value": "UL Monroe",
+                "synonyms": [
+                  "Warhawks",
+                  "ULM",
+                  "UL Monroe Warhawks",
+                  "UL Monroe",
+                  "Louisiana Monroe"
+                ]
+              }
+            },
+            {
+              "id": "cfb_marshall_thundering_herd",
+              "name": {
+                "value": "Marshall",
+                "synonyms": [
+                  "Thundering Herd",
+                  "MRSH",
+                  "Marshall Thundering Herd",
+                  "Marshall"
+                ]
+              }
+            },
+            {
+              "id": "cfb_old_dominion_monarchs",
+              "name": {
+                "value": "Old Dominion",
+                "synonyms": [
+                  "Monarchs",
+                  "ODU",
+                  "Old Dominion Monarchs",
+                  "Old Dominion"
+                ]
+              }
+            },
+            {
+              "id": "cfb_south_alabama_jaguars",
+              "name": {
+                "value": "South Alabama",
+                "synonyms": [
+                  "Jaguars",
+                  "USA",
+                  "South Alabama Jaguars",
+                  "South Alabama",
+                  "South Bama"
+                ]
+              }
+            },
+            {
+              "id": "cfb_southern_miss_golden_eagles",
+              "name": {
+                "value": "Southern Miss",
+                "synonyms": [
+                  "Golden Eagles",
+                  "USM",
+                  "Southern Miss Golden Eagles",
+                  "Southern Miss",
+                  "Southern Mississippi"
+                ]
+              }
+            },
+            {
+              "id": "cfb_texas_state_bobcats",
+              "name": {
+                "value": "Texas State",
+                "synonyms": [
+                  "Bobcats",
+                  "TXST",
+                  "Texas State Bobcats",
+                  "Texas State",
+                  "TSU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_troy_vikings",
+              "name": {
+                "value": "Troy",
+                "synonyms": [
+                  "Vikings",
+                  "HVCC",
+                  "Troy Vikings",
+                  "Troy",
+                  "Trojans",
+                  "the Trojans"
+                ]
+              }
+            },
+            {
+              "id": "cfb_army_black_knights",
+              "name": {
+                "value": "Army",
+                "synonyms": [
+                  "Black Knights",
+                  "Army Black Knights",
+                  "Army"
+                ]
+              }
+            },
+            {
+              "id": "cfb_uconn_huskies",
+              "name": {
+                "value": "UConn",
+                "synonyms": [
+                  "Huskies",
+                  "CONN",
+                  "UConn Huskies",
+                  "UConn",
+                  "Connecticut",
+                  "the Huskies"
+                ]
+              }
+            },
+            {
+              "id": "cfb_liberty_flames",
+              "name": {
+                "value": "Liberty",
+                "synonyms": [
+                  "Flames",
+                  "LIB",
+                  "Liberty Flames",
+                  "Liberty",
+                  "LU"
+                ]
+              }
+            },
+            {
+              "id": "cfb_massachusetts_minutemen",
+              "name": {
+                "value": "Massachusetts",
+                "synonyms": [
+                  "Minutemen",
+                  "MASS",
+                  "Massachusetts Minutemen",
+                  "Massachusetts",
+                  "UMass"
+                ]
+              }
+            },
+            {
+              "id": "cfb_notre_dame_fighting_irish",
+              "name": {
+                "value": "Notre Dame",
+                "synonyms": [
+                  "Fighting Irish",
+                  "ND",
+                  "Notre Dame Fighting Irish",
+                  "Notre Dame",
+                  "Irish",
+                  "the Irish",
+                  "the Domers",
+                  "Domers"
+                ]
+              }
+            },
+            {
+              "id": "cfb_oregon_state_beavers",
+              "name": {
+                "value": "Oregon State",
+                "synonyms": [
+                  "Beavers",
+                  "ORST",
+                  "Oregon State Beavers",
+                  "Oregon State",
+                  "the Beavers",
+                  "OSU",
+                  "Corvallis"
+                ]
+              }
+            },
+            {
+              "id": "cfb_weber_state_wildcats",
+              "name": {
+                "value": "Weber State",
+                "synonyms": [
+                  "Wildcats",
+                  "WEB",
+                  "Weber State Wildcats",
+                  "Weber State",
+                  "Weber"
+                ]
+              }
+            },
+            {
+              "id": "cfb_san_jose_state_spartans",
+              "name": {
+                "value": "San Jose State",
+                "synonyms": [
+                  "Spartans",
+                  "SJSU",
+                  "San Jose State Spartans",
+                  "San Jose State",
+                  "San José State"
+                ]
+              }
+            },
+            {
+              "id": "nfl_arizona_cardinals",
+              "name": {
+                "value": "Arizona",
+                "synonyms": [
+                  "Cardinals",
+                  "ARI",
+                  "Arizona Cardinals",
+                  "Arizona",
+                  "Cards",
+                  "Phoenix"
+                ]
+              }
+            },
+            {
+              "id": "nfl_atlanta_falcons",
+              "name": {
+                "value": "Atlanta",
+                "synonyms": [
+                  "Falcons",
+                  "ATL",
+                  "Atlanta Falcons",
+                  "Atlanta",
+                  "Dirty Birds"
+                ]
+              }
+            },
+            {
+              "id": "nfl_baltimore_ravens",
+              "name": {
+                "value": "Baltimore",
+                "synonyms": [
+                  "Ravens",
+                  "BAL",
+                  "Baltimore Ravens",
+                  "Baltimore",
+                  "the Ravens",
+                  "B-more"
+                ]
+              }
+            },
+            {
+              "id": "nfl_buffalo_bills",
+              "name": {
+                "value": "Buffalo",
+                "synonyms": [
+                  "Bills",
+                  "BUF",
+                  "Buffalo Bills",
+                  "Buffalo",
+                  "the Bills"
+                ]
+              }
+            },
+            {
+              "id": "nfl_carolina_panthers",
+              "name": {
+                "value": "Carolina",
+                "synonyms": [
+                  "Panthers",
+                  "CAR",
+                  "Carolina Panthers",
+                  "Carolina",
+                  "the Panthers",
+                  "Charlotte Panthers"
+                ]
+              }
+            },
+            {
+              "id": "nfl_chicago_bears",
+              "name": {
+                "value": "Chicago",
+                "synonyms": [
+                  "Bears",
+                  "CHI",
+                  "Chicago Bears",
+                  "Chicago",
+                  "Da Bears",
+                  "the Bears"
+                ]
+              }
+            },
+            {
+              "id": "nfl_cincinnati_bengals",
+              "name": {
+                "value": "Cincinnati",
+                "synonyms": [
+                  "Bengals",
+                  "CIN",
+                  "Cincinnati Bengals",
+                  "Cincinnati",
+                  "Who Dey",
+                  "Cincy"
+                ]
+              }
+            },
+            {
+              "id": "nfl_cleveland_browns",
+              "name": {
+                "value": "Cleveland",
+                "synonyms": [
+                  "Browns",
+                  "CLE",
+                  "Cleveland Browns",
+                  "Cleveland",
+                  "the Browns",
+                  "Brownies"
+                ]
+              }
+            },
+            {
+              "id": "nfl_dallas_cowboys",
+              "name": {
+                "value": "Dallas",
+                "synonyms": [
+                  "Cowboys",
+                  "DAL",
+                  "Dallas Cowboys",
+                  "Dallas",
+                  "America's Team",
+                  "the Cowboys"
+                ]
+              }
+            },
+            {
+              "id": "nfl_denver_broncos",
+              "name": {
+                "value": "Denver",
+                "synonyms": [
+                  "Broncos",
+                  "DEN",
+                  "Denver Broncos",
+                  "Denver",
+                  "the Broncos",
+                  "Mile High"
+                ]
+              }
+            },
+            {
+              "id": "nfl_detroit_lions",
+              "name": {
+                "value": "Detroit",
+                "synonyms": [
+                  "Lions",
+                  "DET",
+                  "Detroit Lions",
+                  "Detroit",
+                  "the Lions"
+                ]
+              }
+            },
+            {
+              "id": "nfl_green_bay_packers",
+              "name": {
+                "value": "Green Bay",
+                "synonyms": [
+                  "Packers",
+                  "GB",
+                  "Green Bay Packers",
+                  "Green Bay",
+                  "Cheeseheads",
+                  "the Packers"
+                ]
+              }
+            },
+            {
+              "id": "nfl_houston_texans",
+              "name": {
+                "value": "Houston",
+                "synonyms": [
+                  "Texans",
+                  "HOU",
+                  "Houston Texans",
+                  "Houston",
+                  "the Texans"
+                ]
+              }
+            },
+            {
+              "id": "nfl_indianapolis_colts",
+              "name": {
+                "value": "Indianapolis",
+                "synonyms": [
+                  "Colts",
+                  "IND",
+                  "Indianapolis Colts",
+                  "Indianapolis",
+                  "the Colts",
+                  "Indy"
+                ]
+              }
+            },
+            {
+              "id": "nfl_jacksonville_jaguars",
+              "name": {
+                "value": "Jacksonville",
+                "synonyms": [
+                  "Jaguars",
+                  "JAX",
+                  "Jacksonville Jaguars",
+                  "Jacksonville",
+                  "Jags",
+                  "the Jags"
+                ]
+              }
+            },
+            {
+              "id": "nfl_kansas_city_chiefs",
+              "name": {
+                "value": "Kansas City",
+                "synonyms": [
+                  "Chiefs",
+                  "KC",
+                  "Kansas City Chiefs",
+                  "Kansas City",
+                  "the Chiefs",
+                  "KC Chiefs"
+                ]
+              }
+            },
+            {
+              "id": "nfl_las_vegas_raiders",
+              "name": {
+                "value": "Las Vegas",
+                "synonyms": [
+                  "Raiders",
+                  "LV",
+                  "Las Vegas Raiders",
+                  "Las Vegas",
+                  "the Raiders",
+                  "Silver and Black"
+                ]
+              }
+            },
+            {
+              "id": "nfl_los_angeles_chargers",
+              "name": {
+                "value": "Los Angeles",
+                "synonyms": [
+                  "Chargers",
+                  "LAC",
+                  "Los Angeles Chargers",
+                  "Los Angeles",
+                  "Rams",
+                  "LA Chargers",
+                  "LA Rams"
+                ]
+              }
+            },
+            {
+              "id": "nfl_los_angeles_rams",
+              "name": {
+                "value": "Los Angeles",
+                "synonyms": [
+                  "Rams",
+                  "LAR",
+                  "Los Angeles Rams",
+                  "Los Angeles",
+                  "Chargers",
+                  "LA Chargers",
+                  "LA Rams"
+                ]
+              }
+            },
+            {
+              "id": "nfl_miami_dolphins",
+              "name": {
+                "value": "Miami",
+                "synonyms": [
+                  "Dolphins",
+                  "MIA",
+                  "Miami Dolphins",
+                  "Miami",
+                  "the Dolphins",
+                  "Fins"
+                ]
+              }
+            },
+            {
+              "id": "nfl_minnesota_vikings",
+              "name": {
+                "value": "Minnesota",
+                "synonyms": [
+                  "Vikings",
+                  "MIN",
+                  "Minnesota Vikings",
+                  "Minnesota",
+                  "the Vikings"
+                ]
+              }
+            },
+            {
+              "id": "nfl_new_england_patriots",
+              "name": {
+                "value": "New England",
+                "synonyms": [
+                  "Patriots",
+                  "NE",
+                  "New England Patriots",
+                  "New England",
+                  "Pats",
+                  "the Pats",
+                  "the Patriots"
+                ]
+              }
+            },
+            {
+              "id": "nfl_new_orleans_saints",
+              "name": {
+                "value": "New Orleans",
+                "synonyms": [
+                  "Saints",
+                  "NO",
+                  "New Orleans Saints",
+                  "New Orleans",
+                  "the Saints",
+                  "Who Dat"
+                ]
+              }
+            },
+            {
+              "id": "nfl_new_york_giants",
+              "name": {
+                "value": "New York",
+                "synonyms": [
+                  "Giants",
+                  "NYG",
+                  "New York Giants",
+                  "New York",
+                  "Jets",
+                  "NY Giants",
+                  "NY Jets",
+                  "G-men"
+                ]
+              }
+            },
+            {
+              "id": "nfl_new_york_jets",
+              "name": {
+                "value": "New York",
+                "synonyms": [
+                  "Jets",
+                  "NYJ",
+                  "New York Jets",
+                  "New York",
+                  "Giants",
+                  "NY Giants",
+                  "NY Jets",
+                  "G-men"
+                ]
+              }
+            },
+            {
+              "id": "nfl_philadelphia_eagles",
+              "name": {
+                "value": "Philadelphia",
+                "synonyms": [
+                  "Eagles",
+                  "PHI",
+                  "Philadelphia Eagles",
+                  "Philadelphia",
+                  "the Eagles",
+                  "Birds",
+                  "Fly Eagles Fly"
+                ]
+              }
+            },
+            {
+              "id": "nfl_pittsburgh_steelers",
+              "name": {
+                "value": "Pittsburgh",
+                "synonyms": [
+                  "Steelers",
+                  "PIT",
+                  "Pittsburgh Steelers",
+                  "Pittsburgh",
+                  "the Steelers",
+                  "Steel Curtain"
+                ]
+              }
+            },
+            {
+              "id": "nfl_san_francisco_49ers",
+              "name": {
+                "value": "San Francisco",
+                "synonyms": [
+                  "49ers",
+                  "SF",
+                  "San Francisco 49ers",
+                  "San Francisco",
+                  "Niners",
+                  "the Niners",
+                  "the Forty Niners"
+                ]
+              }
+            },
+            {
+              "id": "nfl_seattle_seahawks",
+              "name": {
+                "value": "Seattle",
+                "synonyms": [
+                  "Seahawks",
+                  "SEA",
+                  "Seattle Seahawks",
+                  "Seattle",
+                  "Hawks",
+                  "the Hawks"
+                ]
+              }
+            },
+            {
+              "id": "nfl_tampa_bay_buccaneers",
+              "name": {
+                "value": "Tampa Bay",
+                "synonyms": [
+                  "Buccaneers",
+                  "TB",
+                  "Tampa Bay Buccaneers",
+                  "Tampa Bay",
+                  "Bucs",
+                  "the Bucs",
+                  "Tampa"
+                ]
+              }
+            },
+            {
+              "id": "nfl_tennessee_titans",
+              "name": {
+                "value": "Tennessee",
+                "synonyms": [
+                  "Titans",
+                  "TEN",
+                  "Tennessee Titans",
+                  "Tennessee",
+                  "the Titans"
+                ]
+              }
+            },
+            {
+              "id": "nfl_washington_commanders",
+              "name": {
+                "value": "Washington",
+                "synonyms": [
+                  "Commanders",
+                  "WSH",
+                  "Washington Commanders",
+                  "Washington",
+                  "the Commanders"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CONFERENCE",
+          "values": [
+            {
+              "id": "SEC",
+              "name": {
+                "value": "SEC",
+                "synonyms": [
+                  "Southeastern Conference",
+                  "the SEC"
+                ]
+              }
+            },
+            {
+              "id": "Big_Ten",
+              "name": {
+                "value": "Big Ten",
+                "synonyms": [
+                  "Big 10",
+                  "Big Ten Conference",
+                  "the Big Ten"
+                ]
+              }
+            },
+            {
+              "id": "Big_12",
+              "name": {
+                "value": "Big 12",
+                "synonyms": [
+                  "Big 12 Conference",
+                  "Big Twelve",
+                  "the Big 12"
+                ]
+              }
+            },
+            {
+              "id": "ACC",
+              "name": {
+                "value": "ACC",
+                "synonyms": [
+                  "Atlantic Coast Conference",
+                  "the ACC"
+                ]
+              }
+            },
+            {
+              "id": "Pac_12",
+              "name": {
+                "value": "Pac-12",
+                "synonyms": [
+                  "Pac 12",
+                  "Pacific 12",
+                  "Pac-12 Conference",
+                  "the Pac-12"
+                ]
+              }
+            },
+            {
+              "id": "Mountain_West",
+              "name": {
+                "value": "Mountain West",
+                "synonyms": [
+                  "Mountain West Conference",
+                  "MWC",
+                  "the Mountain West"
+                ]
+              }
+            },
+            {
+              "id": "American",
+              "name": {
+                "value": "American",
+                "synonyms": [
+                  "American Athletic Conference",
+                  "AAC",
+                  "the American",
+                  "the AAC"
+                ]
+              }
+            },
+            {
+              "id": "Sun_Belt",
+              "name": {
+                "value": "Sun Belt",
+                "synonyms": [
+                  "Sun Belt Conference",
+                  "the Sun Belt"
+                ]
+              }
+            },
+            {
+              "id": "MAC",
+              "name": {
+                "value": "MAC",
+                "synonyms": [
+                  "Mid-American Conference",
+                  "Mid American",
+                  "the MAC"
+                ]
+              }
+            },
+            {
+              "id": "CUSA",
+              "name": {
+                "value": "Conference USA",
+                "synonyms": [
+                  "C-USA",
+                  "CUSA",
+                  "the Conference USA",
+                  "Conference USA"
+                ]
+              }
+            },
+            {
+              "id": "Big_Sky",
+              "name": {
+                "value": "Big Sky",
+                "synonyms": [
+                  "Big Sky Conference",
+                  "the Big Sky"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
