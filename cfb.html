@@ -168,7 +168,7 @@ function tmod(logo,name,score,tc,home){
   return `<div class="tmod ${home?'home':'away'}">${home ? sc+cell+plate(logo) : plate(logo)+cell+sc}</div>`;
 }
 const FLAGS={live:["LIVE","#FF6A00"],upset:["UPSET ALERT","#FF2D95"],close:["CLOSE GAME","#FF6A00"],rz:["RED ZONE","#FF6A00"],pre:["NEXT UP","#35E0E0"]};
-let FEATURE=["baylor","oregon"], showAll=false;
+let FEATURE=["baylor","oregon"], showAll=true;   // regular full CFB by default; press A for featured
 function inFeature(g){ if(showAll||!FEATURE.length) return true;
   const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(s=>(s||"").toLowerCase()); return FEATURE.some(f=>keys.includes(f)); }
 function centerHTML(g){
@@ -230,7 +230,7 @@ function render(){
 setInterval(()=>{ spotIx++; render(); }, 10000);
 load(); setInterval(load, 30000);
 function setTrack(id,html){ const el=document.getElementById(id); el.innerHTML=html+html;
-  el.style.animationDuration=Math.max(45, Math.round(html.length/4))+"s"; }
+  el.style.animationDuration=Math.max(22, Math.round(html.length/7))+"s"; }
 </script>
 </body>
 </html>
