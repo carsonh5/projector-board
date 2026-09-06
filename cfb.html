@@ -24,15 +24,15 @@
   /* ===== MAIN band ===== */
   #zone-main { top: var(--m-t,30.75vh); bottom: var(--m-b,24.7vh); left: var(--m-l,0); right: var(--m-r,0); z-index: 1; display: flex; flex-direction: column; }
   #head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 3vw; }
-  #clock { font-family: "Oswald", sans-serif; font-size: 6vh; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
-  #date { font-size: 2.8vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
-  #count { font-family: "Oswald", sans-serif; font-size: 3vh; color: #FFE84D; font-weight: 600; letter-spacing: 0.06em; }
+  #clock { font-family: "Oswald", sans-serif; font-size: 4.8vh; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  #date { font-size: 2.4vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+  #count { font-family: "Oswald", sans-serif; font-size: 2.6vh; color: #FFE84D; font-weight: 600; letter-spacing: 0.06em; }
   .hd-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5vh; }
-  #delaybadge { font-family: "Oswald", sans-serif; font-size: 2vh; font-weight: 700; color: #111; background: #FFB020; padding: 0.15vh 0.7vw; border-radius: 4px; letter-spacing: 0.05em; }
+  #delaybadge { font-family: "Oswald", sans-serif; font-size: 2.7vh; font-weight: 700; color: #FFE84D; background: #D50000; padding: 0.2vh 0.9vw; border-radius: 4px; letter-spacing: 0.05em; }
   #delaybadge:empty { display: none; }
 
-  #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1vh; min-height: 0; padding: 0 3vw 1.2vh; }
-  #venue { flex: 0 0 auto; margin: 0.6vh 0 0.9vh; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.9vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.7vh; min-height: 0; padding: 0 3vw 1.4vh; }
+  #venue { flex: 0 0 auto; margin: 0.5vh 0 0.3vh; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.6vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #venue:empty { display: none; }
   body.cards #venue, body.stacked #venue, body.hl #venue, body.ps #venue, body.standings #venue, body.schedule #venue { display: none; }
   #lastplay { font-family: "Barlow Condensed", sans-serif; font-size: 3.6vh; font-weight: 600; color: #c4c8ce; text-align: center; max-width: 82%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -58,8 +58,8 @@
   body.standings #standings, body.schedule #schedule { display: block; }
   body.standings #flag, body.standings #bug, body.standings #infostrip, body.standings #field, body.standings #stack, body.standings #cards, body.standings #hl, body.standings #ps { display: none; }
   body.schedule #flag, body.schedule #bug, body.schedule #infostrip, body.schedule #field, body.schedule #stack, body.schedule #cards, body.schedule #hl, body.schedule #ps { display: none; }
-  #flag .fchip { font-family: "Oswald", sans-serif; font-size: 3.2vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
-    padding: 0.4vh 1.6vw; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
+  #flag .fchip { font-family: "Oswald", sans-serif; font-size: 2.8vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
+    padding: 0.35vh 1.5vw; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
 
   #bug { display: flex; align-items: center; width: 100%; }
   .tmod { flex: 1; display: flex; align-items: center; gap: 1vw; min-width: 0; }
@@ -69,23 +69,23 @@
   .plate img { height: 6.5vh; object-fit: contain; display: block; }
   body.white-logos .plate { background: transparent; }
   body.white-logos .plate img { filter: brightness(0) invert(1); }
-  .tcell { height: 9vh; display: inline-flex; align-items: center; padding: 0 1.5vw; font-family: "Oswald", sans-serif;
-    font-size: 4.8vh; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;
+  .tcell { height: 8vh; display: inline-flex; align-items: center; padding: 0 1.5vw; font-family: "Oswald", sans-serif;
+    font-size: 4.4vh; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;
     clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%); }
-  .tscore { height: 9vh; min-width: 8vw; display: inline-flex; align-items: center; justify-content: center;
-    font-family: "Oswald", sans-serif; font-size: 8.4vh; font-weight: 700; font-variant-numeric: tabular-nums; }
-  #center { flex: 0 0 auto; height: 9vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3vh; padding: 0 1.5vw; }
+  .tscore { height: 8vh; min-width: 8vw; display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Oswald", sans-serif; font-size: 7.6vh; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #center { flex: 0 0 auto; height: 8vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3vh; padding: 0 1.5vw; }
   #status { font-family: "Oswald", sans-serif; font-size: 4.4vh; font-weight: 600; white-space: nowrap; }
   #dd { font-family: "Barlow Condensed", sans-serif; font-size: 3.4vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; white-space: nowrap; display: flex; align-items: center; }
   .rvl { display: inline-block; width: 3px; height: 3vh; background: #FF2400; margin: 0 0.8vw; border-radius: 1px; }
-  #infostrip { font-family: "Barlow Condensed", sans-serif; font-size: 3vh; font-weight: 600; display: flex; align-items: center; gap: 1vw; }
+  #infostrip { font-family: "Barlow Condensed", sans-serif; font-size: 2.5vh; font-weight: 600; display: flex; align-items: center; gap: 1vw; }
   #infostrip:empty { display: none; }
   .chip { background: #f0f0f0; color: #111; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.8vh; padding: 0.1vh 0.8vw; border-radius: 4px; }
 
   /* ===== field-position strip (live spotlight): white line + ball + arrow + first-down tick ===== */
   #field { width: 58%; display: none; align-items: center; }
   #field.on { display: flex; }
-  .fp-field { position: relative; width: 100%; height: 4vh; }
+  .fp-field { position: relative; width: 100%; height: 3.4vh; }
   .fp-line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #fff; transform: translateY(-50%); }
   .fp-first { position: absolute; top: 8%; bottom: 8%; width: 0.35vw; background: #FFE84D; }
   .fp-tick { position: absolute; top: 30%; bottom: 30%; width: 2.5px; background: rgba(255,255,255,.6); transform: translateX(-50%); }
@@ -274,12 +274,15 @@ async function load(){
       if(state==="in"){ watch=100-Math.abs(hS-aS)*5; if(period>=4)watch+=20; else if(period>=3)watch+=10;
         if(isUpset)watch+=30; if(c.situation?.isRedZone)watch+=15; }
       const {line,ou}=oddsOf(c);
+      let detail=st.shortDetail||"";   // use the LIVE displayClock (same freshness as play-by-play), not the slower shortDetail
+      if(state==="in"){ const dc=c.status&&c.status.displayClock, p=c.status&&c.status.period;
+        if(dc && dc!=="0:00" && p){ const ord=p===1?"1ST":p===2?"2ND":p===3?"3RD":p===4?"4TH":(p>4?"OT":p+"TH"); detail=dc+" · "+ord; } }
       return { id:ev.id, date:ev.date, aAbbr:away.team.abbreviation, hAbbr:home.team.abbreviation,
         aLoc:away.team.location||"", hLoc:home.team.location||"",
         aName:rk(away.team)+away.team.abbreviation, hName:rk(home.team)+home.team.abbreviation,
         aLogo:logoOf(away.team), hLogo:logoOf(home.team), aTC:teamColors(away.team.color), hTC:teamColors(home.team.color),
         aColUnder:teamColors(away.team.color).bg, hColUnder:teamColors(home.team.color).bg,
-        aS,hS,state, detail:st.shortDetail||"", channel:channelOf(c), line, ou,
+        aS,hS,state, detail, channel:channelOf(c), line, ou,
         aRank:aR, hRank:hR, isToday:(_dayKey(ev.date)===_fbDate()),
         venue:c.venue?.fullName||"", venCity:c.venue?.address?.city||"", venState:c.venue?.address?.state||"",
         lastPlay:c.situation?.lastPlay?.text||"",
