@@ -229,8 +229,10 @@ function render(){
 }
 setInterval(()=>{ spotIx++; render(); }, 10000);
 load(); setInterval(load, 30000);
+// auto-refresh the whole page every 10 min: picks up new deploys + self-heals, no manual reload
+setTimeout(function(){ location.replace(location.pathname + "?v=" + Date.now()); }, 600000);
 function setTrack(id,html){ const el=document.getElementById(id); el.innerHTML=html+html;
-  el.style.animationDuration=Math.max(22, Math.round(html.length/7))+"s"; }
+  el.style.animationDuration=Math.max(14, Math.round(html.length/11))+"s"; }
 </script>
 </body>
 </html>
