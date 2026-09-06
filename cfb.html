@@ -85,6 +85,25 @@
   .stag.up { background: #FF2D95; }
   /* pre-game countdown (single feature) */
   .cd { font-family: "Oswald", sans-serif; font-size: 3.6vh; font-weight: 700; color: #35E0E0; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+  /* ===== game cards (feature view): opponent-top / opponent-bottom in one box, side by side ===== */
+  #cards { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; gap: 1.6vw; padding: 0 2vw; }
+  body.cards #cards { display: flex; }
+  body.cards #flag, body.cards #bug, body.cards #infostrip, body.cards #field, body.cards #stack { display: none; }
+  .gcard { flex: 1 1 0; min-width: 0; max-width: 46vw; max-height: 42vh; display: flex; flex-direction: column;
+    border: 0.3vh solid #05070a; border-radius: 1vh; overflow: hidden; box-shadow: 0 0 0 1px #2a2f37, 0 1vh 3vh #0009; background: #0c0e12; }
+  .gteam { position: relative; flex: 1; min-height: 0; padding: 1.4vh 1.4vw; display: flex; flex-direction: column; justify-content: center; gap: 0.4vh; overflow: hidden; }
+  .gteam .glogo { position: absolute; right: -1.4vw; top: 50%; transform: translateY(-50%); height: 14vh; opacity: 0.9; pointer-events: none; }
+  .gteam .glogo img { height: 100%; object-fit: contain; }
+  .gtop { display: flex; align-items: baseline; gap: 0.6vw; z-index: 1; }
+  .grank { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.6vh; opacity: 0.85; }
+  .gname { font-family: "Oswald", sans-serif; font-weight: 700; font-style: italic; font-size: 4.4vh; text-transform: uppercase; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gscorerow { display: flex; align-items: center; gap: 0.9vw; z-index: 1; }
+  .gscore { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 7.2vh; line-height: 0.85; font-variant-numeric: tabular-nums; }
+  .gposs .fbico { height: 3.4vh; }
+  .gfoot { background: #0a0c10; display: flex; flex-direction: column; flex: 0 0 auto; }
+  .gstat { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.9vh; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; padding: 0.7vh 0 0.3vh; }
+  .gstat.pre { color: #35E0E0; } .gstat.fin { color: #d8dce2; }
+  .gdd { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 3vh; color: #FFE84D; text-transform: uppercase; text-align: center; padding: 0.2vh 0 0.8vh; letter-spacing: 0.03em; }
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
@@ -141,6 +160,7 @@
       <div id="infostrip"></div>
       <div id="field"></div>
       <div id="stack"></div>
+      <div id="cards"></div>
     </div>
   </div>
   <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
@@ -150,9 +170,13 @@
 
 <script>
 "use strict";
-function _fbDate(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1);
-  return ""+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0"); }
-function sbUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates="+_fbDate()+"&limit=100"; }
+function _ymd(x){ return ""+x.getFullYear()+String(x.getMonth()+1).padStart(2,"0")+String(x.getDate()).padStart(2,"0"); }
+function _fbDate(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1); return _ymd(d); }
+function _dayKey(dt){ const x=new Date(dt); if(x.getHours()<6) x.setDate(x.getDate()-1); return _ymd(x); }
+/* pull the whole CFB week (range works in one call) so featuring ANY team finds its game — last final or next upcoming */
+function weekRange(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1);
+  const s=new Date(d); s.setDate(s.getDate()-3); const e=new Date(d); e.setDate(e.getDate()+8); return _ymd(s)+"-"+_ymd(e); }
+function sbUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates="+weekRange()+"&limit=300"; }
 
 function tick(){ const n=new Date(); let h=n.getHours(); const m=String(n.getMinutes()).padStart(2,"0");
   const ap=h>=12?"PM":"AM"; h=h%12||12; document.getElementById("clock").textContent=`${h}:${m} ${ap}`;
@@ -203,6 +227,7 @@ async function load(){
         aLogo:logoOf(away.team), hLogo:logoOf(home.team), aTC:teamColors(away.team.color), hTC:teamColors(home.team.color),
         aColUnder:teamColors(away.team.color).bg, hColUnder:teamColors(home.team.color).bg,
         aS,hS,state, detail:st.shortDetail||"", channel:channelOf(c), line, ou,
+        aRank:aR, hRank:hR, isToday:(_dayKey(ev.date)===_fbDate()),
         ranked:(aR<99||hR<99), topRank:Math.min(aR,hR),
         redzone:!!c.situation?.isRedZone, possText:c.situation?.possessionText||"", dd:c.situation?.shortDownDistanceText||"",
         poss:c.situation?.possession||"", aId:away.team.id, hId:home.team.id, dist:(c.situation&&c.situation.distance!=null?+c.situation.distance:null),
@@ -288,7 +313,8 @@ function tosBars(to){ if(to==null) return "";
 
 /* pre-game countdown + multi-feature stacked mini-bugs */
 let _cdDate=null;
-function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
+  if(d>0) return d+"d "+h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
   return (h>0? h+":"+String(m).padStart(2,"0") : ""+m)+":"+String(ss).padStart(2,"0"); }
 function tickCountdown(){ const el=document.getElementById("cd"); if(!el) return;
   el.textContent = (_cdDate==null) ? "" : (_cdDate-Date.now()>0 ? "KICKS OFF IN "+fmtCD(_cdDate-Date.now()) : "STARTING SOON"); }
@@ -306,6 +332,39 @@ function stackRow(g){
     + `<div class="sstat ${statusCls}">${tag}<span>${statusTxt}</span></div></div>`;
 }
 function renderStack(list){ document.getElementById("stack").innerHTML=list.map(stackRow).join(""); _cdDate=null; }
+
+/* one game card: opponent-top / opponent-bottom in one box (team-color bands + status footer) */
+function gameCard(g, single){
+  const live=g.state==="in", pre=g.state==="pre", ps=possSide(g);
+  const rankTag=(r)=> (r&&r<99&&r<=25) ? `<span class="grank">${r}</span>` : "";
+  const band=(loc,abbr,logo,score,rank,tc,ball)=>{
+    const nm=(loc||abbr||"").toUpperCase();
+    return `<div class="gteam" style="background:${tc.bg};color:${tc.text}">`
+      + `<span class="glogo"><img src="${logo}" onerror="this.style.display='none'"></span>`
+      + `<div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span></div>`
+      + `<div class="gscorerow"><span class="gscore">${score}</span>${ball?`<span class="gposs">${FBALL}</span>`:""}</div></div>`;
+  };
+  const aS=pre?"":g.aS, hS=pre?"":g.hS;
+  let foot;
+  if(live) foot=`<div class="gfoot"><div class="gstat">${g.detail}</div>${(g.dd||g.possText)?`<div class="gdd">${g.dd||""}${g.dd&&g.possText?" · ":""}${g.possText||""}</div>`:""}</div>`;
+  else if(pre) foot=`<div class="gfoot"><div class="gstat pre">${g.start}</div>${single?`<div class="gdd" id="cd"></div>`:`<div class="gdd">${g.channel||""}</div>`}</div>`;
+  else foot=`<div class="gfoot"><div class="gstat fin">FINAL</div></div>`;
+  return `<div class="gcard">`+band(g.aLoc,g.aAbbr,g.aLogo,aS,g.aRank,g.aTC,ps==="away")
+    +band(g.hLoc,g.hAbbr,g.hLogo,hS,g.hRank,g.hTC,ps==="home")+foot+`</div>`;
+}
+/* best game this week for a featured team: live > soonest upcoming > most-recent final */
+function bestGameFor(f){
+  const nf=_nrm(f);
+  const ms=games.filter(g=>[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm).indexOf(nf)>=0);
+  if(!ms.length) return null;
+  const live=ms.filter(g=>g.state==="in"); if(live.length) return live[0];
+  const pre=ms.filter(g=>g.state==="pre").sort((a,b)=>new Date(a.date)-new Date(b.date)); if(pre.length) return pre[0];
+  const post=ms.filter(g=>g.state==="post").sort((a,b)=>new Date(b.date)-new Date(a.date)); return post[0]||ms[0];
+}
+function noGames(msg){ document.body.classList.remove("cards"); document.body.classList.remove("stacked");
+  document.getElementById("flag").innerHTML=`<span class="fchip" style="background:#35E0E0">NO GAMES</span>`;
+  document.getElementById("bug").innerHTML=`<div class="tscore" style="font-size:4vh">${msg||"No games"}</div>`;
+  document.getElementById("infostrip").innerHTML=""; setField(null); }
 
 /* ===== demo mode (press G to cycle field scenarios; no live game needed) ===== */
 function dTeam(id,abbr,color){ return {id,abbr,color}; }
@@ -358,35 +417,40 @@ const seclbl = t => `<span class="item"><span class="seclbl">${t}</span></span>`
 
 let spotIx=0;
 function renderTicker(){
-  /* wider slate: ALL live + ranked upcoming + ranked results (NOT limited to the featured game) */
-  const liveT = games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,12);
-  const upT   = games.filter(g=>g.state==="pre" && g.ranked).sort((a,b)=> a.date<b.date?-1:1).slice(0,10);
-  const resT  = games.filter(g=>g.state==="post" && g.ranked).sort((a,b)=>a.topRank-b.topRank).slice(0,12);
+  /* today's slate: ALL live + ranked upcoming + ranked results (from the week pull, filtered to today) */
+  const today=games.filter(g=>g.isToday);
+  const liveT = today.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,12);
+  const upT   = today.filter(g=>g.state==="pre" && g.ranked).sort((a,b)=> a.date<b.date?-1:1).slice(0,10);
+  const resT  = today.filter(g=>g.state==="post" && g.ranked).sort((a,b)=>a.topRank-b.topRank).slice(0,12);
   let parts=[];
   liveT.forEach(g=>parts.push(tickItem(g)));
   upT.forEach(g=>parts.push(tickItem(g)));
   resT.forEach(g=>parts.push(tickItem(g)));
-  if(!parts.length) games.slice(0,14).forEach(g=>parts.push(tickItem(g)));   // fallback so the ticker is never near-empty
+  if(!parts.length) today.slice(0,14).forEach(g=>parts.push(tickItem(g)));   // fallback so the ticker is never near-empty
   setTicker(parts);
 }
 function render(){
-  if(DEMO){ document.body.classList.remove("stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
-  const view=games.filter(inFeature);
-  const live=view.filter(g=>g.state==="in"), pre=view.filter(g=>g.state==="pre"), post=view.filter(g=>g.state==="post");
+  if(DEMO){ document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   const featMode = !showAll && FEATURE.length;
-  document.getElementById("count").textContent = (showAll||!FEATURE.length)
-    ? `${games.filter(g=>g.state==="in").length} LIVE`
-    : `FEATURED · ${FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" · ")}`;
-  const rotation=[...live.sort((a,b)=>b.watch-a.watch), ...pre.sort((a,b)=>a.date<b.date?-1:1), ...post];
-  if(featMode && rotation.length>=2){
-    document.body.classList.add("stacked"); renderStack(rotation.slice(0,4));
-  } else if(rotation.length){
-    document.body.classList.remove("stacked"); renderSpotlight(rotation[featMode?0:(spotIx%rotation.length)]);
+  const today = games.filter(g=>g.isToday);
+  document.getElementById("count").textContent = featMode
+    ? `FEATURED · ${FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" · ")}`
+    : `${today.filter(g=>g.state==="in").length} LIVE`;
+  if(featMode){
+    const seen={}, cards=[];
+    FEATURE.forEach(function(f){ const g=bestGameFor(f); if(g && !seen[g.id]){ seen[g.id]=1; cards.push(g); } });
+    if(cards.length){
+      document.body.classList.add("cards"); document.body.classList.remove("stacked");
+      const list=cards.slice(0,4);
+      document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g, list.length===1);}).join("");
+      _cdDate=(list.length===1 && list[0].state==="pre" && list[0].date) ? new Date(list[0].date).getTime() : null; tickCountdown();
+    } else { noGames("No games for "+FEATURE.map(f=>f[0].toUpperCase()+f.slice(1).replace(/_/g," ")).join(" / ")); }
   } else {
-    document.body.classList.remove("stacked");
-    document.getElementById("flag").innerHTML=`<span class="fchip" style="background:#35E0E0">NO GAMES</span>`;
-    document.getElementById("bug").innerHTML=`<div class="tscore" style="font-size:4.5vh">No ${FEATURE.map(f=>f[0].toUpperCase()+f.slice(1).replace(/_/g," ")).join(" / ")} games</div>`;
-    document.getElementById("infostrip").innerHTML=""; setField(null);
+    document.body.classList.remove("cards","stacked");
+    const live=today.filter(g=>g.state==="in"), pre=today.filter(g=>g.state==="pre"), post=today.filter(g=>g.state==="post");
+    const rotation=[...live.sort((a,b)=>b.watch-a.watch), ...pre.sort((a,b)=>a.date<b.date?-1:1), ...post];
+    if(rotation.length){ renderSpotlight(rotation[spotIx%rotation.length]); }
+    else { noGames("No games today"); }
   }
   renderTicker();
 }
