@@ -269,7 +269,22 @@ function applyZones(){ const s=document.documentElement.style;
   s.setProperty("--tk-t",Z.tk.t+"vh"); s.setProperty("--tk-b",Z.tk.b+"vh"); s.setProperty("--tk-l",Z.tk.l+"vw"); s.setProperty("--tk-r",Z.tk.r+"vw");
   localStorage.setItem("pboardZones",JSON.stringify(Z)); }
 applyZones();
+/* --- live cloud sync: PC map edits -> projector, via the dedicated projector-board Supabase --- */
+const SB_URL="https://gnfnvsarnregwunhtnak.supabase.co";
+const SB_KEY="sb_publishable_8064CO-O7GTH8ApC55U7Ng_RQesuKSp";
+const SB_HEAD={apikey:SB_KEY, Authorization:"Bearer "+SB_KEY};
+async function pullZones(){ try{
+  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones",{headers:SB_HEAD,cache:"no-store"});
+  const j=await r.json(); const z=j&&j[0]&&j[0].zones;
+  if(z&&z.m&&z.tk&&JSON.stringify(z)!==JSON.stringify(Z)){ Object.assign(Z.m,z.m); Object.assign(Z.tk,z.tk); applyZones(); }
+}catch(e){} }
+let _pushTimer;
+function pushZones(){ clearTimeout(_pushTimer); _pushTimer=setTimeout(function(){
+  fetch(SB_URL+"/rest/v1/board_sync?id=eq.1",{method:"PATCH",
+    headers:Object.assign({},SB_HEAD,{"Content-Type":"application/json","Prefer":"return=minimal"}),
+    body:JSON.stringify({zones:Z, updated_at:new Date().toISOString()})}).catch(function(){}); },250); }
 let mapOn=new URLSearchParams(location.search).get("map")==="1", mapSel="m", mapFine=false;
+if(!mapOn){ pullZones(); setInterval(pullZones, 2500); }   // projector receives live edits
 function drawMap(){ if(!mapOn) return;
   document.getElementById("mo-m").classList.toggle("sel",mapSel==="m");
   document.getElementById("mo-tk").classList.toggle("sel",mapSel==="tk");
@@ -290,7 +305,7 @@ document.addEventListener("keydown",function(e){ if(!mapOn) return;
     case "ArrowRight": if(sh){z.r=r2(Math.max(0,z.r-st));}else{z.l=r2(z.l+st); z.r=r2(Math.max(0,z.r-st));} break;
     default: return;
   }
-  e.preventDefault(); applyZones(); drawMap(); });
+  e.preventDefault(); applyZones(); pushZones(); drawMap(); });
 </script>
 </body>
 </html>
