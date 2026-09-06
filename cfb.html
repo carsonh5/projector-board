@@ -64,6 +64,27 @@
   .to-bar.off { background: #494e54; }
   /* white possession football, sits just outside the ball-carrier's logo */
   .fbico { height: 5vh; width: auto; display: block; flex: 0 0 auto; }
+  /* multi-feature: vertical stacked mini score bugs */
+  #stack { display: none; flex-direction: column; width: 100%; gap: 1.8vh; padding: 0 2vw; }
+  body.stacked #stack { display: flex; }
+  body.stacked #flag, body.stacked #bug, body.stacked #infostrip, body.stacked #field { display: none; }
+  .srow { display: flex; align-items: center; width: 100%; gap: 1vw; }
+  .steam { display: flex; align-items: center; gap: 0.8vw; flex: 1; min-width: 0; }
+  .steam.away { justify-content: flex-end; }
+  .steam.home { justify-content: flex-start; }
+  .splate { background: #f0f0f0; border-radius: 14%; padding: 0.4vh; display: inline-flex; flex: 0 0 auto; }
+  .splate img { height: 5vh; object-fit: contain; display: block; }
+  body.white-logos .splate { background: transparent; }
+  body.white-logos .splate img { filter: brightness(0) invert(1); }
+  .sabbr { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 4vh; text-transform: uppercase; }
+  .ssc { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 5.4vh; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: center; }
+  .ssep { color: #6a6f76; font-size: 3.2vh; padding: 0 0.3vw; }
+  .sstat { flex: 0 0 auto; width: 16vw; text-align: right; font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 3vh; display: flex; align-items: center; justify-content: flex-end; gap: 0.6vw; text-transform: uppercase; }
+  .sstat.live { color: #FF6A00; } .sstat.pre { color: #35E0E0; } .sstat.final { color: #d8dce2; }
+  .stag { font-family: "Oswald", sans-serif; font-size: 2.2vh; font-weight: 700; color: #fff; background: #FF1A1A; padding: 0.1vh 0.6vw; border-radius: 3px; }
+  .stag.up { background: #FF2D95; }
+  /* pre-game countdown (single feature) */
+  .cd { font-family: "Oswald", sans-serif; font-size: 3.6vh; font-weight: 700; color: #35E0E0; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
@@ -119,6 +140,7 @@
       <div id="bug"><div class="tscore" style="font-size:5vh">Loading&hellip;</div></div>
       <div id="infostrip"></div>
       <div id="field"></div>
+      <div id="stack"></div>
     </div>
   </div>
   <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
@@ -218,12 +240,14 @@ function tmod(logo,name,score,tc,home,to,ball){
 }
 const FLAGS={live:["LIVE","#FF1A1A"],upset:["UPSET ALERT","#FF2D95"],close:["CLOSE GAME","#FF6A00"],rz:["RED ZONE","#FF6A00"],pre:["NEXT UP","#35E0E0"]};
 let FEATURE=["baylor","oregon"], showAll=true;   // regular full CFB by default; press A for featured
+function _nrm(s){ return (s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
 function inFeature(g){ if(showAll||!FEATURE.length) return true;
-  const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(s=>(s||"").toLowerCase()); return FEATURE.some(f=>keys.includes(f)); }
+  const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm);
+  return FEATURE.some(f=>{ const nf=_nrm(f); return nf && keys.indexOf(nf)>=0; }); }
 function centerHTML(g){
   if(g.state==="in") return `<div id="status" class="live">${g.detail}</div>`
     + `${(g.dd||g.possText)?`<div id="dd">${g.dd||""}${g.dd&&g.possText?'<span class="rvl"></span>':""}${g.possText||""}</div>`:""}`;
-  if(g.state==="pre") return `<div id="status" class="pre">${g.start}</div>`;
+  if(g.state==="pre") return `<div id="status" class="pre">${g.start}</div><div id="cd" class="cd"></div>`;
   return `<div id="status" class="final">FINAL</div>`;
 }
 /* ===== field-position marker: parse ESPN possession into a 0-100 field spot ===== */
@@ -262,6 +286,27 @@ function tosBars(to){ if(to==null) return "";
   let b=""; for(let i=0;i<3;i++) b+=`<span class="to-bar${ i<(3-to) ? ' off':'' }"></span>`;   // empty from the top down
   return `<span class="tos">${b}</span>`; }
 
+/* pre-game countdown + multi-feature stacked mini-bugs */
+let _cdDate=null;
+function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+  return (h>0? h+":"+String(m).padStart(2,"0") : ""+m)+":"+String(ss).padStart(2,"0"); }
+function tickCountdown(){ const el=document.getElementById("cd"); if(!el) return;
+  el.textContent = (_cdDate==null) ? "" : (_cdDate-Date.now()>0 ? "KICKS OFF IN "+fmtCD(_cdDate-Date.now()) : "STARTING SOON"); }
+setInterval(tickCountdown, 1000);
+function stackRow(g){
+  const live=g.state==="in", pre=g.state==="pre";
+  const aSc=pre?"":g.aS, hSc=pre?"":g.hS;
+  const statusCls=live?"live":(pre?"pre":"final");
+  const statusTxt=live?g.detail:(pre?g.start:"FINAL");
+  const tag=live?`<span class="stag ${g.isUpset?'up':''}">${g.isUpset?'UPSET':(g.redzone?'RED ZONE':'LIVE')}</span>`:"";
+  const P=(logo)=>`<span class="splate"><img src="${logo}" onerror="this.closest('.splate').style.display='none'"></span>`;
+  return `<div class="srow"><div class="steam away">${P(g.aLogo)}<span class="sabbr">${g.aAbbr}</span><span class="ssc">${aSc}</span></div>`
+    + `<span class="ssep">${pre?'@':'–'}</span>`
+    + `<div class="steam home"><span class="ssc">${hSc}</span><span class="sabbr">${g.hAbbr}</span>${P(g.hLogo)}</div>`
+    + `<div class="sstat ${statusCls}">${tag}<span>${statusTxt}</span></div></div>`;
+}
+function renderStack(list){ document.getElementById("stack").innerHTML=list.map(stackRow).join(""); _cdDate=null; }
+
 /* ===== demo mode (press G to cycle field scenarios; no live game needed) ===== */
 function dTeam(id,abbr,color){ return {id,abbr,color}; }
 function makeDemo(a,h,possText,possIsHome,dist,rz,detail,dd,aS,hS,aTO,hTO){
@@ -294,6 +339,7 @@ function renderSpotlight(g){
   if(g.channel) strip.innerHTML+=`<span class="chip">${g.channel}</span>`;
   const extra=[g.line,g.ou].filter(Boolean).join(' · '); if(extra) strip.innerHTML+=`<span>${extra}</span>`;
   setField(g);
+  _cdDate = (g.state==="pre" && g.date) ? new Date(g.date).getTime() : null; tickCountdown();
 }
 
 /* ticker item + section builder */
@@ -324,17 +370,24 @@ function renderTicker(){
   setTicker(parts);
 }
 function render(){
-  if(DEMO){ document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
+  if(DEMO){ document.body.classList.remove("stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   const view=games.filter(inFeature);
   const live=view.filter(g=>g.state==="in"), pre=view.filter(g=>g.state==="pre"), post=view.filter(g=>g.state==="post");
+  const featMode = !showAll && FEATURE.length;
   document.getElementById("count").textContent = (showAll||!FEATURE.length)
     ? `${games.filter(g=>g.state==="in").length} LIVE`
-    : `FEATURED · ${FEATURE.map(f=>f.toUpperCase()).join(" · ")}`;
-  const rotation=[...live.sort((a,b)=>b.watch-a.watch), ...pre, ...post];
-  if(rotation.length){ renderSpotlight(rotation[spotIx%rotation.length]); }
-  else { document.getElementById("flag").innerHTML=`<span class="fchip" style="background:#35E0E0">NO GAMES</span>`;
-    document.getElementById("bug").innerHTML=`<div class="tscore" style="font-size:4.5vh">No ${FEATURE.map(f=>f[0].toUpperCase()+f.slice(1)).join(" / ")} games</div>`;
-    document.getElementById("infostrip").innerHTML=""; setField(null); }
+    : `FEATURED · ${FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" · ")}`;
+  const rotation=[...live.sort((a,b)=>b.watch-a.watch), ...pre.sort((a,b)=>a.date<b.date?-1:1), ...post];
+  if(featMode && rotation.length>=2){
+    document.body.classList.add("stacked"); renderStack(rotation.slice(0,4));
+  } else if(rotation.length){
+    document.body.classList.remove("stacked"); renderSpotlight(rotation[featMode?0:(spotIx%rotation.length)]);
+  } else {
+    document.body.classList.remove("stacked");
+    document.getElementById("flag").innerHTML=`<span class="fchip" style="background:#35E0E0">NO GAMES</span>`;
+    document.getElementById("bug").innerHTML=`<div class="tscore" style="font-size:4.5vh">No ${FEATURE.map(f=>f[0].toUpperCase()+f.slice(1).replace(/_/g," ")).join(" / ")} games</div>`;
+    document.getElementById("infostrip").innerHTML=""; setField(null);
+  }
   renderTicker();
 }
 setInterval(()=>{ spotIx++; render(); }, 10000);
@@ -369,7 +422,7 @@ const SB_KEY="sb_publishable_8064CO-O7GTH8ApC55U7Ng_RQesuKSp";
 const SB_HEAD={apikey:SB_KEY, Authorization:"Bearer "+SB_KEY};
 let _lastSceneKey="";
 async function pullZones(){ try{
-  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo",{headers:SB_HEAD,cache:"no-store"});
+  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list",{headers:SB_HEAD,cache:"no-store"});
   const j=await r.json(); const row=j&&j[0]; if(!row) return;
   const z=row.zones;
   if(z&&z.m){ for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); } applyZones(); }
@@ -378,17 +431,18 @@ async function pullZones(){ try{
     ZORDER.forEach(function(k){ var el=document.getElementById("mo-"+k); if(el) el.classList.toggle("sel",k===ms); });
     var info=document.getElementById("mo-info"); if(info) info.textContent="MAPPING (from your PC) — "+(ZNAME[ms]||ms);
   } else { document.body.classList.remove("mapon"); }
-  const sk=(row.scene||"")+"|"+(row.feature_team||"")+"|"+(row.feature_matchup||"");
-  if(sk!==_lastSceneKey){ _lastSceneKey=sk; applyScene(row.scene,row.feature_team,row.feature_matchup); }
+  const sk=(row.scene||"")+"|"+(row.feature_team||"")+"|"+(row.feature_matchup||"")+"|"+JSON.stringify(row.feature_list||[]);
+  if(sk!==_lastSceneKey){ _lastSceneKey=sk; applyScene(row.scene,row.feature_team,row.feature_matchup,row.feature_list); }
   const dm=row.demo|0;                               // remote demo: push a canned field example to the projector
   if(dm!==demoIx){ demoIx=dm; DEMO=(dm>=1&&dm<=DEMOS.length)?DEMOS[dm-1]:null; render(); }
 }catch(e){} }
-function applyScene(scene,team,matchup){
-  if(scene==="feature" && (team||matchup)){
-    let t = matchup ? matchup.split(/\bvs\b|\band\b|,/i).map(function(s){return s.trim().toLowerCase();}).filter(Boolean)
+function applyScene(scene,team,matchup,list){
+  let feats = Array.isArray(list) ? list.map(function(s){return String(s).toLowerCase().trim();}).filter(Boolean) : [];
+  if(!feats.length && scene==="feature" && (team||matchup)){
+    feats = matchup ? matchup.split(/\bvs\b|\band\b|,/i).map(function(s){return s.trim().toLowerCase();}).filter(Boolean)
                     : [String(team).toLowerCase()];
-    if(t.length){ FEATURE=t; showAll=false; }
-  } else { showAll=true; }
+  }
+  if(feats.length){ FEATURE=feats; showAll=false; } else { showAll=true; }
   if(typeof render==="function") render();
 }
 function exitMap(){ document.body.classList.remove("mapon");
