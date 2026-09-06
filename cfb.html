@@ -455,25 +455,18 @@ function render(){
   if(featMode){
     const seen={}, cards=[];
     FEATURE.forEach(function(f){ const g=bestGameFor(f); if(g && !seen[g.id]){ seen[g.id]=1; cards.push(g); } });
-    const single = cards.length===1 ? cards[0] : null;
-    if(single && single.state==="post"){
-      /* FINAL → autoplay highlights in Zone 1 (fall back to the final card if ESPN has no clips yet) */
-      document.body.classList.add("hl"); document.body.classList.remove("cards","stacked"); _cdDate=null;
-      document.getElementById("hltop").textContent=(single.aLoc||single.aAbbr).toUpperCase()+" "+single.aS+" – "+single.hS+" "+(single.hLoc||single.hAbbr).toUpperCase()+" · FINAL";
-      if(_hlEvent!==single.id && typeof mountHighlights==="function"){
-        _hlEvent=single.id;
-        mountHighlights(document.getElementById("hl"), single.id, { onEmpty:function(){ exitHL(); document.body.classList.add("cards"); document.getElementById("cards").innerHTML=gameCard(single,true); } });
-      }
-      renderTicker(); return;
-    }
-    exitHL();
-    if(cards.length){
-      document.body.classList.add("cards"); document.body.classList.remove("stacked");
+    if(cards.length===1){
+      exitHL(); document.body.classList.remove("cards","stacked");
+      renderSpotlight(cards[0]);                 /* single matchup = the standard featured bug (field marker / countdown / final) */
+    } else if(cards.length>=2){
+      exitHL(); document.body.classList.add("cards"); document.body.classList.remove("stacked");
       const list=cards.slice(0,4);
       document.body.classList.remove("n1","n2","n3","n4"); document.body.classList.add("n"+list.length);
-      document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g, list.length===1);}).join("");
-      _cdDate=(list.length===1 && list[0].state==="pre" && list[0].date) ? new Date(list[0].date).getTime() : null; tickCountdown();
-    } else { noGames("No games for "+FEATURE.map(f=>f[0].toUpperCase()+f.slice(1).replace(/_/g," ")).join(" / ")); }
+      document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g,false);}).join("");
+      _cdDate=null;
+    } else {
+      exitHL(); noGames("No games for "+FEATURE.map(f=>f[0].toUpperCase()+f.slice(1).replace(/_/g," ")).join(" / "));
+    }
   } else {
     exitHL();
     document.body.classList.remove("cards","stacked");
