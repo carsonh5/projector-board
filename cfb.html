@@ -192,7 +192,8 @@ function renderSpotlight(g){
 }
 
 /* ticker item + section builder */
-const T=(logo,abbr,col)=>`<span class="plate tkplate"><img src="${logo}" onerror="this.closest('.plate').style.display='none'"></span><span class="tk" style="border-color:${col}">${abbr}</span>`;
+// no images in the scrolling ticker -- keeps it smooth on the Fire Stick's weak GPU (logos stay in the spotlight)
+const T=(logo,abbr,col)=>`<span class="tk" style="border-color:${col}">${abbr}</span>`;
 function tickItem(g){
   const a=T(g.aLogo,g.aAbbr,g.aColUnder), h=T(g.hLogo,g.hAbbr,g.hColUnder);
   const chan=g.channel?` <span class="sep">·</span> <span class="lbl">${g.channel}</span>`:"";
@@ -218,9 +219,9 @@ function render(){
     document.getElementById("infostrip").innerHTML=""; }
 
   /* ticker = wider slate: LIVE + upcoming PRIMETIME/ranked + RESULTS (marquee or featured) */
-  const liveT = games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,16);
-  const upT   = games.filter(g=>g.state==="pre" && (g.ranked||inFeature(g))).sort((a,b)=> a.date<b.date?-1:1).slice(0,16);
-  const resT  = games.filter(g=>g.state==="post" && (g.ranked||inFeature(g))).sort((a,b)=>a.topRank-b.topRank).slice(0,16);
+  const liveT = games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,12);
+  const upT   = games.filter(g=>g.state==="pre" && (g.ranked||inFeature(g))).sort((a,b)=> a.date<b.date?-1:1).slice(0,12);
+  const resT  = games.filter(g=>g.state==="post" && (g.ranked||inFeature(g))).sort((a,b)=>a.topRank-b.topRank).slice(0,12);
   let parts=[];
   if(liveT.length){ parts.push(seclbl("LIVE")); liveT.forEach(g=>parts.push(tickItem(g))); }
   if(upT.length){ parts.push(seclbl("PRIMETIME · UPCOMING")); upT.forEach(g=>parts.push(tickItem(g))); }
