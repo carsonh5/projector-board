@@ -27,6 +27,9 @@
   #clock { font-family: "Oswald", sans-serif; font-size: 6vh; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
   #date { font-size: 2.8vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
   #count { font-family: "Oswald", sans-serif; font-size: 3vh; color: #FFE84D; font-weight: 600; letter-spacing: 0.06em; }
+  .hd-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5vh; }
+  #delaybadge { font-family: "Oswald", sans-serif; font-size: 2vh; font-weight: 700; color: #111; background: #FFB020; padding: 0.15vh 0.7vw; border-radius: 4px; letter-spacing: 0.05em; }
+  #delaybadge:empty { display: none; }
 
   #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1vh; min-height: 0; padding: 0 3vw 1.2vh; }
   #venue { flex: 0 0 auto; margin: 0.6vh 0 0.9vh; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.9vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -190,7 +193,7 @@
 </head>
 <body>
   <div class="zone" id="zone-main">
-    <div id="head"><div><div id="clock">--:--</div><div id="date"></div></div><div id="count">loading&hellip;</div></div>
+    <div id="head"><div><div id="clock">--:--</div><div id="date"></div></div><div class="hd-right"><div id="count">loading&hellip;</div><div id="delaybadge"></div></div></div>
     <div id="venue"></div>
     <div id="bugwrap">
       <div id="flag"></div>
@@ -255,11 +258,12 @@ function favSide(c){ const o=c.odds?.[0]; if(!o) return null;
   if(o.homeTeamOdds?.favorite) return "home"; if(o.awayTeamOdds?.favorite) return "away"; return null; }
 
 let games=[], lastScores={}, firstLoad=true;
+let _snaps=[], DELAY_SEC=0, _lastPickT=null;   // broadcast-delay: rolling buffer of {t,games}; render the snapshot from DELAY_SEC ago
 async function load(){
   try{
     const res=await fetch(sbUrl()); if(!res.ok) throw new Error("HTTP "+res.status);
     const data=await res.json();
-    games=(data.events||[]).map(ev=>{
+    const fresh=(data.events||[]).map(ev=>{
       const c=ev.competitions[0];
       const home=c.competitors.find(t=>t.homeAway==="home"), away=c.competitors.find(t=>t.homeAway==="away");
       const st=ev.status.type, state=st.state, hS=+home.score||0, aS=+away.score||0, fav=favSide(c);
@@ -285,16 +289,32 @@ async function load(){
         aTO:(c.situation&&c.situation.awayTimeouts!=null?+c.situation.awayTimeouts:null), hTO:(c.situation&&c.situation.homeTimeouts!=null?+c.situation.homeTimeouts:null),
         isUpset, isClose, watch, start: (function(d){return d.toLocaleDateString("en-US",{weekday:"short"}).toUpperCase()+" "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});})(new Date(ev.date)) };
     });
-    games.forEach(g=>{ const p=lastScores[g.id];
-      if(p&&!firstLoad){ if(g.aS>p.a) celebrate(g.aAbbr,g.aTC.bg,g.aS-p.a); if(g.hS>p.h) celebrate(g.hAbbr,g.hTC.bg,g.hS-p.h); }
-      lastScores[g.id]={a:g.aS,h:g.hS}; });
-    firstLoad=false; render();
+    _snaps.push({t:Date.now(), games:fresh});
+    const _keep=Date.now()-180000; while(_snaps.length>2 && _snaps[0].t<_keep) _snaps.shift();   // keep ~3 min of history
+    promoteGames(true);
   }catch(e){
     document.getElementById("bug").innerHTML=`<span class="err" style="font-family:Oswald;font-size:4vh">scores failed: ${e.message}</span>`;
     document.getElementById("t-ticker").innerHTML=`<span class="item err">CFB feed failed: ${e.message} — likely needs the backend</span>`;
   }
 }
 
+/* broadcast delay: render the snapshot from DELAY_SEC ago so the board matches a delayed TV/stream */
+function promoteGames(force){
+  if(!_snaps.length) return;
+  const cutoff=Date.now()-(DELAY_SEC*1000);
+  let pick=_snaps[0];
+  for(let i=0;i<_snaps.length;i++){ if(_snaps[i].t<=cutoff) pick=_snaps[i]; }
+  if(!force && pick.t===_lastPickT) return;
+  _lastPickT=pick.t;
+  games=pick.games;
+  games.forEach(function(g){ const p=lastScores[g.id];
+    if(p&&!firstLoad){ if(g.aS>p.a) celebrate(g.aAbbr,g.aTC.bg,g.aS-p.a); if(g.hS>p.h) celebrate(g.hAbbr,g.hTC.bg,g.hS-p.h); }
+    lastScores[g.id]={a:g.aS,h:g.hS}; });
+  firstLoad=false; render();
+}
+setInterval(function(){ promoteGames(false); }, 1000);
+function updateDelayBadge(){ var el=document.getElementById("delaybadge"); if(!el) return;
+  el.textContent = DELAY_SEC>0 ? ("DELAY "+((DELAY_SEC%60===0)?(DELAY_SEC/60)+" MIN":DELAY_SEC+" SEC")) : ""; }
 let flashTimer;
 function celebrate(team,col,delta){
   const label=delta>=6?"TOUCHDOWN":(delta===3?"FIELD GOAL":"SCORE");
@@ -656,7 +676,7 @@ const SB_KEY="sb_publishable_8064CO-O7GTH8ApC55U7Ng_RQesuKSp";
 const SB_HEAD={apikey:SB_KEY, Authorization:"Bearer "+SB_KEY};
 let _lastSceneKey="";
 async function pullZones(){ try{
-  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list,feat_when,feat_matchup,ticker",{headers:SB_HEAD,cache:"no-store"});
+  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list,feat_when,feat_matchup,ticker,delay_sec",{headers:SB_HEAD,cache:"no-store"});
   const j=await r.json(); const row=j&&j[0]; if(!row) return;
   const z=row.zones;
   if(z&&z.m){ for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); } applyZones(); }
@@ -667,6 +687,8 @@ async function pullZones(){ try{
   } else { document.body.classList.remove("mapon"); }
   const sk=(row.scene||"")+"|"+(row.feature_team||"")+"|"+(row.feature_matchup||"")+"|"+JSON.stringify(row.feature_list||[])+"|"+(row.feat_when||"")+"|"+(row.feat_matchup||"")+"|"+(row.ticker||"");
   if(sk!==_lastSceneKey){ _lastSceneKey=sk; applyScene(row.scene,row.feature_team,row.feature_matchup,row.feature_list,row.feat_when,row.feat_matchup,row.ticker); }
+  const _ds=row.delay_sec|0;                          // broadcast delay (seconds) from voice/remote
+  if(_ds!==DELAY_SEC){ DELAY_SEC=_ds; updateDelayBadge(); promoteGames(true); }
   const dm=row.demo|0;                               // remote demo: push a canned field example to the projector
   if(dm!==demoIx){ demoIx=dm; DEMO=(dm>=1&&dm<=DEMOS.length)?DEMOS[dm-1]:null; render(); }
 }catch(e){} }
