@@ -351,8 +351,16 @@ function fieldHTML(fp){
   const ball=`<div class="fp-ball" style="left:${fp.ballX}%"><span class="ball"></span>${arrow}</div>`;
   return `<div class="fp-field"><div class="fp-line"></div>${ticks}${first}${ball}</div>`;
 }
-function setField(g){ const el=document.getElementById("field"); const fp=g?fieldPos(g):null;
-  if(fp){ el.className="on"; el.innerHTML=fieldHTML(fp); } else { el.className=""; el.innerHTML=""; } }
+var _lastFP={};   // hold last known ball spot per game — ESPN blanks possession during timeouts/kicks/reviews
+function fieldLineOnly(){ let ticks=""; for(let x=10;x<100;x+=10) ticks+=`<div class="fp-tick" style="left:${x}%"></div>`;
+  return `<div class="fp-field"><div class="fp-line"></div>${ticks}</div>`; }
+function setField(g){ const el=document.getElementById("field");
+  if(!g || g.state!=="in"){ el.className=""; el.innerHTML=""; return; }   // line only exists for live games
+  let fp=fieldPos(g);
+  if(fp) _lastFP[g.id]=fp; else if(_lastFP[g.id]) fp=_lastFP[g.id];        // hold last spot through the gap
+  el.className="on";
+  el.innerHTML = fp ? fieldHTML(fp) : fieldLineOnly();                     // always show the line while live
+}
 /* white possession football (SVG silhouette) + which side has the ball */
 const FBALL='<svg class="fbico" viewBox="0 0 60 40"><path d="M6 20 C18 4 42 4 54 20 C42 36 18 36 6 20 Z" fill="#fff" stroke="#111" stroke-width="2.2"/></svg>';
 function possSide(g){ if(g.state!=="in"||!g.poss) return null;
