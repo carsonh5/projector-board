@@ -46,8 +46,8 @@
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: 76vh; bottom: 15vh; left: 0; right: 0; z-index: 1; display: flex; align-items: center; }
-  #zone-ticker .track { display: inline-block; white-space: nowrap;
-    animation: scroll linear infinite; will-change: transform; font-family: "Barlow Condensed", sans-serif; font-size: 5.2vh; font-weight: 700; }
+  #zone-ticker .track { display: flex; width: 100%; justify-content: space-around; align-items: center; white-space: nowrap;
+    padding: 0 1.5vw; font-family: "Barlow Condensed", sans-serif; font-size: 4.6vh; font-weight: 700; transition: opacity .18s; }
   @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
   .item { display: inline-block; padding: 0 1.8vw; }
   .item .sep { color: #6a6f76; padding: 0 0.7vw; }
@@ -192,8 +192,8 @@ function renderSpotlight(g){
 }
 
 /* ticker item + section builder */
-// no images in the scrolling ticker -- keeps it smooth on the Fire Stick's weak GPU (logos stay in the spotlight)
-const T=(logo,abbr,col)=>`<span class="tk" style="border-color:${col}">${abbr}</span>`;
+// logos back in (paged ticker is static -> images are cheap); no color underline
+const T=(logo,abbr,col)=>`<span class="plate tkplate"><img src="${logo}" onerror="this.closest('.plate').style.display='none'"></span>${abbr}`;
 function tickItem(g){
   const a=T(g.aLogo,g.aAbbr,g.aColUnder), h=T(g.hLogo,g.hAbbr,g.hColUnder);
   const chan=g.channel?` <span class="sep">·</span> <span class="lbl">${g.channel}</span>`:"";
@@ -223,10 +223,10 @@ function render(){
   const upT   = games.filter(g=>g.state==="pre" && (g.ranked||inFeature(g))).sort((a,b)=> a.date<b.date?-1:1).slice(0,12);
   const resT  = games.filter(g=>g.state==="post" && (g.ranked||inFeature(g))).sort((a,b)=>a.topRank-b.topRank).slice(0,12);
   let parts=[];
-  if(liveT.length){ parts.push(seclbl("LIVE")); liveT.forEach(g=>parts.push(tickItem(g))); }
-  if(upT.length){ parts.push(seclbl("PRIMETIME · UPCOMING")); upT.forEach(g=>parts.push(tickItem(g))); }
-  if(resT.length){ parts.push(seclbl("RESULTS")); resT.forEach(g=>parts.push(tickItem(g))); }
-  setTrack("t-ticker", parts.join("") || `<span class="item">No games</span>`);
+  liveT.forEach(g=>parts.push(tickItem(g)));
+  upT.forEach(g=>parts.push(tickItem(g)));
+  resT.forEach(g=>parts.push(tickItem(g)));
+  setTicker(parts);
 }
 setInterval(()=>{ spotIx++; render(); }, 10000);
 load(); setInterval(load, 30000);
@@ -236,10 +236,14 @@ setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).th
   .then(function(v){ v=(v||"").trim(); if(!v) return; if(_ver===null){_ver=v;}
     else if(v!==_ver){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(v)); } })
   .catch(function(){}); }, 20000);
-const TICKER_PXPS = 95;   // ticker scroll speed in pixels/second -- raise to go faster
-function setTrack(id,html){ const el=document.getElementById(id); el.innerHTML=html+html;
-  el.style.animationDuration="0s";
-  requestAnimationFrame(function(){ const w=el.scrollWidth/2; el.style.animationDuration=Math.max(12, w/TICKER_PXPS)+"s"; }); }
+const PAGE_SIZE=4, PAGE_MS=8000;   // paged ticker: dwell per page in ms (raise to slow down)
+let tickerItems=[], tickerPage=0, tickerTimer=null;
+function setTicker(arr){ tickerItems = arr.length?arr:['<span class="item">No games today</span>'];
+  if(!tickerTimer){ showTickerPage(); tickerTimer=setInterval(function(){ tickerPage++; showTickerPage(); }, PAGE_MS); } }
+function showTickerPage(){ const el=document.getElementById("t-ticker");
+  const pages=Math.max(1, Math.ceil(tickerItems.length/PAGE_SIZE)); const p=tickerPage%pages;
+  el.style.opacity="0";
+  setTimeout(function(){ el.innerHTML=tickerItems.slice(p*PAGE_SIZE, p*PAGE_SIZE+PAGE_SIZE).join(""); el.style.opacity="1"; }, 180); }
 </script>
 </body>
 </html>
