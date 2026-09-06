@@ -550,12 +550,17 @@
     container.appendChild(loading);
 
     let teamInfo;
-    try {
-      teamInfo = await _resolveTeam(teamName);
-    } catch (err) {
-      _active = false;
-      if (opts.onError) opts.onError(err);
-      return;
+    if (opts.teamId) {
+      // caller pre-resolved the ESPN id (the teams-list endpoint is CORS-blocked in-browser)
+      teamInfo = { id: String(opts.teamId), name: teamName || "", abbrev: "", record: "" };
+    } else {
+      try {
+        teamInfo = await _resolveTeam(teamName);
+      } catch (err) {
+        _active = false;
+        if (opts.onError) opts.onError(err);
+        return;
+      }
     }
     if (!_active) return;
 

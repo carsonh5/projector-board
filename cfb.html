@@ -421,8 +421,14 @@ function exitSchedule(){ if(_schTeam){ try{stopSchedule();}catch(e){} _schTeam=n
 function renderScheduleScene(){
   var team=FEATURE[0]||"";
   if(!team || typeof mountSchedule!=="function"){ exitSchedule(); document.body.classList.remove("cards","stacked"); noGames("No schedule for "+(team||"that team")); return; }
+  /* resolve the ESPN team id from the week's scoreboard data (CORS-open) — the teams-list endpoint is blocked in-browser */
+  var nf=_nrm(team), tid=null, tname=team;
+  for(var i=0;i<games.length;i++){ var g=games[i];
+    if(_nrm(g.aAbbr)===nf||_nrm(g.aLoc)===nf){ tid=g.aId; tname=g.aLoc||team; break; }
+    if(_nrm(g.hAbbr)===nf||_nrm(g.hLoc)===nf){ tid=g.hId; tname=g.hLoc||team; break; }
+  }
   document.body.classList.add("schedule"); document.body.classList.remove("cards","stacked");
-  if(_schTeam!==team){ _schTeam=team; mountSchedule(document.getElementById("schedule"), team, { onEmpty:function(){ exitSchedule(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
+  if(_schTeam!==team){ _schTeam=team; mountSchedule(document.getElementById("schedule"), tname, { teamId:tid, onEmpty:function(){ exitSchedule(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
 }
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
   if(d>0) return d+"d "+h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
