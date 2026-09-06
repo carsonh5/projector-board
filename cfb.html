@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
 <script src="vendor/confetti.min.js"></script>
 <script src="highlights.js"></script>
+<script src="playerstats.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #000; color: #fff; overflow: hidden;
@@ -23,14 +24,24 @@
   #count { font-family: "Oswald", sans-serif; font-size: 3vh; color: #FFE84D; font-weight: 600; letter-spacing: 0.06em; }
 
   #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4vh; min-height: 0; padding: 0 3vw; }
+  #venue { font-family: "Barlow Condensed", sans-serif; font-size: 2.4vh; color: #9aa0a6; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
+  body.cards #venue, body.stacked #venue, body.hl #venue, body.ps #venue { display: none; }
   /* highlights fill Zone 1 (final/halftime of a featured game) */
   #hl { display: none; position: absolute; inset: 0; z-index: 1; }
-  body.hl #hl { display: block; }
+  body.hl #hl { display: flex; align-items: stretch; gap: 1.2vw; padding: 0.6vh 1vw; }
   body.hl #flag, body.hl #bug, body.hl #infostrip, body.hl #field, body.hl #stack, body.hl #cards { display: none; }
-  #hltop { display: none; position: absolute; top: 0; left: 0; right: 0; z-index: 2; padding: 1vh 2vw;
-    background: linear-gradient(#000d, transparent); font-family: "Oswald", sans-serif; font-weight: 700;
-    font-size: 3vh; color: #fff; text-align: center; letter-spacing: 0.04em; }
-  body.hl #hltop { display: block; }
+  #hlvid { flex: 0 0 60%; min-width: 0; background: #000; border-radius: 0.6vh; overflow: hidden; }
+  #hlside { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1vh; padding: 0.4vh 0.4vw; overflow: hidden; }
+  #hlscore { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 3.4vh; color: #fff; letter-spacing: 0.02em; line-height: 1.1; }
+  #hlcap { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 2.6vh; color: #FFE84D; line-height: 1.2; }
+  #hlstats { display: flex; flex-direction: column; gap: 0.9vh; margin-top: 0.3vh; }
+  .hlteamname { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.3vh; color: #9aa0a6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2vh; }
+  .hlstat { font-family: "Barlow Condensed", sans-serif; font-size: 2.6vh; color: #e6e6e6; display: flex; align-items: baseline; gap: 0.6vw; }
+  .hlstat .k { color: #FFE84D; font-weight: 700; font-size: 2vh; flex: 0 0 4.4vw; letter-spacing: 0.04em; }
+  .hlstat b { color: #fff; font-weight: 700; }
+  #ps { display: none; position: absolute; inset: 0; z-index: 1; }
+  body.ps #ps { display: block; }
+  body.ps #flag, body.ps #bug, body.ps #infostrip, body.ps #field, body.ps #stack, body.ps #cards, body.ps #hl { display: none; }
   #flag .fchip { font-family: "Oswald", sans-serif; font-size: 3.2vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
     padding: 0.4vh 1.6vw; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
 
@@ -167,14 +178,15 @@
   <div class="zone" id="zone-main">
     <div id="head"><div><div id="clock">--:--</div><div id="date"></div></div><div id="count">loading&hellip;</div></div>
     <div id="bugwrap">
+      <div id="venue"></div>
       <div id="flag"></div>
       <div id="bug"><div class="tscore" style="font-size:5vh">Loading&hellip;</div></div>
       <div id="infostrip"></div>
       <div id="field"></div>
       <div id="stack"></div>
       <div id="cards"></div>
-      <div id="hltop"></div>
-      <div id="hl"></div>
+      <div id="hl"><div id="hlvid"></div><div id="hlside"><div id="hlscore"></div><div id="hlcap"></div><div id="hlstats"></div></div></div>
+      <div id="ps"></div>
     </div>
   </div>
   <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
@@ -248,6 +260,7 @@ async function load(){
         aColUnder:teamColors(away.team.color).bg, hColUnder:teamColors(home.team.color).bg,
         aS,hS,state, detail:st.shortDetail||"", channel:channelOf(c), line, ou,
         aRank:aR, hRank:hR, isToday:(_dayKey(ev.date)===_fbDate()),
+        venue:c.venue?.fullName||"", venCity:c.venue?.address?.city||"", venState:c.venue?.address?.state||"",
         ranked:(aR<99||hR<99), topRank:Math.min(aR,hR),
         redzone:!!c.situation?.isRedZone, possText:c.situation?.possessionText||"", dd:c.situation?.shortDownDistanceText||"",
         poss:c.situation?.possession||"", aId:away.team.id, hId:home.team.id, dist:(c.situation&&c.situation.distance!=null?+c.situation.distance:null),
@@ -335,6 +348,55 @@ function tosBars(to){ if(to==null) return "";
 /* pre-game countdown + multi-feature stacked mini-bugs */
 let _cdDate=null, _hlEvent=null;
 function exitHL(){ if(_hlEvent){ try{stopHighlights();}catch(e){} _hlEvent=null; } document.body.classList.remove("hl"); }
+var _psEvent=null;
+function exitPS(){ if(_psEvent){ try{stopPlayerStats();}catch(e){} _psEvent=null; } document.body.classList.remove("ps"); }
+/* recap: video left, score+caption+stat leaders right */
+function renderRecap(g){
+  document.body.classList.add("hl"); document.body.classList.remove("cards","stacked"); exitPS(); _cdDate=null;
+  var sc=document.getElementById("hlscore"); if(sc) sc.textContent=(g.aLoc||g.aAbbr).toUpperCase()+"  "+g.aS+"   –   "+g.hS+"  "+(g.hLoc||g.hAbbr).toUpperCase()+"   ·   FINAL";
+  if(_hlEvent!==g.id){
+    _hlEvent=g.id;
+    var cap=document.getElementById("hlcap"); if(cap) cap.textContent="";
+    var st0=document.getElementById("hlstats"); if(st0) st0.replaceChildren();
+    mountHighlights(document.getElementById("hlvid"), g.id, { noCaption:true,
+      onEmpty:function(){ exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g); },
+      onClip:function(clip){ var c=document.getElementById("hlcap"); if(c) c.textContent=clip.headline||""; } });
+    fetch("https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event="+g.id).then(function(r){return r.json();}).then(function(d){ renderRecapStats(d); }).catch(function(){});
+  }
+}
+function renderRecapStats(d){
+  var el=document.getElementById("hlstats"); if(!el) return; el.replaceChildren();
+  var L=(d&&d.leaders)||[];
+  L.forEach(function(tl){
+    var abbr=(tl.team&&(tl.team.abbreviation||tl.team.displayName))||"";
+    var cats=tl.leaders||[];
+    var pick=function(name){ var c=cats.find(function(x){return x.name===name;}); if(!c||!c.leaders||!c.leaders[0]) return null; var ld=c.leaders[0]; return { who:(ld.athlete&&(ld.athlete.shortName||ld.athlete.displayName))||"", val:ld.displayValue||"" }; };
+    var rows=[["PASS",pick("passingYards")],["RUSH",pick("rushingYards")],["REC",pick("receivingYards")]].filter(function(r){return r[1];});
+    if(!rows.length) return;
+    var team=document.createElement("div"); team.className="hlteam";
+    var nm=document.createElement("div"); nm.className="hlteamname"; nm.textContent=abbr; team.appendChild(nm);
+    rows.forEach(function(r){
+      var row=document.createElement("div"); row.className="hlstat";
+      var k=document.createElement("span"); k.className="k"; k.textContent=r[0]; row.appendChild(k);
+      row.appendChild(document.createTextNode((r[1].who||"")+" "));
+      var b=document.createElement("b"); b.textContent=r[1].val||""; row.appendChild(b);
+      team.appendChild(row);
+    });
+    el.appendChild(team);
+  });
+}
+/* player stats scene: full box (module) for the team's most recent played game */
+function renderPlayerStatsScene(){
+  exitHL();
+  var team=FEATURE[0]||"";
+  var nf=_nrm(team);
+  var ms=games.filter(function(g){return [g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm).indexOf(nf)>=0;});
+  var played=ms.filter(function(g){return g.state!=="pre";}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  var g=played[0]||ms[0];
+  if(!g || typeof mountPlayerStats!=="function"){ exitPS(); document.body.classList.remove("cards","stacked"); noGames("No stats for "+(team||"that team")); return; }
+  document.body.classList.add("ps"); document.body.classList.remove("cards","stacked");
+  if(_psEvent!==g.id){ _psEvent=g.id; mountPlayerStats(document.getElementById("ps"), g.id, team, { onEmpty:function(){ exitPS(); renderSpotlight(g); } }); }
+}
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
   if(d>0) return d+"d "+h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
   return (h>0? h+":"+String(m).padStart(2,"0") : ""+m)+":"+String(ss).padStart(2,"0"); }
@@ -422,6 +484,7 @@ function renderSpotlight(g){
   else if(g.state==="pre"){ flagText="KICKOFF "+g.start; color=FLAGS.pre[1]; }
   else { flagText="FINAL"; color="#d8dce2"; }
   document.getElementById("flag").innerHTML=`<span class="fchip" style="background:${color};color:${chipText}">${flagText}</span>`;
+  var _vn=document.getElementById("venue"); if(_vn) _vn.textContent = g.venue ? (g.venue+(g.venCity?" · "+g.venCity+(g.venState?", "+g.venState:""):"")) : "";
   const s=g.state!=="pre";
   const ps=possSide(g);
   document.getElementById("bug").innerHTML =
@@ -464,7 +527,9 @@ function renderTicker(){
   setTicker(parts);
 }
 function render(){
-  if(DEMO){ exitHL(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
+  if(DEMO){ exitHL(); exitPS(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
+  if(SCENE==="playerstats" && FEATURE.length){ document.getElementById("count").textContent="PLAYER STATS · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderPlayerStatsScene(); renderTicker(); return; }
+  exitPS();
   const featMode = !showAll && FEATURE.length;
   const today = games.filter(g=>g.isToday);
   document.getElementById("count").textContent = featMode
@@ -476,12 +541,8 @@ function render(){
     if(!cards.length){ const seen={}; FEATURE.forEach(function(f){ const g=bestGameFor(f); if(g && !seen[g.id]){ seen[g.id]=1; cards.push(g); } }); }
     if(cards.length===1){
       const g=cards[0];
-      if(g.state==="post" && typeof mountHighlights==="function"){
-        /* FINAL / recap -> autoplay highlights in Zone 1 */
-        document.body.classList.add("hl"); document.body.classList.remove("cards","stacked"); _cdDate=null;
-        document.getElementById("hltop").textContent=(g.aLoc||g.aAbbr).toUpperCase()+" "+g.aS+" – "+g.hS+" "+(g.hLoc||g.hAbbr).toUpperCase()+" · FINAL";
-        if(_hlEvent!==g.id){ _hlEvent=g.id; mountHighlights(document.getElementById("hl"), g.id, { onEmpty:function(){ exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g); } }); }
-      } else {
+      if(g.state==="post" && typeof mountHighlights==="function"){ renderRecap(g); }
+      else {
         exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g);   /* live/upcoming single = standard bug */
       }
     } else if(cards.length>=2){

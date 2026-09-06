@@ -148,7 +148,7 @@
 
   // ── DOM builder ────────────────────────────────────────────────────────────
 
-  function _buildDOM(container) {
+  function _buildDOM(container, noCaption) {
     // replaceChildren() with no args clears all children without innerHTML.
     container.replaceChildren();
     container.style.cssText =
@@ -163,14 +163,17 @@
     video.style.cssText = "width:100%;height:100%;object-fit:contain;background:#000;display:block;";
     container.appendChild(video);
 
-    // Caption overlay (bottom gradient bar)
-    const cap = document.createElement("div");
-    cap.id = "hl-caption";
-    cap.style.cssText =
-      "position:absolute;left:0;right:0;bottom:0;padding:2.5vh 2.5vw;" +
-      "background:linear-gradient(transparent," + PALETTE.dim + " 45%);" +
-      "color:" + PALETTE.text + ";pointer-events:none;";
-    container.appendChild(cap);
+    // Caption overlay — skipped when the host renders the caption in a side panel (noCaption)
+    let cap = null;
+    if (!noCaption) {
+      cap = document.createElement("div");
+      cap.id = "hl-caption";
+      cap.style.cssText =
+        "position:absolute;left:0;right:0;bottom:0;padding:2.5vh 2.5vw;" +
+        "background:linear-gradient(transparent," + PALETTE.dim + " 45%);" +
+        "color:" + PALETTE.text + ";pointer-events:none;";
+      container.appendChild(cap);
+    }
 
     // 'Ended' listener — advance immediately on natural end
     video.addEventListener("ended", function () {
@@ -212,7 +215,7 @@
     _container = container;
     _active = true;
 
-    _buildDOM(container);
+    _buildDOM(container, opts.noCaption);
 
     let clips;
     try {
