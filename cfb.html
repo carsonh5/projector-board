@@ -244,7 +244,7 @@ function render(){
   setTicker(parts);
 }
 setInterval(()=>{ spotIx++; render(); }, 10000);
-load(); setInterval(load, 30000);
+load(); setInterval(load, 15000);   // faster live-score detection (catches TDs sooner)
 // reload ONLY when a new version is deployed (checked every 45s) -- no wasteful restarts
 let _ver=null;
 setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.text();})
