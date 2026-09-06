@@ -99,6 +99,7 @@ document.addEventListener("keydown", e=>{
   if(e.key==="t"||e.key==="T") celebrate("BUFFS","#FF6A00",7);
   if(e.key==="a"||e.key==="A"){ showAll=!showAll; render(); }
 });
+document.addEventListener("click", ()=>{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); });
 
 function teamColors(hex){ let n=parseInt(hex||"888888",16); if(isNaN(n)) n=0x888888;
   let r=(n>>16)&255,g=(n>>8)&255,b=n&255; const L0=0.299*r+0.587*g+0.114*b;

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Projector Calibration</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; color: #fff; overflow: hidden;
+    font-family: "Segoe UI", system-ui, sans-serif; cursor: none; }
+
+  /* full-frame grid: 10% cells so you can count how much is cut off */
+  #grid {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(to right,  #ffffff22 1px, transparent 1px),
+      linear-gradient(to bottom, #ffffff22 1px, transparent 1px);
+    background-size: 10% 10%;
+  }
+  /* the true outer edge of the video frame */
+  #frame { position: fixed; inset: 0; border: 2px solid #ff4d4d; }
+
+  /* corner brackets at the exact corners of the frame */
+  .corner { position: fixed; width: 6vw; height: 6vw; border: 4px solid #ff4d4d; }
+  .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+  .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+  .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+  .br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+
+  /* center crosshair */
+  #cx-v { position: fixed; top: 0; bottom: 0; left: 50%; width: 1px; background: #ffffff55; }
+  #cx-h { position: fixed; left: 0; right: 0; top: 50%; height: 1px; background: #ffffff55; }
+  #dot { position: fixed; top: 50%; left: 50%; width: 2vw; height: 2vw; margin: -1vw 0 0 -1vw;
+    border: 2px solid #35c759; border-radius: 50%; }
+
+  /* the adjustable SAFE AREA -- move its edges to the usable projection edges */
+  #safe {
+    position: fixed;
+    border: 3px dashed #35c759;
+    background: #35c75911;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #safe-label { color: #35c759; font-size: 3vh; letter-spacing: 0.2em; text-transform: uppercase; }
+
+  /* edge labels */
+  .edge { position: fixed; color: #ff8a8a; font-size: 2.4vh; letter-spacing: 0.2em; font-weight: 700; }
+  #e-top { top: 1vh; left: 50%; transform: translateX(-50%); }
+  #e-bottom { bottom: 1vh; left: 50%; transform: translateX(-50%); }
+  #e-left { left: 1vw; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+  #e-right { right: 1vw; top: 50%; transform: translateY(-50%) rotate(90deg); }
+
+  /* readout panel */
+  #panel {
+    position: fixed; left: 50%; bottom: 6vh; transform: translateX(-50%);
+    background: #0d0f12ee; border: 1px solid #2a2f36; border-radius: 12px;
+    padding: 2vh 3vw; text-align: center; line-height: 1.5;
+  }
+  #vals { font-size: 4.5vh; font-weight: 700; font-variant-numeric: tabular-nums; color: #35c759; }
+  #vals span { color: #fff; }
+  #hint { font-size: 2vh; color: #9aa0a6; margin-top: 1vh; }
+  #hint b { color: #cfd3d8; }
+</style>
+</head>
+<body>
+  <div id="grid"></div>
+  <div id="frame"></div>
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div id="cx-v"></div><div id="cx-h"></div><div id="dot"></div>
+
+  <div class="edge" id="e-top">TOP</div>
+  <div class="edge" id="e-bottom">BOTTOM</div>
+  <div class="edge" id="e-left">LEFT</div>
+  <div class="edge" id="e-right">RIGHT</div>
+
+  <div id="safe"><span id="safe-label">Safe Area</span></div>
+
+  <div id="panel">
+    <div id="vals"></div>
+    <div id="hint">
+      <b>Arrows</b> = top/left edge &nbsp;·&nbsp; <b>Shift+Arrows</b> = bottom/right edge &nbsp;·&nbsp;
+      <b>0</b> = reset<br />
+      Move the green box to the edges of what's actually visible on your wall, then read off the four numbers.
+    </div>
+  </div>
+
+<script>
+"use strict";
+// Same units the ticker uses: top/bottom in vh, left/right in vw.
+const m = Object.assign(
+  { top: 3, right: 3, bottom: 3, left: 3 },
+  JSON.parse(localStorage.getItem("projTickerCal") || "{}")
+);
+function draw() {
+  const s = document.getElementById("safe").style;
+  s.top = m.top + "vh"; s.bottom = m.bottom + "vh";
+  s.left = m.left + "vw"; s.right = m.right + "vw";
+  document.getElementById("vals").innerHTML =
+    `TOP <span>${m.top}</span> &nbsp; RIGHT <span>${m.right}</span> &nbsp; ` +
+    `BOTTOM <span>${m.bottom}</span> &nbsp; LEFT <span>${m.left}</span>`;
+  // persist so the ticker can pick it up if same-origin storage allows
+  const prev = JSON.parse(localStorage.getItem("projTickerCal") || "{}");
+  localStorage.setItem("projTickerCal", JSON.stringify(Object.assign(prev, m)));
+}
+document.addEventListener("keydown", e => {
+  const sh = e.shiftKey;
+  switch (e.key) {
+    case "ArrowUp":    sh ? m.bottom++ : m.top++; break;
+    case "ArrowDown":  sh ? (m.bottom = Math.max(0, m.bottom-1)) : (m.top = Math.max(0, m.top-1)); break;
+    case "ArrowLeft":  sh ? (m.right = Math.max(0, m.right-1)) : (m.left = Math.max(0, m.left-1)); break;
+    case "ArrowRight": sh ? m.right++ : m.left++; break;
+    case "0": m.top = m.right = m.bottom = m.left = 3; break;
+    default: return;
+  }
+  e.preventDefault(); draw();
+});
+draw();
+</script>
+</body>
+</html>

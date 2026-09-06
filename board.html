@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Projector Board</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; color: #ffffff; overflow: hidden;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; cursor: none; }
+
+  .zone { position: fixed; overflow: hidden; }
+
+  /* ---- MAIN band: clock + weather, clustered centrally (weak room edges avoided) ---- */
+  #zone-main { display: flex; justify-content: center; align-items: center; gap: 7vw; z-index: 1; }
+  #clock { text-align: center; }
+  #time { font-size: 13vh; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 0.95; }
+  #date { font-size: 3.6vh; color: #ffffff; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 0.6vh; font-weight: 600; }
+  #weather { text-align: center; }
+  #wx-temp { font-size: 10vh; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  #wx-desc { font-size: 3.6vh; color: #ffffff; font-weight: 600; }
+  #wx-hilo { font-size: 3vh; color: #ffffff; font-weight: 600; }
+
+  /* ---- single ticker band across all three panels ---- */
+  #zone-ticker { display: flex; align-items: center; z-index: 1; }
+  #zone-ticker .track { display: inline-block; white-space: nowrap; padding-left: 100%;
+    animation: scroll linear infinite; will-change: transform; font-size: 5.2vh; font-weight: 700; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .item { display: inline-block; padding: 0 2vw; }
+  .item .sep { color: #7a7f86; padding: 0 1vw; }
+  .score { font-variant-numeric: tabular-nums; }
+  /* ---- winning palette (from the projector color test) ---- */
+  .lbl   { color: #FFE84D; font-weight: 800; }   /* amber #4  -- section labels */
+  .live  { color: #FF6A00; }                     /* orange #2 -- game in progress */
+  .pre   { color: #35E0E0; }                     /* cyan #4   -- upcoming */
+  .final { color: #FFFFFF; }                     /* white     -- finished */
+  .up    { color: #2ECC40; }                     /* green #2  -- market up */
+  .down  { color: #FF2400; }                     /* red #2    -- market down */
+  .err   { color: #FF2D95; }                     /* pink #2   -- errors */
+
+  /* ---- gap masks over the two physical dividers (hide the scroll in the gaps) ---- */
+  .gap { position: fixed; background: #000; z-index: 2; }
+  body.show-guide .gap { background: #ff4d4d55; }
+
+  /* ---- editing outlines ---- */
+  .ol { position: fixed; z-index: 3; pointer-events: none; display: none; }
+  body.show-guide .ol { display: block; outline: 2px solid #ff4d4d88; outline-offset: -2px; }
+  .ol.sel { display: block; outline: 3px dashed #35c759; outline-offset: -3px; }
+
+  /* ---- HUD + numbers (unchanged behavior) ---- */
+  #hud { position: fixed; left: 50%; top: 46%; transform: translate(-50%,-50%); z-index: 4;
+    background: #0d0f12e6; border: 1px solid #2a2f36; border-radius: 12px; padding: 1.6vh 2.4vw;
+    text-align: center; font-size: 2.2vh; line-height: 1.6; color: #e6e6e6; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  #hud.on { opacity: 1; }
+  #hud .who { color: #35c759; font-size: 3vh; font-weight: 800; }
+  #hud .vals { color: #35E0E0; font-variant-numeric: tabular-nums; }
+  #hud b { color: #fff; }
+  #nums { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 4;
+    background: #000000f2; border: 2px solid #35c759; border-radius: 12px; padding: 2vh 3vw;
+    font-family: Consolas, monospace; font-size: 2.6vh; line-height: 1.5; color: #47d16b; white-space: pre; display: none; }
+  #nums.on { display: block; }
+  #nums .cap { color: #FFE84D; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="zone" id="zone-main">
+    <div id="clock"><div id="time">--:--</div><div id="date">loading</div></div>
+    <div id="weather"><div id="wx-temp">--&deg;</div><div id="wx-desc">loading</div><div id="wx-hilo"></div></div>
+  </div>
+
+  <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
+
+  <div class="gap" id="gapA"></div>
+  <div class="gap" id="gapB"></div>
+
+  <div class="ol" id="ol-main"></div>
+  <div class="ol" id="ol-ticker"></div>
+
+  <div id="hud">
+    <div class="who" id="hud-who"></div>
+    <div class="vals" id="hud-vals"></div>
+    <div><b>1</b> main &middot; <b>2</b> ticker &middot; <b>Arrows</b> top/left &middot; <b>Shift+Arrows</b> bottom/right &middot; <b>F</b> fine &middot; <b>N</b> numbers &middot; <b>G</b> guides</div>
+  </div>
+  <div id="nums"></div>
+
+<script>
+"use strict";
+const CONFIG = { lat:32.7767, lon:-96.7970, tz:"America/Chicago", coins:["bitcoin","ethereum","solana"], refresh:45000 };
+
+/* ===== LAYOUT ===== */
+const DEFAULTS = {
+  main:   { top:30.75, right:0, bottom:24.7, left:0 },   // plaster hero band
+  ticker: { top:76,    right:0, bottom:15,   left:0 }    // wood door-frame band (spans all 3 panels)
+};
+// x-ranges of the two physical dividers, from your panel mapping (masked so the ticker reads as one)
+const GAPS = [ { l:43.85, r:45.55 }, { l:71.45, r:75.65 } ];
+const ORDER = ["main","ticker"];
+const NAMES = { main:"MAIN BAND", ticker:"TICKER BAND" };
+const ZONES = JSON.parse(localStorage.getItem("projBoard2") || "null") || JSON.parse(JSON.stringify(DEFAULTS));
+for (const id of ORDER) if (!ZONES[id]) ZONES[id] = { ...DEFAULTS[id] };
+let sel = "main";
+const STEPS = [1, 0.5, 0.25, 0.1, 0.05]; let stepIx = 0, step = STEPS[0];
+const r2 = x => Math.round(x*100)/100;
+
+function applyLayout() {
+  for (const id of ORDER) {
+    const z = ZONES[id];
+    for (const el of [document.getElementById("zone-"+id), document.getElementById("ol-"+id)]) {
+      el.style.top=z.top+"vh"; el.style.bottom=z.bottom+"vh"; el.style.left=z.left+"vw"; el.style.right=z.right+"vw";
+    }
+    document.getElementById("ol-"+id).classList.toggle("sel", id===sel);
+  }
+  // gap masks follow the ticker band vertically, fixed x from the divider map
+  const t = ZONES.ticker;
+  GAPS.forEach((g, k) => {
+    const el = document.getElementById(k===0 ? "gapA" : "gapB");
+    el.style.left=g.l+"vw"; el.style.right=(100-g.r)+"vw";
+    el.style.top=(t.top-1)+"vh"; el.style.bottom=(t.bottom-1)+"vh";
+  });
+  localStorage.setItem("projBoard2", JSON.stringify(ZONES));
+  updateNums();
+}
+function updateNums() {
+  const rows = ORDER.map(id => { const z=ZONES[id];
+    return NAMES[id].padEnd(12) + `T ${z.top}   R ${z.right}   B ${z.bottom}   L ${z.left}`; }).join("\n");
+  document.getElementById("nums").innerHTML =
+    `<span class="cap">ZONE NUMBERS  (screenshot + send)</span>\n\n` + rows + `\n\nnudge step: ${step}`;
+}
+let hudTimer;
+function showHUD() {
+  const z = ZONES[sel];
+  document.getElementById("hud-who").textContent = "EDITING: " + NAMES[sel] + "   ·   step " + step;
+  document.getElementById("hud-vals").textContent = `top ${z.top} · right ${z.right} · bottom ${z.bottom} · left ${z.left}`;
+  const hud = document.getElementById("hud"); hud.classList.add("on");
+  clearTimeout(hudTimer); hudTimer = setTimeout(()=>hud.classList.remove("on"), 3500);
+}
+document.addEventListener("keydown", e => {
+  if (e.key==="1"){ sel="main"; applyLayout(); showHUD(); return; }
+  if (e.key==="2"){ sel="ticker"; applyLayout(); showHUD(); return; }
+  if (e.key==="g"||e.key==="G"){ document.body.classList.toggle("show-guide"); return; }
+  if (e.key==="n"||e.key==="N"){ document.getElementById("nums").classList.toggle("on"); updateNums(); return; }
+  if (e.key==="f"||e.key==="F"){ stepIx=(stepIx+1)%STEPS.length; step=STEPS[stepIx]; showHUD(); updateNums(); return; }
+  const z = ZONES[sel], sh = e.shiftKey;
+  switch (e.key) {
+    case "ArrowUp":    { const k=sh?"bottom":"top"; z[k]=r2(z[k]+step); break; }
+    case "ArrowDown":  { const k=sh?"bottom":"top"; z[k]=r2(Math.max(0,z[k]-step)); break; }
+    case "ArrowLeft":  { const k=sh?"right":"left"; z[k]=r2(Math.max(0,z[k]-step)); break; }
+    case "ArrowRight": { const k=sh?"right":"left"; z[k]=r2(z[k]+step); break; }
+    case "0": Object.assign(z, DEFAULTS[sel]); break;
+    default: return;
+  }
+  e.preventDefault(); applyLayout(); showHUD();
+});
+applyLayout();
+document.getElementById("hud").classList.add("on");
+setTimeout(()=>document.getElementById("hud").classList.remove("on"), 7000);
+
+/* ===== CLOCK ===== */
+function tick(){ const n=new Date(); let h=n.getHours(); const m=String(n.getMinutes()).padStart(2,"0");
+  const ap=h>=12?"PM":"AM"; h=h%12||12;
+  document.getElementById("time").textContent=`${h}:${m} ${ap}`;
+  document.getElementById("date").textContent=n.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+}
+setInterval(tick,1000); tick();
+
+/* ===== DATA ===== */
+async function fetchJSON(u){ const r=await fetch(u); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
+const WMO={0:"Clear",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Rime fog",51:"Drizzle",53:"Drizzle",
+  55:"Drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",71:"Light snow",73:"Snow",75:"Heavy snow",80:"Showers",
+  81:"Showers",82:"Heavy showers",95:"Thunderstorm",96:"Storm",99:"Storm"};
+async function loadWeather(){
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${CONFIG.lat}&longitude=${CONFIG.lon}`
+    +`&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=${encodeURIComponent(CONFIG.tz)}`;
+  try{ const d=await fetchJSON(u);
+    document.getElementById("wx-temp").innerHTML=Math.round(d.current.temperature_2m)+"&deg;";
+    document.getElementById("wx-desc").textContent=WMO[d.current.weather_code]||"--";
+    document.getElementById("wx-hilo").innerHTML=`H ${Math.round(d.daily.temperature_2m_max[0])}&deg;  L ${Math.round(d.daily.temperature_2m_min[0])}&deg;`;
+  }catch(e){ document.getElementById("wx-desc").innerHTML=`<span class="err">wx failed</span>`; }
+}
+loadWeather(); setInterval(loadWeather, 900000);
+
+const ESPN={NFL:"https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+  CFB:"https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=50"};
+function gameHTML(ev){
+  const c=ev.competitions[0], home=c.competitors.find(t=>t.homeAway==="home"),
+    away=c.competitors.find(t=>t.homeAway==="away"), st=ev.status.type,
+    a=away.team.abbreviation, h=home.team.abbreviation;
+  if(st.state==="pre"){ const t=new Date(ev.date).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+    return `<span class="item"><span class="pre">${a} @ ${h}</span> <span class="sep">&middot;</span> ${t}</span>`; }
+  const cls=st.state==="in"?"live":"final", det=st.shortDetail||(st.completed?"Final":"");
+  return `<span class="item"><span class="score">${a} ${away.score}&ndash;${h} ${home.score}</span> <span class="sep">&middot;</span> <span class="${cls}">${det}</span></span>`;
+}
+/* One combined stream: football -> markets -> news, flowing across all panels */
+async function loadTicker(){
+  const parts=[];
+  for(const [name,url] of Object.entries(ESPN)){
+    try{ const d=await fetchJSON(url); const evs=d.events||[];
+      parts.push(`<span class="item"><span class="lbl">${name}</span></span>`);
+      if(!evs.length) parts.push(`<span class="item">no games today</span>`);
+      else evs.forEach(ev=>parts.push(gameHTML(ev)));
+    }catch(e){ parts.push(`<span class="item err">${name} failed</span>`); }
+  }
+  try{ const d=await fetchJSON(`https://api.coingecko.com/api/v3/simple/price?ids=${CONFIG.coins.join(",")}&vs_currencies=usd&include_24hr_change=true`);
+    parts.push(`<span class="item"><span class="lbl">MARKETS</span></span>`);
+    CONFIG.coins.forEach(id=>{ const row=d[id]; if(!row) return;
+      const chg=row.usd_24h_change??0, cls=chg>=0?"up":"down", ar=chg>=0?"&#9650;":"&#9660;",
+        price=row.usd.toLocaleString("en-US",{maximumFractionDigits:row.usd<10?2:0});
+      parts.push(`<span class="item">${id.toUpperCase()} $${price} <span class="${cls}">${ar} ${Math.abs(chg).toFixed(1)}%</span></span>`);
+    });
+  }catch(e){ parts.push(`<span class="item err">markets failed</span>`); }
+  try{ const d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/football/nfl/news");
+    parts.push(`<span class="item"><span class="lbl">NEWS</span></span>`);
+    (d.articles||[]).slice(0,10).forEach(a=>parts.push(`<span class="item">${a.headline}</span>`));
+  }catch(e){ parts.push(`<span class="item err">news failed</span>`); }
+  setTrack("t-ticker", parts.join(""));
+}
+loadTicker(); setInterval(loadTicker, CONFIG.refresh);
+
+/* ===== MARQUEE ===== */
+function setTrack(id,html){ const el=document.getElementById(id); el.innerHTML=html+html;
+  el.style.animationDuration=Math.max(40, Math.round(html.length/4))+"s"; }
+</script>
+</body>
+</html>

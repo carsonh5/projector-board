@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Projector Hue Tester (in-zone)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; overflow: hidden; cursor: none; color: #fff;
+    font-family: "Segoe UI", system-ui, sans-serif; }
+
+  /* Each preview renders INSIDE its real mapped zone, clipped -- so it can never spill a boundary */
+  .zone { position: fixed; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  #z-main  { top: 30.75vh; bottom: 24.7vh;  left: 0;       right: 0;       flex-direction: column; }
+  #z-bar1  { top: 76vh;    bottom: 15vh;    left: 0.05vw;  right: 56.15vw; }
+  #z-bar2  { top: 75.8vh;  bottom: 15.25vh; left: 45.55vw; right: 28.55vw; }
+  #z-right { top: 75.7vh;  bottom: 15.45vh; left: 75.65vw; right: 0;       }
+
+  #z-main .sample { font-size: 11vh; font-weight: 800; line-height: 1; }
+  .wood .sample   { font-size: 5vh;  font-weight: 800; white-space: nowrap; line-height: 1; }
+
+  #readout { font-size: 2.6vh; color: #cfd3d8; margin-bottom: 2.5vh; font-weight: 600; text-align: center; }
+  #readout b { color: #fff; } #readout .hex { font-family: Consolas, monospace; color: #8a8f96; }
+
+  .tag { position: fixed; left: 0.6vw; font-size: 1.5vh; font-weight: 800; letter-spacing: 0.12em; color: #6a6f76; }
+  #tag-p { top: 31.2vh; } #tag-w { top: 76.4vh; }
+
+  #hint { position: fixed; bottom: 1vh; left: 50%; transform: translateX(-50%);
+    color: #6a6f76; font-size: 1.7vh; font-weight: 600; }
+  #hint b { color: #ffd23f; }
+</style>
+</head>
+<body>
+  <div class="tag" id="tag-p">PLASTER</div>
+  <div class="tag" id="tag-w">WOOD</div>
+
+  <div class="zone" id="z-main"><div id="readout"></div><div class="sample" id="s-main"></div></div>
+  <div class="zone wood" id="z-bar1"><div class="sample s-w"></div></div>
+  <div class="zone wood" id="z-bar2"><div class="sample s-w"></div></div>
+  <div class="zone wood" id="z-right"><div class="sample s-w"></div></div>
+
+  <div id="hint"><b>&larr;/&rarr;</b> shade &middot; <b>&uarr;/&darr;</b> hue &middot; <b>0</b> white baseline &middot; same color shown on every surface, in-bounds</div>
+
+<script>
+"use strict";
+const FAMILIES = [
+  { name:"REDS (round 2)", tag:"Red",    colors:["#FF3B30","#FF2400","#FF3300","#FF1744","#FF073A"] },
+  { name:"ORANGES",        tag:"Orange", colors:["#B34700","#FF6A00","#FF7A00","#FF9F1C","#FFB84D"] },
+  { name:"YELLOW / AMBER", tag:"Amber",  colors:["#C9A200","#FFC300","#FFD23F","#FFE84D","#FFFF00"] },
+  { name:"GREENS",         tag:"Green",  colors:["#1E8E3E","#2ECC40","#34C759","#47D16B","#7CFC00"] },
+  { name:"CYAN / TEAL",    tag:"Cyan",   colors:["#008B8B","#00B3B3","#17C3C3","#35E0E0","#5FF0F0"] },
+  { name:"BLUES",          tag:"Blue",   colors:["#1A56DB","#2E6BFF","#3B82F6","#5B9BFF","#8FBCFF"] },
+  { name:"PURPLE / VIOLET",tag:"Purple", colors:["#6D28D9","#8B5CF6","#9D6BFF","#A78BFA","#C4B5FD"] },
+  { name:"PINK / MAGENTA", tag:"Pink",   colors:["#C2185B","#FF2D95","#FF3EB5","#FF5EDB","#FF8AD8"] },
+];
+let i = 0, s = 0, white = false;
+function render() {
+  const f = FAMILIES[i];
+  const color = white ? "#FFFFFF" : f.colors[s];
+  const label = white ? "White" : `${f.tag} #${s+1}`;
+  document.getElementById("readout").innerHTML =
+    `<b>${f.name}</b> &nbsp; ${label} &nbsp; <span class="hex">${color}</span>`;
+  const setS = el => { el.textContent = label; el.style.color = color; };
+  setS(document.getElementById("s-main"));
+  document.querySelectorAll(".s-w").forEach(setS);
+}
+document.addEventListener("keydown", e => {
+  const f = FAMILIES[i];
+  switch (e.key) {
+    case "ArrowLeft":  white=false; s=(s-1+f.colors.length)%f.colors.length; break;
+    case "ArrowRight": white=false; s=(s+1)%f.colors.length; break;
+    case "ArrowUp":    white=false; i=(i-1+FAMILIES.length)%FAMILIES.length; s=0; break;
+    case "ArrowDown":  white=false; i=(i+1)%FAMILIES.length; s=0; break;
+    case "0": white=!white; break;
+    default: return;
+  }
+  e.preventDefault(); render();
+});
+render();
+</script>
+</body>
+</html>
