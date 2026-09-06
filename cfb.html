@@ -285,6 +285,7 @@ function tmod(logo,name,score,tc,home,to,ball){
 }
 const FLAGS={live:["LIVE","#FF1A1A"],upset:["UPSET ALERT","#FF2D95"],close:["CLOSE GAME","#FF6A00"],rz:["RED ZONE","#FF6A00"],pre:["NEXT UP","#35E0E0"]};
 let FEATURE=["baylor","oregon"], showAll=true;   // regular full CFB by default; press A for featured
+let SCENE="all", FEAT_WHEN="auto", FEAT_MATCHUP=false, TICKER_MODE="all";   // set by the NLU brain via board_sync
 function _nrm(s){ return (s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
 function inFeature(g){ if(showAll||!FEATURE.length) return true;
   const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm);
@@ -379,9 +380,18 @@ function bestGameFor(f){
   const nf=_nrm(f);
   const ms=games.filter(g=>[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm).indexOf(nf)>=0);
   if(!ms.length) return null;
-  const live=ms.filter(g=>g.state==="in"); if(live.length) return live[0];
-  const pre=ms.filter(g=>g.state==="pre").sort((a,b)=>new Date(a.date)-new Date(b.date)); if(pre.length) return pre[0];
-  const post=ms.filter(g=>g.state==="post").sort((a,b)=>new Date(b.date)-new Date(a.date)); return post[0]||ms[0];
+  const live=ms.filter(g=>g.state==="in");
+  const pre=ms.filter(g=>g.state==="pre").sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const post=ms.filter(g=>g.state==="post").sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const w=FEAT_WHEN||"auto";
+  if(w==="last")     return post[0]||live[0]||pre[0]||ms[0];
+  if(w==="upcoming") return pre[0]||live[0]||post[0]||ms[0];
+  if(w==="current")  return live[0]||pre[0]||post[0]||ms[0];
+  return live[0]||pre[0]||post[0]||ms[0];   // auto
+}
+function matchupGame(){   // the single game where every featured team appears (a real matchup)
+  return games.find(function(g){ const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm);
+    return FEATURE.every(function(f){ return keys.indexOf(_nrm(f))>=0; }); }) || null;
 }
 function noGames(msg){ document.body.classList.remove("cards"); document.body.classList.remove("stacked");
   document.getElementById("flag").innerHTML=`<span class="fchip" style="background:#35E0E0">NO GAMES</span>`;
@@ -439,16 +449,18 @@ const seclbl = t => `<span class="item"><span class="seclbl">${t}</span></span>`
 
 let spotIx=0;
 function renderTicker(){
-  /* today's slate: ALL live + ranked upcoming + ranked results (from the week pull, filtered to today) */
   const today=games.filter(g=>g.isToday);
-  const liveT = today.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,12);
-  const upT   = today.filter(g=>g.state==="pre" && g.ranked).sort((a,b)=> a.date<b.date?-1:1).slice(0,10);
-  const resT  = today.filter(g=>g.state==="post" && g.ranked).sort((a,b)=>a.topRank-b.topRank).slice(0,12);
+  const mode=TICKER_MODE||"all";
   let parts=[];
-  liveT.forEach(g=>parts.push(tickItem(g)));
-  upT.forEach(g=>parts.push(tickItem(g)));
-  resT.forEach(g=>parts.push(tickItem(g)));
-  if(!parts.length) today.slice(0,14).forEach(g=>parts.push(tickItem(g)));   // fallback so the ticker is never near-empty
+  if(mode==="live"){ today.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,16).forEach(g=>parts.push(tickItem(g))); }
+  else if(mode==="upcoming"){ today.filter(g=>g.state==="pre").sort((a,b)=>a.date<b.date?-1:1).slice(0,16).forEach(g=>parts.push(tickItem(g))); }
+  else if(mode==="top25"){ today.filter(g=>g.ranked).sort((a,b)=>a.topRank-b.topRank).slice(0,16).forEach(g=>parts.push(tickItem(g))); }
+  else {   /* all: live + ranked upcoming + ranked results */
+    today.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,12).forEach(g=>parts.push(tickItem(g)));
+    today.filter(g=>g.state==="pre"&&g.ranked).sort((a,b)=>a.date<b.date?-1:1).slice(0,10).forEach(g=>parts.push(tickItem(g)));
+    today.filter(g=>g.state==="post"&&g.ranked).sort((a,b)=>a.topRank-b.topRank).slice(0,12).forEach(g=>parts.push(tickItem(g)));
+  }
+  if(!parts.length) today.slice(0,14).forEach(g=>parts.push(tickItem(g)));
   setTicker(parts);
 }
 function render(){
@@ -459,11 +471,19 @@ function render(){
     ? `FEATURED · ${FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" · ")}`
     : `${today.filter(g=>g.state==="in").length} LIVE`;
   if(featMode){
-    const seen={}, cards=[];
-    FEATURE.forEach(function(f){ const g=bestGameFor(f); if(g && !seen[g.id]){ seen[g.id]=1; cards.push(g); } });
+    let cards=[];
+    if(FEAT_MATCHUP && FEATURE.length>=2){ const mg=matchupGame(); if(mg) cards=[mg]; }
+    if(!cards.length){ const seen={}; FEATURE.forEach(function(f){ const g=bestGameFor(f); if(g && !seen[g.id]){ seen[g.id]=1; cards.push(g); } }); }
     if(cards.length===1){
-      exitHL(); document.body.classList.remove("cards","stacked");
-      renderSpotlight(cards[0]);                 /* single matchup = the standard featured bug (field marker / countdown / final) */
+      const g=cards[0];
+      if(g.state==="post" && typeof mountHighlights==="function"){
+        /* FINAL / recap -> autoplay highlights in Zone 1 */
+        document.body.classList.add("hl"); document.body.classList.remove("cards","stacked"); _cdDate=null;
+        document.getElementById("hltop").textContent=(g.aLoc||g.aAbbr).toUpperCase()+" "+g.aS+" – "+g.hS+" "+(g.hLoc||g.hAbbr).toUpperCase()+" · FINAL";
+        if(_hlEvent!==g.id){ _hlEvent=g.id; mountHighlights(document.getElementById("hl"), g.id, { onEmpty:function(){ exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g); } }); }
+      } else {
+        exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g);   /* live/upcoming single = standard bug */
+      }
     } else if(cards.length>=2){
       exitHL(); document.body.classList.add("cards"); document.body.classList.remove("stacked");
       const list=cards.slice(0,4);
@@ -515,7 +535,7 @@ const SB_KEY="sb_publishable_8064CO-O7GTH8ApC55U7Ng_RQesuKSp";
 const SB_HEAD={apikey:SB_KEY, Authorization:"Bearer "+SB_KEY};
 let _lastSceneKey="";
 async function pullZones(){ try{
-  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list",{headers:SB_HEAD,cache:"no-store"});
+  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list,feat_when,feat_matchup,ticker",{headers:SB_HEAD,cache:"no-store"});
   const j=await r.json(); const row=j&&j[0]; if(!row) return;
   const z=row.zones;
   if(z&&z.m){ for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); } applyZones(); }
@@ -524,18 +544,22 @@ async function pullZones(){ try{
     ZORDER.forEach(function(k){ var el=document.getElementById("mo-"+k); if(el) el.classList.toggle("sel",k===ms); });
     var info=document.getElementById("mo-info"); if(info) info.textContent="MAPPING (from your PC) — "+(ZNAME[ms]||ms);
   } else { document.body.classList.remove("mapon"); }
-  const sk=(row.scene||"")+"|"+(row.feature_team||"")+"|"+(row.feature_matchup||"")+"|"+JSON.stringify(row.feature_list||[]);
-  if(sk!==_lastSceneKey){ _lastSceneKey=sk; applyScene(row.scene,row.feature_team,row.feature_matchup,row.feature_list); }
+  const sk=(row.scene||"")+"|"+(row.feature_team||"")+"|"+(row.feature_matchup||"")+"|"+JSON.stringify(row.feature_list||[])+"|"+(row.feat_when||"")+"|"+(row.feat_matchup||"")+"|"+(row.ticker||"");
+  if(sk!==_lastSceneKey){ _lastSceneKey=sk; applyScene(row.scene,row.feature_team,row.feature_matchup,row.feature_list,row.feat_when,row.feat_matchup,row.ticker); }
   const dm=row.demo|0;                               // remote demo: push a canned field example to the projector
   if(dm!==demoIx){ demoIx=dm; DEMO=(dm>=1&&dm<=DEMOS.length)?DEMOS[dm-1]:null; render(); }
 }catch(e){} }
-function applyScene(scene,team,matchup,list){
+function applyScene(scene,team,matchup,list,when,mtch,ticker){
+  SCENE = scene || "all";
+  FEAT_WHEN = when || "auto";
+  FEAT_MATCHUP = !!mtch;
+  TICKER_MODE = ticker || "all";
   let feats = Array.isArray(list) ? list.map(function(s){return String(s).toLowerCase().trim();}).filter(Boolean) : [];
-  if(!feats.length && scene==="feature" && (team||matchup)){
+  if(!feats.length && scene!=="all" && (team||matchup)){
     feats = matchup ? matchup.split(/\bvs\b|\band\b|,/i).map(function(s){return s.trim().toLowerCase();}).filter(Boolean)
-                    : [String(team).toLowerCase()];
+                    : (team ? [String(team).toLowerCase()] : []);
   }
-  if(feats.length){ FEATURE=feats; showAll=false; } else { showAll=true; }
+  if(feats.length){ FEATURE=feats; showAll=false; } else { showAll=true; FEATURE=[]; }
   if(typeof render==="function") render();
 }
 function exitMap(){ document.body.classList.remove("mapon");
