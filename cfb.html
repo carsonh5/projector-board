@@ -13,6 +13,8 @@
 <script src="vendor/confetti.min.js"></script>
 <script src="highlights.js"></script>
 <script src="playerstats.js"></script>
+<script src="standings.js"></script>
+<script src="schedule.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #000; color: #fff; overflow: hidden;
@@ -45,6 +47,10 @@
   #ps { display: none; position: absolute; inset: 0; z-index: 1; }
   body.ps #ps { display: block; }
   body.ps #flag, body.ps #bug, body.ps #infostrip, body.ps #field, body.ps #stack, body.ps #cards, body.ps #hl { display: none; }
+  #standings, #schedule { display: none; position: absolute; inset: 0; z-index: 1; }
+  body.standings #standings, body.schedule #schedule { display: block; }
+  body.standings #flag, body.standings #bug, body.standings #infostrip, body.standings #field, body.standings #stack, body.standings #cards, body.standings #hl, body.standings #ps { display: none; }
+  body.schedule #flag, body.schedule #bug, body.schedule #infostrip, body.schedule #field, body.schedule #stack, body.schedule #cards, body.schedule #hl, body.schedule #ps { display: none; }
   #flag .fchip { font-family: "Oswald", sans-serif; font-size: 3.2vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
     padding: 0.4vh 1.6vw; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
 
@@ -190,6 +196,8 @@
       <div id="cards"></div>
       <div id="hl"><div id="hlvid"></div><div id="hlside"><div id="hlscore"></div><div id="hlcap"></div><div id="hlstats"></div></div></div>
       <div id="ps"></div>
+      <div id="standings"></div>
+      <div id="schedule"></div>
     </div>
   </div>
   <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
@@ -400,6 +408,22 @@ function renderPlayerStatsScene(){
   document.body.classList.add("ps"); document.body.classList.remove("cards","stacked");
   if(_psEvent!==g.id){ _psEvent=g.id; mountPlayerStats(document.getElementById("ps"), g.id, team, { onEmpty:function(){ exitPS(); renderSpotlight(g); } }); }
 }
+var _stConf=null;
+function exitStandings(){ if(_stConf){ try{stopStandings();}catch(e){} _stConf=null; } document.body.classList.remove("standings"); }
+function renderStandingsScene(){
+  var conf=FEATURE[0]||"";
+  if(!conf || typeof mountStandings!=="function"){ exitStandings(); document.body.classList.remove("cards","stacked"); noGames("No standings"); return; }
+  document.body.classList.add("standings"); document.body.classList.remove("cards","stacked");
+  if(_stConf!==conf){ _stConf=conf; mountStandings(document.getElementById("standings"), conf, { onEmpty:function(){ exitStandings(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
+}
+var _schTeam=null;
+function exitSchedule(){ if(_schTeam){ try{stopSchedule();}catch(e){} _schTeam=null; } document.body.classList.remove("schedule"); }
+function renderScheduleScene(){
+  var team=FEATURE[0]||"";
+  if(!team || typeof mountSchedule!=="function"){ exitSchedule(); document.body.classList.remove("cards","stacked"); noGames("No schedule for "+(team||"that team")); return; }
+  document.body.classList.add("schedule"); document.body.classList.remove("cards","stacked");
+  if(_schTeam!==team){ _schTeam=team; mountSchedule(document.getElementById("schedule"), team, { onEmpty:function(){ exitSchedule(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
+}
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
   if(d>0) return d+"d "+h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
   return (h>0? h+":"+String(m).padStart(2,"0") : ""+m)+":"+String(ss).padStart(2,"0"); }
@@ -530,9 +554,11 @@ function renderTicker(){
   setTicker(parts);
 }
 function render(){
-  if(DEMO){ exitHL(); exitPS(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
-  if(SCENE==="playerstats" && FEATURE.length){ document.getElementById("count").textContent="PLAYER STATS · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderPlayerStatsScene(); renderTicker(); return; }
-  exitPS();
+  if(DEMO){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
+  if(SCENE==="playerstats" && FEATURE.length){ exitStandings(); exitSchedule(); document.getElementById("count").textContent="PLAYER STATS · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderPlayerStatsScene(); renderTicker(); return; }
+  if(SCENE==="standings" && FEATURE.length){ exitPS(); exitSchedule(); document.getElementById("count").textContent="STANDINGS · "+FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" "); renderStandingsScene(); renderTicker(); return; }
+  if(SCENE==="schedule" && FEATURE.length){ exitPS(); exitStandings(); document.getElementById("count").textContent="SCHEDULE · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderScheduleScene(); renderTicker(); return; }
+  exitPS(); exitStandings(); exitSchedule();
   const featMode = !showAll && FEATURE.length;
   const today = games.filter(g=>g.isToday);
   document.getElementById("count").textContent = featMode
