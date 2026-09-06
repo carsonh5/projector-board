@@ -72,8 +72,10 @@
     align-items: center; justify-content: center; background: #000000d9; opacity: 0; transition: opacity .3s; pointer-events: none; }
   #mapmode { display: none; }
   body.mapon #mapmode { display: block; }
-  .mo { position: fixed; z-index: 20; border: 3px solid #35c759; pointer-events: none; box-sizing: border-box; }
-  .mo.sel { border-color: #FFE84D; border-width: 6px; }
+  .mo { position: fixed; z-index: 20; border: 1.5px solid #35c759; pointer-events: none; box-sizing: border-box; }
+  .mo.sel { border-width: 3px; }
+  #mo-m { border-color: #a78bfa; }            /* main = purple */
+  #mo-gA, #mo-gB { border-color: #3b9bff; }   /* gaps = blue (ticker stays green) */
   #mo-m { top: var(--m-t,30.75vh); bottom: var(--m-b,24.7vh); left: var(--m-l,0); right: var(--m-r,0); }
   #mo-tk { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); }
   #mo-info { position: fixed; z-index: 21; left: 50%; top: 48vh; transform: translate(-50%,-50%); background: #000000e6; color: #fff;
@@ -271,7 +273,7 @@ const ZORDER=["m","tk","gA","gB"], ZNAME={m:"MAIN BAND",tk:"TICKER",gA:"DIVIDER 
 function applyZones(){ const s=document.documentElement.style;
   s.setProperty("--m-t",Z.m.t+"vh"); s.setProperty("--m-b",Z.m.b+"vh"); s.setProperty("--m-l",Z.m.l+"vw"); s.setProperty("--m-r",Z.m.r+"vw");
   s.setProperty("--tk-t",Z.tk.t+"vh"); s.setProperty("--tk-b",Z.tk.b+"vh"); s.setProperty("--tk-l",Z.tk.l+"vw"); s.setProperty("--tk-r",Z.tk.r+"vw");
-  for(const g of ["gA","gB"]){ s.setProperty("--"+g+"-t",Z[g].t+"vh"); s.setProperty("--"+g+"-b",Z[g].b+"vh"); s.setProperty("--"+g+"-l",Z[g].l+"vw"); s.setProperty("--"+g+"-r",Z[g].r+"vw"); }
+  for(const g of ["gA","gB"]){ s.setProperty("--"+g+"-t",Z.tk.t+"vh"); s.setProperty("--"+g+"-b",Z.tk.b+"vh"); s.setProperty("--"+g+"-l",Z[g].l+"vw"); s.setProperty("--"+g+"-r",Z[g].r+"vw"); }
   localStorage.setItem("pboardZones",JSON.stringify(Z)); }
 applyZones();
 /* --- live cloud sync: PC map edits -> projector, via the dedicated projector-board Supabase --- */
@@ -299,22 +301,23 @@ function pushZones(){ clearTimeout(_pushTimer); _pushTimer=setTimeout(function()
   fetch(SB_URL+"/rest/v1/board_sync?id=eq.1",{method:"PATCH",
     headers:Object.assign({},SB_HEAD,{"Content-Type":"application/json","Prefer":"return=minimal"}),
     body:JSON.stringify({zones:Z, map:mapSel, updated_at:new Date().toISOString()})}).catch(function(){}); },250); }
-let mapOn=new URLSearchParams(location.search).get("map")==="1", mapSel="m", mapFine=false;
+const MAPSTEPS=[1,0.5,0.25,0.1,0.05,0.02]; let mapOn=new URLSearchParams(location.search).get("map")==="1", mapSel="m", mapStepIx=2;
 if(!mapOn){ pullZones(); setInterval(pullZones, 2500); }   // projector receives live edits
 function drawMap(){ if(!mapOn) return;
   ZORDER.forEach(function(k){ const el=document.getElementById("mo-"+k); if(el) el.classList.toggle("sel",mapSel===k); });
   const z=Z[mapSel];
   document.getElementById("mo-info").innerHTML=
-    `MAPPING &mdash; editing <b>${ZNAME[mapSel]}</b> &middot; step ${mapFine?0.25:1}<br>`+
+    `MAPPING &mdash; editing <b>${ZNAME[mapSel]}</b> &middot; step ${MAPSTEPS[mapStepIx]}<br>`+
     `top ${z.t} &nbsp; right ${z.r} &nbsp; bottom ${z.b} &nbsp; left ${z.l}<br>`+
     `<span style="font-size:1.9vh;color:#9aa0a6">Arrows move &middot; Shift+Arrows resize &middot; Enter = next zone (Main/Ticker/Gaps) &middot; F fine</span>`; }
 if(mapOn){ document.body.classList.add("mapon"); drawMap(); pushZones(); }
 document.addEventListener("keydown",function(e){ if(!mapOn) return;
-  const z=Z[mapSel], st=mapFine?0.25:1, sh=e.shiftKey, r2=x=>Math.round(x*100)/100;
+  const z=Z[mapSel], st=MAPSTEPS[mapStepIx], sh=e.shiftKey, r2=x=>Math.round(x*100)/100;
+  if((mapSel==="gA"||mapSel==="gB")&&(e.key==="ArrowUp"||e.key==="ArrowDown")){ e.preventDefault(); return; }  /* gaps: width only */
   switch(e.key){
     case "Escape": mapOn=false; exitMap(); return;
     case "Enter": case " ": mapSel=ZORDER[(ZORDER.indexOf(mapSel)+1)%ZORDER.length]; break;
-    case "f": case "F": mapFine=!mapFine; break;
+    case "f": case "F": mapStepIx=(mapStepIx+1)%MAPSTEPS.length; break;
     case "ArrowUp":    if(sh){z.b=r2(z.b+st);}else{z.t=r2(Math.max(0,z.t-st)); z.b=r2(z.b+st);} break;
     case "ArrowDown":  if(sh){z.b=r2(Math.max(0,z.b-st));}else{z.t=r2(z.t+st); z.b=r2(Math.max(0,z.b-st));} break;
     case "ArrowLeft":  if(sh){z.r=r2(z.r+st);}else{z.l=r2(Math.max(0,z.l-st)); z.r=r2(z.r+st);} break;
