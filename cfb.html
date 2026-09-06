@@ -104,7 +104,9 @@
 
 <script>
 "use strict";
-const SB = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?limit=100";
+function _fbDate(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1);
+  return ""+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0"); }
+function sbUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates="+_fbDate()+"&limit=100"; }
 
 function tick(){ const n=new Date(); let h=n.getHours(); const m=String(n.getMinutes()).padStart(2,"0");
   const ap=h>=12?"PM":"AM"; h=h%12||12; document.getElementById("clock").textContent=`${h}:${m} ${ap}`;
@@ -135,7 +137,7 @@ function favSide(c){ const o=c.odds?.[0]; if(!o) return null;
 let games=[], lastScores={}, firstLoad=true;
 async function load(){
   try{
-    const res=await fetch(SB); if(!res.ok) throw new Error("HTTP "+res.status);
+    const res=await fetch(sbUrl()); if(!res.ok) throw new Error("HTTP "+res.status);
     const data=await res.json();
     games=(data.events||[]).map(ev=>{
       const c=ev.competitions[0];
@@ -252,7 +254,7 @@ load(); setInterval(load, 15000);   // faster live-score detection (catches TDs 
 let _ver=null;
 setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.text();})
   .then(function(v){ v=(v||"").trim(); if(!v) return; if(_ver===null){_ver=v;}
-    else if(v!==_ver){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(v)); } })
+    else if(v!==_ver){ var u=new URL(location.href); u.searchParams.set("v",v); location.replace(u.toString()); } })
   .catch(function(){}); }, 20000);
 const TICKER_PXPS=90, TICKER_MAX=14; let _lastTicker="";   // continuous scroll; guard stops the reset on spotlight rotation
 function setTicker(arr){ const el=document.getElementById("t-ticker");
