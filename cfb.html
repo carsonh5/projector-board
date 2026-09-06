@@ -40,7 +40,8 @@
     font-family: "Oswald", sans-serif; font-size: 8.6vh; font-weight: 700; font-variant-numeric: tabular-nums; }
   #center { flex: 0 0 auto; height: 10vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3vh; padding: 0 1.5vw; }
   #status { font-family: "Oswald", sans-serif; font-size: 4.4vh; font-weight: 600; white-space: nowrap; }
-  #dd { font-family: "Barlow Condensed", sans-serif; font-size: 2.8vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; white-space: nowrap; }
+  #dd { font-family: "Barlow Condensed", sans-serif; font-size: 3.4vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; white-space: nowrap; display: flex; align-items: center; }
+  .rvl { display: inline-block; width: 3px; height: 3vh; background: #FF2400; margin: 0 0.8vw; border-radius: 1px; }
   #infostrip { font-family: "Barlow Condensed", sans-serif; font-size: 3vh; font-weight: 600; display: flex; align-items: center; gap: 1vw; }
   .chip { background: #f0f0f0; color: #111; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.8vh; padding: 0.1vh 0.8vw; border-radius: 4px; }
 
@@ -50,9 +51,9 @@
   .fp-field { position: relative; width: 100%; height: 4.6vh; }
   .fp-line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #fff; transform: translateY(-50%); }
   .fp-first { position: absolute; top: 8%; bottom: 8%; width: 0.35vw; background: #FFE84D; }
+  .fp-tick { position: absolute; top: 34%; bottom: 34%; width: 1px; background: rgba(255,255,255,.4); }
   .fp-ball { position: absolute; top: 50%; left: 0; width: 2.4vw; height: 2.6vh; transform: translate(-50%,-50%); }
   .fp-ball .ball { position: absolute; inset: 0; background: #8a4b1f; border: 0.3vh solid #e8cfa8; border-radius: 50%; }
-  .fp-ball .ball::after { content: ""; position: absolute; left: 50%; top: 18%; bottom: 18%; width: 2px; background: #f2e8d5; transform: translateX(-50%); }
   .fp-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 0; height: 0;
     border-top: 1.3vh solid transparent; border-bottom: 1.3vh solid transparent; }
   .fp-arrow.right { left: 145%; border-left: 1.7vh solid #FF6A00; }
@@ -62,7 +63,7 @@
   .to-bar { width: 1.5vw; height: 0.7vh; background: #fff; transform: skewX(-14deg); }
   .to-bar.off { background: #494e54; }
   /* white possession football, sits just outside the ball-carrier's logo */
-  .fbico { height: 6vh; width: auto; display: block; flex: 0 0 auto; }
+  .fbico { height: 5vh; width: auto; display: block; flex: 0 0 auto; }
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
@@ -215,13 +216,13 @@ function tmod(logo,name,score,tc,home,to,ball){
   const fb=ball?FBALL:"";
   return `<div class="tmod ${home?'home':'away'}">${home ? sc+tos+cell+plate(logo)+fb : fb+plate(logo)+cell+tos+sc}</div>`;
 }
-const FLAGS={live:["LIVE","#FF6A00"],upset:["UPSET ALERT","#FF2D95"],close:["CLOSE GAME","#FF6A00"],rz:["RED ZONE","#FF6A00"],pre:["NEXT UP","#35E0E0"]};
+const FLAGS={live:["LIVE","#FF1A1A"],upset:["UPSET ALERT","#FF2D95"],close:["CLOSE GAME","#FF6A00"],rz:["RED ZONE","#FF6A00"],pre:["NEXT UP","#35E0E0"]};
 let FEATURE=["baylor","oregon"], showAll=true;   // regular full CFB by default; press A for featured
 function inFeature(g){ if(showAll||!FEATURE.length) return true;
   const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(s=>(s||"").toLowerCase()); return FEATURE.some(f=>keys.includes(f)); }
 function centerHTML(g){
   if(g.state==="in") return `<div id="status" class="live">${g.detail}</div>`
-    + `${(g.dd||g.possText)?`<div id="dd">${g.dd||""}${g.dd&&g.possText?" · ":""}${g.possText?"🏈 "+g.possText:""}</div>`:""}`;
+    + `${(g.dd||g.possText)?`<div id="dd">${g.dd||""}${g.dd&&g.possText?'<span class="rvl"></span>':""}${g.possText||""}</div>`:""}`;
   if(g.state==="pre") return `<div id="status" class="pre">${g.start}</div>`;
   return `<div id="status" class="final">FINAL</div>`;
 }
@@ -244,20 +245,21 @@ function fieldPos(g){
   return { ballX, dir, firstX, redzone:!!g.redzone, possIsHome };
 }
 function fieldHTML(fp){
+  let ticks=""; for(let x=10;x<100;x+=10) ticks+=`<div class="fp-tick" style="left:${x}%"></div>`;   // 10-yard ticks
   const first=(fp.firstX!=null)?`<div class="fp-first" style="left:${fp.firstX}%"></div>`:"";
   const arrow=`<span class="fp-arrow ${fp.dir}"></span>`;
   const ball=`<div class="fp-ball" style="left:${fp.ballX}%"><span class="ball"></span>${arrow}</div>`;
-  return `<div class="fp-field"><div class="fp-line"></div>${first}${ball}</div>`;
+  return `<div class="fp-field"><div class="fp-line"></div>${ticks}${first}${ball}</div>`;
 }
 function setField(g){ const el=document.getElementById("field"); const fp=g?fieldPos(g):null;
   if(fp){ el.className="on"; el.innerHTML=fieldHTML(fp); } else { el.className=""; el.innerHTML=""; } }
 /* white possession football (SVG silhouette) + which side has the ball */
-const FBALL='<svg class="fbico" viewBox="0 0 60 40"><path d="M6 20 C18 4 42 4 54 20 C42 36 18 36 6 20 Z" fill="#fff" stroke="#111" stroke-width="2.2"/><path d="M30 13 V27" stroke="#111" stroke-width="2"/><path d="M25 20 H35" stroke="#111" stroke-width="1.6"/></svg>';
+const FBALL='<svg class="fbico" viewBox="0 0 60 40"><path d="M6 20 C18 4 42 4 54 20 C42 36 18 36 6 20 Z" fill="#fff" stroke="#111" stroke-width="2.2"/></svg>';
 function possSide(g){ if(g.state!=="in"||!g.poss) return null;
   if(String(g.poss)===String(g.hId)) return "home";
   if(String(g.poss)===String(g.aId)) return "away"; return null; }
 function tosBars(to){ if(to==null) return "";
-  let b=""; for(let i=0;i<3;i++) b+=`<span class="to-bar${i<to?'':' off'}"></span>`;
+  let b=""; for(let i=0;i<3;i++) b+=`<span class="to-bar${ i<(3-to) ? ' off':'' }"></span>`;   // empty from the top down
   return `<span class="tos">${b}</span>`; }
 
 /* ===== demo mode (press G to cycle field scenarios; no live game needed) ===== */
@@ -279,11 +281,11 @@ const DEMOS=[
 let DEMO=null, demoIx=0;
 
 function renderSpotlight(g){
-  let color,flagText;
-  if(g.state==="in"){ let k=g.isUpset?"upset":(g.redzone?"rz":(g.isClose?"close":"live")); flagText=FLAGS[k][0]; color=FLAGS[k][1]; }
+  let color,flagText,chipText="#111";
+  if(g.state==="in"){ let k=g.isUpset?"upset":(g.redzone?"rz":(g.isClose?"close":"live")); flagText=FLAGS[k][0]; color=FLAGS[k][1]; if(k==="live") chipText="#fff"; }
   else if(g.state==="pre"){ flagText="KICKOFF "+g.start; color=FLAGS.pre[1]; }
   else { flagText="FINAL"; color="#d8dce2"; }
-  document.getElementById("flag").innerHTML=`<span class="fchip" style="background:${color}">${flagText}</span>`;
+  document.getElementById("flag").innerHTML=`<span class="fchip" style="background:${color};color:${chipText}">${flagText}</span>`;
   const s=g.state!=="pre";
   const ps=possSide(g);
   document.getElementById("bug").innerHTML =
@@ -309,8 +311,20 @@ function tickItem(g){
 const seclbl = t => `<span class="item"><span class="seclbl">${t}</span></span>`;
 
 let spotIx=0;
+function renderTicker(){
+  /* wider slate: ALL live + ranked upcoming + ranked results (NOT limited to the featured game) */
+  const liveT = games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,12);
+  const upT   = games.filter(g=>g.state==="pre" && g.ranked).sort((a,b)=> a.date<b.date?-1:1).slice(0,10);
+  const resT  = games.filter(g=>g.state==="post" && g.ranked).sort((a,b)=>a.topRank-b.topRank).slice(0,12);
+  let parts=[];
+  liveT.forEach(g=>parts.push(tickItem(g)));
+  upT.forEach(g=>parts.push(tickItem(g)));
+  resT.forEach(g=>parts.push(tickItem(g)));
+  if(!parts.length) games.slice(0,14).forEach(g=>parts.push(tickItem(g)));   // fallback so the ticker is never near-empty
+  setTicker(parts);
+}
 function render(){
-  if(DEMO){ document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); return; }
+  if(DEMO){ document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   const view=games.filter(inFeature);
   const live=view.filter(g=>g.state==="in"), pre=view.filter(g=>g.state==="pre"), post=view.filter(g=>g.state==="post");
   document.getElementById("count").textContent = (showAll||!FEATURE.length)
@@ -321,16 +335,7 @@ function render(){
   else { document.getElementById("flag").innerHTML=`<span class="fchip" style="background:#35E0E0">NO GAMES</span>`;
     document.getElementById("bug").innerHTML=`<div class="tscore" style="font-size:4.5vh">No ${FEATURE.map(f=>f[0].toUpperCase()+f.slice(1)).join(" / ")} games</div>`;
     document.getElementById("infostrip").innerHTML=""; setField(null); }
-
-  /* ticker = wider slate: LIVE + upcoming PRIMETIME/ranked + RESULTS (marquee or featured) */
-  const liveT = games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,12);
-  const upT   = games.filter(g=>g.state==="pre" && (g.ranked||inFeature(g))).sort((a,b)=> a.date<b.date?-1:1).slice(0,12);
-  const resT  = games.filter(g=>g.state==="post" && (g.ranked||inFeature(g))).sort((a,b)=>a.topRank-b.topRank).slice(0,12);
-  let parts=[];
-  liveT.forEach(g=>parts.push(tickItem(g)));
-  upT.forEach(g=>parts.push(tickItem(g)));
-  resT.forEach(g=>parts.push(tickItem(g)));
-  setTicker(parts);
+  renderTicker();
 }
 setInterval(()=>{ spotIx++; render(); }, 10000);
 load(); setInterval(load, 15000);   // faster live-score detection (catches TDs sooner)
