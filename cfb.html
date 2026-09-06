@@ -46,8 +46,9 @@
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
-  #zone-ticker .track { display: flex; width: 100%; justify-content: space-around; align-items: center; white-space: nowrap;
-    padding: 0 1.5vw; font-family: "Barlow Condensed", sans-serif; font-size: 4.6vh; font-weight: 700; transition: opacity .18s; }
+  #zone-ticker .track { display: inline-block; white-space: nowrap; padding-left: 3vw;
+    font-family: "Barlow Condensed", sans-serif; font-size: 4.6vh; font-weight: 700; will-change: transform; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
   @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
   .item { display: inline-block; padding: 0 1.8vw; }
   .item .sep { color: #6a6f76; padding: 0 0.7vw; }
@@ -251,14 +252,11 @@ setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).th
   .then(function(v){ v=(v||"").trim(); if(!v) return; if(_ver===null){_ver=v;}
     else if(v!==_ver){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(v)); } })
   .catch(function(){}); }, 20000);
-const PAGE_SIZE=4, PAGE_MS=8000;   // paged ticker: dwell per page in ms (raise to slow down)
-let tickerItems=[], tickerPage=0, tickerTimer=null;
-function setTicker(arr){ tickerItems = arr.length?arr:['<span class="item">No games today</span>'];
-  if(!tickerTimer){ showTickerPage(); tickerTimer=setInterval(function(){ tickerPage++; showTickerPage(); }, PAGE_MS); } }
-function showTickerPage(){ const el=document.getElementById("t-ticker");
-  const pages=Math.max(1, Math.ceil(tickerItems.length/PAGE_SIZE)); const p=tickerPage%pages;
-  el.style.opacity="0";
-  setTimeout(function(){ el.innerHTML=tickerItems.slice(p*PAGE_SIZE, p*PAGE_SIZE+PAGE_SIZE).join(""); el.style.opacity="1"; }, 180); }
+const TICKER_PXPS=90, TICKER_MAX=14;   // continuous scroll: constant px/sec, capped so the GPU layer stays small
+function setTicker(arr){ const el=document.getElementById("t-ticker");
+  const html=(arr.length?arr.slice(0,TICKER_MAX):['<span class="item">No games today</span>']).join("");
+  el.innerHTML=html+html; el.style.animation="none";
+  requestAnimationFrame(function(){ const w=el.scrollWidth/2; el.style.animation="scroll "+Math.max(12,Math.round(w/TICKER_PXPS))+"s linear infinite"; }); }
 
 /* ===== ZONES + MAPPING MODE (add ?map=1 to the URL to edit; saved on this device) ===== */
 const ZDEF={ m:{t:30.75,r:0,b:24.7,l:0}, tk:{t:76,r:0,b:15,l:0} };
