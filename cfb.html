@@ -280,8 +280,9 @@ applyZones();
 const SB_URL="https://gnfnvsarnregwunhtnak.supabase.co";
 const SB_KEY="sb_publishable_8064CO-O7GTH8ApC55U7Ng_RQesuKSp";
 const SB_HEAD={apikey:SB_KEY, Authorization:"Bearer "+SB_KEY};
+let _lastSceneKey="";
 async function pullZones(){ try{
-  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map",{headers:SB_HEAD,cache:"no-store"});
+  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup",{headers:SB_HEAD,cache:"no-store"});
   const j=await r.json(); const row=j&&j[0]; if(!row) return;
   const z=row.zones;
   if(z&&z.m){ for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); } applyZones(); }
@@ -290,7 +291,17 @@ async function pullZones(){ try{
     ZORDER.forEach(function(k){ var el=document.getElementById("mo-"+k); if(el) el.classList.toggle("sel",k===ms); });
     var info=document.getElementById("mo-info"); if(info) info.textContent="MAPPING (from your PC) — "+(ZNAME[ms]||ms);
   } else { document.body.classList.remove("mapon"); }
+  const sk=(row.scene||"")+"|"+(row.feature_team||"")+"|"+(row.feature_matchup||"");
+  if(sk!==_lastSceneKey){ _lastSceneKey=sk; applyScene(row.scene,row.feature_team,row.feature_matchup); }
 }catch(e){} }
+function applyScene(scene,team,matchup){
+  if(scene==="feature" && (team||matchup)){
+    let t = matchup ? matchup.split(/\bvs\b|\band\b|,/i).map(function(s){return s.trim().toLowerCase();}).filter(Boolean)
+                    : [String(team).toLowerCase()];
+    if(t.length){ FEATURE=t; showAll=false; }
+  } else { showAll=true; }
+  if(typeof render==="function") render();
+}
 function exitMap(){ document.body.classList.remove("mapon");
   fetch(SB_URL+"/rest/v1/board_sync?id=eq.1",{method:"PATCH",keepalive:true,
     headers:Object.assign({},SB_HEAD,{"Content-Type":"application/json","Prefer":"return=minimal"}),
