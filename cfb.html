@@ -211,7 +211,13 @@ function teamColors(hex){ let n=parseInt(hex||"888888",16); if(isNaN(n)) n=0x888
   const L=0.299*r+0.587*g+0.114*b; return { bg:`rgb(${r|0},${g|0},${b|0})`, text: L>150?"#111":"#fff" }; }
 const rankNum = t => { const r=t?.curatedRank?.current; return (r&&r<=25)?r:99; };
 const rk = t => { const r=rankNum(t); return r<99?`#${r} `:""; };
-const logoOf = t => t.logo || t.logos?.[0]?.href || `https://a.espncdn.com/i/teamlogos/ncaa/500/${t.id}.png`;
+let LOGO_MAP = {};   // curated dark-bg team logos (white-outlined); fall back to ESPN when a team isn't in the set
+fetch("logos/logo-map.json",{cache:"force-cache"}).then(r=>r.json()).then(m=>{ LOGO_MAP=m||{}; if(typeof render==="function"&&games.length) render(); }).catch(()=>{});
+const logoOf = t => {
+  const f = LOGO_MAP[(t.abbreviation||"").toUpperCase()] || LOGO_MAP[(t.location||"").toLowerCase()];
+  if(f) return "logos/"+f;
+  return t.logo || t.logos?.[0]?.href || `https://a.espncdn.com/i/teamlogos/ncaa/500/${t.id}.png`;
+};
 function channelOf(c){ const b=c.broadcasts?.[0]; if(b?.names?.length) return b.names.join("/");
   const g=c.geoBroadcasts?.[0]; return g?.media?.shortName||""; }
 function oddsOf(c){ const o=c.odds?.[0]; if(!o) return {line:"",ou:""};
