@@ -564,7 +564,7 @@ function renderTicker(){
       .concat(today.filter(g=>g.state==="post").sort((a,b)=>a.topRank-b.topRank).slice(0,16));
   }
   if(!pool.length) pool=today.slice(0,16);
-  const sig=mode+"|"+pool.map(g=>g.id+g.state).join(",");
+  const sig=mode+"|"+pool.map(g=>g.id+g.state+g.aS+g.hS).join(",");
   setTicker(pool.map(tickItem), sig);
 }
 function render(){
