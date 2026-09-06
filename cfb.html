@@ -44,6 +44,25 @@
   #infostrip { font-family: "Barlow Condensed", sans-serif; font-size: 3vh; font-weight: 600; display: flex; align-items: center; gap: 1vw; }
   .chip { background: #f0f0f0; color: #111; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.8vh; padding: 0.1vh 0.8vw; border-radius: 4px; }
 
+  /* ===== field-position strip (live spotlight) ===== */
+  #field { width: 62%; display: none; align-items: center; gap: 0.5vw; }
+  #field.on { display: flex; }
+  .fp-cap { flex: 0 0 auto; min-width: 4.4vw; height: 4.2vh; display: flex; align-items: center; justify-content: center;
+    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.4vh; letter-spacing: 0.02em; }
+  .fp-cap.tgt { box-shadow: 0 0 0 0.25vh #fff, 0 0 1.4vh 0.4vh #FF2400; }
+  .fp-field { position: relative; flex: 1; height: 4.2vh; background: #12351f; border: 1px solid #2c5c3d; overflow: hidden; }
+  .fp-hash { position: absolute; top: 14%; bottom: 14%; width: 1px; background: rgba(255,255,255,.20); }
+  .fp-hash.fifty { width: 2px; top: 6%; bottom: 6%; background: rgba(255,255,255,.50); }
+  .fp-los { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.85); }
+  .fp-first { position: absolute; top: 0; bottom: 0; width: 0.3vw; background: #FFE84D; box-shadow: 0 0 0.6vh #FFE84D; }
+  .fp-ball { position: absolute; top: 50%; width: 2.4vw; height: 2.6vh; transform: translate(-50%,-50%); }
+  .fp-ball .ball { position: absolute; inset: 0; background: #8a4b1f; border: 0.3vh solid #e8cfa8; border-radius: 50%; }
+  .fp-ball .ball::after { content: ""; position: absolute; left: 50%; top: 18%; bottom: 18%; width: 2px; background: #f2e8d5; transform: translateX(-50%); }
+  .fp-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 0; height: 0;
+    border-top: 1.1vh solid transparent; border-bottom: 1.1vh solid transparent; }
+  .fp-arrow.right { left: 132%; border-left: 1.4vh solid #FF6A00; }
+  .fp-arrow.left { right: 132%; border-right: 1.4vh solid #FF6A00; }
+
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
   #zone-ticker .track { display: inline-block; white-space: nowrap; padding-left: 3vw;
@@ -97,6 +116,7 @@
       <div id="flag"></div>
       <div id="bug"><div class="tscore" style="font-size:5vh">Loading&hellip;</div></div>
       <div id="infostrip"></div>
+      <div id="field"></div>
     </div>
   </div>
   <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
@@ -119,6 +139,7 @@ document.addEventListener("keydown", e=>{
   if(e.key==="l"||e.key==="L") document.body.classList.toggle("white-logos");
   if(e.key==="t"||e.key==="T") celebrate("BUFFS","#FF6A00",7);
   if(e.key==="a"||e.key==="A"){ showAll=!showAll; render(); }
+  if(e.key==="g"||e.key==="G"){ demoIx++; if(demoIx>DEMOS.length){ demoIx=0; DEMO=null; } else DEMO=DEMOS[demoIx-1]; render(); }
 });
 document.addEventListener("click", ()=>{ const el=document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); });
 
@@ -160,6 +181,7 @@ async function load(){
         aS,hS,state, detail:st.shortDetail||"", channel:channelOf(c), line, ou,
         ranked:(aR<99||hR<99), topRank:Math.min(aR,hR),
         redzone:!!c.situation?.isRedZone, possText:c.situation?.possessionText||"", dd:c.situation?.shortDownDistanceText||"",
+        poss:c.situation?.possession||"", aId:away.team.id, hId:home.team.id, dist:(c.situation&&c.situation.distance!=null?+c.situation.distance:null),
         isUpset, isClose, watch, start: (function(d){return d.toLocaleDateString("en-US",{weekday:"short"}).toUpperCase()+" "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});})(new Date(ev.date)) };
     });
     games.forEach(g=>{ const p=lastScores[g.id];
@@ -199,6 +221,56 @@ function centerHTML(g){
   if(g.state==="pre") return `<div id="status" class="pre">${g.start}</div>`;
   return `<div id="status" class="final">FINAL</div>`;
 }
+/* ===== field-position marker: parse ESPN possession into a 0-100 field spot ===== */
+/* orientation: AWAY end zone = left (x=0), HOME end zone = right (x=100) */
+function fieldPos(g){
+  if(g.state!=="in") return null;
+  const pt=(g.possText||"").trim(); if(!pt||!g.poss) return null;
+  const m=pt.match(/^(.*?)(\d{1,2})\s*$/); if(!m) return null;
+  const side=(m[1]||"").trim().toUpperCase(), yard=+m[2];
+  const possIsHome=String(g.poss)===String(g.hId), possIsAway=String(g.poss)===String(g.aId);
+  if(!possIsHome&&!possIsAway) return null;
+  const possAbbr=(possIsHome?g.hAbbr:g.aAbbr).toUpperCase();
+  let ytg;                                   // yards to the defense's end zone
+  if(!side) ytg=50; else if(side===possAbbr) ytg=100-yard; else ytg=yard;
+  ytg=Math.max(0,Math.min(100,ytg));
+  let ballX,dir,firstX=null;
+  if(possIsAway){ dir="right"; ballX=100-ytg; if(g.dist!=null) firstX=Math.min(100,ballX+g.dist); }
+  else          { dir="left";  ballX=ytg;     if(g.dist!=null) firstX=Math.max(0,  ballX-g.dist); }
+  return { ballX, dir, firstX, redzone:!!g.redzone, possIsHome };
+}
+function fieldHTML(fp,g){
+  let hs=""; for(let x=10;x<100;x+=10) hs+=`<div class="fp-hash${x===50?' fifty':''}" style="left:${x}%"></div>`;
+  const first=(fp.firstX!=null)?`<div class="fp-first" style="left:${fp.firstX}%"></div>`:"";
+  const los=`<div class="fp-los" style="left:${fp.ballX}%"></div>`;
+  const arrow=`<span class="fp-arrow ${fp.dir}"></span>`;
+  const ball=`<div class="fp-ball" style="left:${fp.ballX}%"><span class="ball"></span>${arrow}</div>`;
+  const aTgt=(fp.dir==="left"&&fp.redzone)?" tgt":"", hTgt=(fp.dir==="right"&&fp.redzone)?" tgt":"";
+  const aCap=`<div class="fp-cap${aTgt}" style="background:${g.aTC.bg};color:${g.aTC.text}">${g.aAbbr}</div>`;
+  const hCap=`<div class="fp-cap${hTgt}" style="background:${g.hTC.bg};color:${g.hTC.text}">${g.hAbbr}</div>`;
+  return aCap+`<div class="fp-field">${hs}${first}${los}${ball}</div>`+hCap;
+}
+function setField(g){ const el=document.getElementById("field"); const fp=g?fieldPos(g):null;
+  if(fp){ el.className="on"; el.innerHTML=fieldHTML(fp,g); } else { el.className=""; el.innerHTML=""; } }
+
+/* ===== demo mode (press G to cycle field scenarios; no live game needed) ===== */
+function dTeam(id,abbr,color){ return {id,abbr,color}; }
+function makeDemo(a,h,possText,possIsHome,dist,rz,detail,dd,aS,hS){
+  const aTC=teamColors(a.color), hTC=teamColors(h.color), L=id=>`https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png`;
+  return { id:"demo", state:"in", detail, aAbbr:a.abbr, hAbbr:h.abbr, aName:a.abbr, hName:h.abbr,
+    aLogo:L(a.id), hLogo:L(h.id), aTC, hTC, aColUnder:aTC.bg, hColUnder:hTC.bg, aS, hS,
+    channel:"DEMO", line:"", ou:"", dd, possText, poss:(possIsHome?h.id:a.id), aId:a.id, hId:h.id,
+    dist, redzone:rz, isUpset:false, isClose:false };
+}
+const _CO=dTeam(38,"COLO","CFB87C"), _TEX=dTeam(251,"TEX","BF5700"), _UGA=dTeam(61,"UGA","BA0C2F"), _ALA=dTeam(333,"ALA","9E1B32");
+const DEMOS=[
+  makeDemo(_CO,_TEX,"TEX 20",true, 8,false,"8:42 · 2ND","2ND & 8",     10,14), // Texas ball, own 20, driving left
+  makeDemo(_CO,_TEX,"TEX 12",false,4,true, "2:10 · 1ST","1ST & GOAL",  17,14), // Colorado ball, red zone, driving right
+  makeDemo(_UGA,_ALA,"50",   false,10,false,"11:03 · 3RD","3RD & 10",   7, 7), // Georgia ball, midfield, driving right
+  makeDemo(_UGA,_ALA,"UGA 35",true, 3,false,"5:20 · 3RD","3RD & 3",     13,10), // Alabama ball, opp territory, driving left
+];
+let DEMO=null, demoIx=0;
+
 function renderSpotlight(g){
   let color,flagText;
   if(g.state==="in"){ let k=g.isUpset?"upset":(g.redzone?"rz":(g.isClose?"close":"live")); flagText=FLAGS[k][0]; color=FLAGS[k][1]; }
@@ -211,6 +283,7 @@ function renderSpotlight(g){
   const strip=document.getElementById("infostrip"); strip.innerHTML="";
   if(g.channel) strip.innerHTML+=`<span class="chip">${g.channel}</span>`;
   const extra=[g.line,g.ou].filter(Boolean).join(' · '); if(extra) strip.innerHTML+=`<span>${extra}</span>`;
+  setField(g);
 }
 
 /* ticker item + section builder */
@@ -229,6 +302,7 @@ const seclbl = t => `<span class="item"><span class="seclbl">${t}</span></span>`
 
 let spotIx=0;
 function render(){
+  if(DEMO){ document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); return; }
   const view=games.filter(inFeature);
   const live=view.filter(g=>g.state==="in"), pre=view.filter(g=>g.state==="pre"), post=view.filter(g=>g.state==="post");
   document.getElementById("count").textContent = (showAll||!FEATURE.length)
@@ -238,7 +312,7 @@ function render(){
   if(rotation.length){ renderSpotlight(rotation[spotIx%rotation.length]); }
   else { document.getElementById("flag").innerHTML=`<span class="fchip" style="background:#35E0E0">NO GAMES</span>`;
     document.getElementById("bug").innerHTML=`<div class="tscore" style="font-size:4.5vh">No ${FEATURE.map(f=>f[0].toUpperCase()+f.slice(1)).join(" / ")} games</div>`;
-    document.getElementById("infostrip").innerHTML=""; }
+    document.getElementById("infostrip").innerHTML=""; setField(null); }
 
   /* ticker = wider slate: LIVE + upcoming PRIMETIME/ranked + RESULTS (marquee or featured) */
   const liveT = games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch).slice(0,12);
