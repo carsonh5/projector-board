@@ -139,7 +139,7 @@ async function load(){
         aS,hS,state, detail:st.shortDetail||"", channel:channelOf(c), line, ou,
         ranked:(aR<99||hR<99), topRank:Math.min(aR,hR),
         redzone:!!c.situation?.isRedZone, possText:c.situation?.possessionText||"", dd:c.situation?.shortDownDistanceText||"",
-        isUpset, isClose, watch, start: new Date(ev.date).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) };
+        isUpset, isClose, watch, start: (function(d){return d.toLocaleDateString("en-US",{weekday:"short"}).toUpperCase()+" "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});})(new Date(ev.date)) };
     });
     games.forEach(g=>{ const p=lastScores[g.id];
       if(p&&!firstLoad){ if(g.aS>p.a) celebrate(g.aAbbr,g.aTC.bg,g.aS-p.a); if(g.hS>p.h) celebrate(g.hAbbr,g.hTC.bg,g.hS-p.h); }
@@ -233,8 +233,9 @@ load(); setInterval(load, 30000);
 // reload ONLY when a new version is deployed (checked every 45s) -- no wasteful restarts
 let _ver=null;
 setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.text();})
-  .then(function(v){ v=(v||"").trim(); if(!v) return; if(_ver===null){_ver=v;} else if(v!==_ver){location.reload();} })
-  .catch(function(){}); }, 45000);
+  .then(function(v){ v=(v||"").trim(); if(!v) return; if(_ver===null){_ver=v;}
+    else if(v!==_ver){ location.replace(location.pathname.split("?")[0]+"?v="+encodeURIComponent(v)); } })
+  .catch(function(){}); }, 20000);
 const TICKER_PXPS = 95;   // ticker scroll speed in pixels/second -- raise to go faster
 function setTrack(id,html){ const el=document.getElementById(id); el.innerHTML=html+html;
   el.style.animationDuration="0s";
