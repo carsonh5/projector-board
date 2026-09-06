@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet" />
 <script src="vendor/confetti.min.js"></script>
+<script src="highlights.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #000; color: #fff; overflow: hidden;
@@ -21,7 +22,15 @@
   #date { font-size: 2.8vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
   #count { font-family: "Oswald", sans-serif; font-size: 3vh; color: #FFE84D; font-weight: 600; letter-spacing: 0.06em; }
 
-  #bugwrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4vh; min-height: 0; padding: 0 3vw; }
+  #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4vh; min-height: 0; padding: 0 3vw; }
+  /* highlights fill Zone 1 (final/halftime of a featured game) */
+  #hl { display: none; position: absolute; inset: 0; z-index: 1; }
+  body.hl #hl { display: block; }
+  body.hl #flag, body.hl #bug, body.hl #infostrip, body.hl #field, body.hl #stack, body.hl #cards { display: none; }
+  #hltop { display: none; position: absolute; top: 0; left: 0; right: 0; z-index: 2; padding: 1vh 2vw;
+    background: linear-gradient(#000d, transparent); font-family: "Oswald", sans-serif; font-weight: 700;
+    font-size: 3vh; color: #fff; text-align: center; letter-spacing: 0.04em; }
+  body.hl #hltop { display: block; }
   #flag .fchip { font-family: "Oswald", sans-serif; font-size: 3.2vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
     padding: 0.4vh 1.6vw; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
 
@@ -161,6 +170,8 @@
       <div id="field"></div>
       <div id="stack"></div>
       <div id="cards"></div>
+      <div id="hltop"></div>
+      <div id="hl"></div>
     </div>
   </div>
   <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
@@ -312,7 +323,8 @@ function tosBars(to){ if(to==null) return "";
   return `<span class="tos">${b}</span>`; }
 
 /* pre-game countdown + multi-feature stacked mini-bugs */
-let _cdDate=null;
+let _cdDate=null, _hlEvent=null;
+function exitHL(){ if(_hlEvent){ try{stopHighlights();}catch(e){} _hlEvent=null; } document.body.classList.remove("hl"); }
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
   if(d>0) return d+"d "+h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
   return (h>0? h+":"+String(m).padStart(2,"0") : ""+m)+":"+String(ss).padStart(2,"0"); }
@@ -430,7 +442,7 @@ function renderTicker(){
   setTicker(parts);
 }
 function render(){
-  if(DEMO){ document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
+  if(DEMO){ exitHL(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   const featMode = !showAll && FEATURE.length;
   const today = games.filter(g=>g.isToday);
   document.getElementById("count").textContent = featMode
@@ -439,6 +451,18 @@ function render(){
   if(featMode){
     const seen={}, cards=[];
     FEATURE.forEach(function(f){ const g=bestGameFor(f); if(g && !seen[g.id]){ seen[g.id]=1; cards.push(g); } });
+    const single = cards.length===1 ? cards[0] : null;
+    if(single && single.state==="post"){
+      /* FINAL → autoplay highlights in Zone 1 (fall back to the final card if ESPN has no clips yet) */
+      document.body.classList.add("hl"); document.body.classList.remove("cards","stacked"); _cdDate=null;
+      document.getElementById("hltop").textContent=(single.aLoc||single.aAbbr).toUpperCase()+" "+single.aS+" – "+single.hS+" "+(single.hLoc||single.hAbbr).toUpperCase()+" · FINAL";
+      if(_hlEvent!==single.id && typeof mountHighlights==="function"){
+        _hlEvent=single.id;
+        mountHighlights(document.getElementById("hl"), single.id, { onEmpty:function(){ exitHL(); document.body.classList.add("cards"); document.getElementById("cards").innerHTML=gameCard(single,true); } });
+      }
+      renderTicker(); return;
+    }
+    exitHL();
     if(cards.length){
       document.body.classList.add("cards"); document.body.classList.remove("stacked");
       const list=cards.slice(0,4);
@@ -446,6 +470,7 @@ function render(){
       _cdDate=(list.length===1 && list[0].state==="pre" && list[0].date) ? new Date(list[0].date).getTime() : null; tickCountdown();
     } else { noGames("No games for "+FEATURE.map(f=>f[0].toUpperCase()+f.slice(1).replace(/_/g," ")).join(" / ")); }
   } else {
+    exitHL();
     document.body.classList.remove("cards","stacked");
     const live=today.filter(g=>g.state==="in"), pre=today.filter(g=>g.state==="pre"), post=today.filter(g=>g.state==="post");
     const rotation=[...live.sort((a,b)=>b.watch-a.watch), ...pre.sort((a,b)=>a.date<b.date?-1:1), ...post];
