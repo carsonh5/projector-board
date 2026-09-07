@@ -46,6 +46,11 @@
   let _capEl = null;
   let _active = false;
   let _onClip = null;  // caller callback, set per mountHighlights() call
+  // Fire TV / Amazon devices (model prefix "AFT") cannot composite the WebView video overlay to the
+  // screen — the <video> hole-punch shows black. Detect them and use an image slideshow of the clip
+  // thumbnails instead, which composites in-page and always displays.
+  const _IMG_MODE = /\bAFT[A-Z0-9]/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "");
+  const IMG_DWELL_S = 6;
 
   // ── Internal helpers ───────────────────────────────────────────────────────
 
@@ -99,13 +104,19 @@
     idx = ((idx % _clips.length) + _clips.length) % _clips.length;
     _idx = idx;
     const clip = _clips[idx];
-    const src = clip.mp4 || _srcOf(clip);   // clips are already mapped to {mp4}; _srcOf needs raw ESPN shape
 
-    // Clear advance timer
     clearTimeout(_advanceTimer);
 
-    // Load clip — Fire Stick / Fully Kiosk webview needs muted set as an ATTRIBUTE before src,
-    // plus a retry once the media is actually decodable, or autoplay silently no-ops.
+    if (_IMG_MODE) {
+      // Image slideshow: show the clip thumbnail, dwell, then advance.
+      if (clip.thumbnail) _videoEl.src = clip.thumbnail;
+      _updateCaption(clip, idx, _clips.length);
+      _advanceTimer = setTimeout(function () { _playClip(_idx + 1); }, IMG_DWELL_S * 1000);
+      return;
+    }
+
+    const src = clip.mp4 || _srcOf(clip);   // clips are already mapped to {mp4}; _srcOf needs raw ESPN shape
+    // Load clip — webview needs muted set as an ATTRIBUTE before src, plus a retry once decodable.
     _videoEl.muted = true; _videoEl.defaultMuted = true;
     _videoEl.setAttribute("muted", "");
     _videoEl.setAttribute("playsinline", "");
@@ -121,7 +132,6 @@
     _updateCaption(clip, idx, _clips.length);
 
     // Safety net: advance after CLIP_MAX_DURATION_S regardless of 'ended' event
-    // (some ESPN clips loop at network level and never fire 'ended')
     const maxMs = (clip.duration ? Math.min(clip.duration, CLIP_MAX_DURATION_S) : CLIP_MAX_DURATION_S) * 1000;
     _advanceTimer = setTimeout(function () {
       _playClip(_idx + 1);
@@ -160,23 +170,30 @@
     container.style.cssText =
       "position:relative;width:100%;height:100%;background:" + PALETTE.bg + ";overflow:hidden;";
 
-    const video = document.createElement("video");
-    video.id = "hl-video";
-    video.muted = true;
-    video.defaultMuted = true;
-    video.playsInline = true;
-    video.autoplay = true;
-    // Attributes (not just properties) — required for Fire Stick / Fully Kiosk webview autoplay policy
-    video.setAttribute("muted", "");
-    video.setAttribute("playsinline", "");
-    video.setAttribute("webkit-playsinline", "");
-    video.setAttribute("autoplay", "");
-    video.setAttribute("preload", "auto");
-    // No controls — projector display. Transparent bg so the clip THUMBNAIL painted on the
-    // container shows through on devices where the WebView video overlay doesn't composite
-    // (e.g. Fire Stick). Where video renders normally (desktop) it paints opaque frames on top.
-    video.style.cssText = "width:100%;height:100%;object-fit:contain;background:transparent;display:block;position:relative;z-index:2;";
-    container.appendChild(video);
+    if (_IMG_MODE) {
+      // Fire TV: image slideshow of clip thumbnails (no <video>, so no hole-punch → always visible)
+      const img = document.createElement("img");
+      img.id = "hl-image";
+      img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;background:#000;";
+      container.appendChild(img);
+      _videoEl = img;   // reuse the same handle; _playClip branches on _IMG_MODE
+    } else {
+      const video = document.createElement("video");
+      video.id = "hl-video";
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.autoplay = true;
+      // Attributes (not just properties) — required for webview autoplay policy
+      video.setAttribute("muted", "");
+      video.setAttribute("playsinline", "");
+      video.setAttribute("webkit-playsinline", "");
+      video.setAttribute("autoplay", "");
+      video.setAttribute("preload", "auto");
+      video.style.cssText = "width:100%;height:100%;object-fit:contain;background:#000;display:block;";
+      container.appendChild(video);
+      _videoEl = video;
+    }
 
     // Caption overlay — skipped when the host renders the caption in a side panel (noCaption)
     let cap = null;
@@ -190,21 +207,21 @@
       container.appendChild(cap);
     }
 
-    // 'Ended' listener — advance immediately on natural end
-    video.addEventListener("ended", function () {
-      clearTimeout(_advanceTimer);
-      _playClip(_idx + 1);
-    });
-
-    // Error listener — skip broken clip
-    video.addEventListener("error", function () {
-      clearTimeout(_advanceTimer);
-      _advanceTimer = setTimeout(function () {
+    if (!_IMG_MODE && _videoEl) {
+      // 'Ended' listener — advance immediately on natural end
+      _videoEl.addEventListener("ended", function () {
+        clearTimeout(_advanceTimer);
         _playClip(_idx + 1);
-      }, 500);
-    });
+      });
+      // Error listener — skip broken clip
+      _videoEl.addEventListener("error", function () {
+        clearTimeout(_advanceTimer);
+        _advanceTimer = setTimeout(function () {
+          _playClip(_idx + 1);
+        }, 500);
+      });
+    }
 
-    _videoEl = video;
     _capEl = cap;
   }
 
@@ -264,7 +281,7 @@
     clearTimeout(_advanceTimer);
     _advanceTimer = null;
     if (_videoEl) {
-      _videoEl.pause();
+      if (typeof _videoEl.pause === "function") _videoEl.pause();
       _videoEl.src = "";
       _videoEl = null;
     }
