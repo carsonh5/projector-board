@@ -279,9 +279,14 @@ async function load(){
       if(state==="in"){ watch=100-Math.abs(hS-aS)*5; if(period>=4)watch+=20; else if(period>=3)watch+=10;
         if(isUpset)watch+=30; if(c.situation?.isRedZone)watch+=15; }
       const {line,ou}=oddsOf(c);
-      let detail=st.shortDetail||"";   // use the LIVE displayClock (same freshness as play-by-play), not the slower shortDetail
-      if(state==="in"){ const dc=c.status&&c.status.displayClock, p=c.status&&c.status.period;
-        if(dc && dc!=="0:00" && p){ const ord=p===1?"1ST":p===2?"2ND":p===3?"3RD":p===4?"4TH":(p>4?"OT":p+"TH"); detail=dc+" · "+ord; } }
+      let detail=st.shortDetail||"";   // keep clock IN SYNC with play-by-play: use the clock embedded in lastPlay first, else displayClock
+      if(state==="in"){ const p=c.status&&c.status.period;
+        const ord=p===1?"1ST":p===2?"2ND":p===3?"3RD":p===4?"4TH":(p>4?"OT":(p?p+"TH":""));
+        const lpt=(c.situation&&c.situation.lastPlay&&c.situation.lastPlay.text)||"";
+        const cm=lpt.match(/^\s*\((\d{1,2}:\d{2})\)/);
+        const dc=c.status&&c.status.displayClock;
+        const clk=(cm&&cm[1]) || (dc&&dc!=="0:00"?dc:"");
+        if(clk && ord) detail=clk+" · "+ord; }
       return { id:ev.id, date:ev.date, aAbbr:away.team.abbreviation, hAbbr:home.team.abbreviation,
         aLoc:away.team.location||"", hLoc:home.team.location||"",
         aName:rk(away.team)+away.team.abbreviation, hName:rk(home.team)+home.team.abbreviation,
