@@ -28,14 +28,16 @@
   #date { font-size: 2.4vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
   #count { font-family: "Oswald", sans-serif; font-size: 2.6vh; color: #FFE84D; font-weight: 600; letter-spacing: 0.06em; }
   .hd-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5vh; }
-  #delaybadge { font-family: "Oswald", sans-serif; font-size: 2.7vh; font-weight: 700; color: #FFE84D; background: #D50000; padding: 0.2vh 0.9vw; border-radius: 4px; letter-spacing: 0.05em; }
+  #delaybadge { font-family: "Oswald", sans-serif; font-size: 3.4vh; font-weight: 700; color: #fff; background: #D50000; padding: 0.15vh 0.9vw; border-radius: 5px; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
   #delaybadge:empty { display: none; }
 
-  #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.7vh; min-height: 0; padding: 0 3vw 1.4vh; }
-  #venue { flex: 0 0 auto; margin: 0; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.6vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* robust vertical structure: top region (1fr) holds the centered bug; play-by-play is a fixed floor at the bottom that never overflows */
+  #bugwrap { flex: 1; position: relative; display: grid; grid-template-rows: 1fr auto; min-height: 0; padding: 0 3vw 1.4vh; }
+  #bugmain { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.35vh; min-height: 0; overflow: hidden; }
+  #venue { flex: 0 0 auto; margin: 0.5vh 0 0.6vh; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.6vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #venue:empty { display: none; }
   body.cards #venue, body.stacked #venue, body.hl #venue, body.ps #venue, body.standings #venue, body.schedule #venue { display: none; }
-  #lastplay { font-family: "Barlow Condensed", sans-serif; font-size: 3.6vh; font-weight: 600; color: #c4c8ce; text-align: center; max-width: 82%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #lastplay { justify-self: center; margin: 0.5vh 0 0.2vh; font-family: "Barlow Condensed", sans-serif; font-size: 3.6vh; font-weight: 600; color: #c4c8ce; text-align: center; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #lastplay:empty { display: none; }
   body.cards #lastplay, body.stacked #lastplay, body.hl #lastplay, body.ps #lastplay { display: none; }
   /* highlights fill Zone 1 (final/halftime of a featured game) */
@@ -85,7 +87,7 @@
   /* ===== field-position strip (live spotlight): white line + ball + arrow + first-down tick ===== */
   #field { width: 58%; display: none; align-items: center; }
   #field.on { display: flex; }
-  .fp-field { position: relative; width: 100%; height: 3.4vh; }
+  .fp-field { position: relative; width: 100%; height: 3vh; }
   .fp-line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #fff; transform: translateY(-50%); }
   .fp-first { position: absolute; top: 8%; bottom: 8%; width: 0.35vw; background: #FFE84D; }
   .fp-tick { position: absolute; top: 30%; bottom: 30%; width: 2.5px; background: rgba(255,255,255,.6); transform: translateX(-50%); }
@@ -194,15 +196,17 @@
 <body>
   <div class="zone" id="zone-main">
     <div id="head"><div><div id="clock">--:--</div><div id="date"></div></div><div class="hd-right"><div id="count">loading&hellip;</div><div id="delaybadge"></div></div></div>
+    <div id="venue"></div>
     <div id="bugwrap">
-      <div id="venue"></div>
-      <div id="flag"></div>
-      <div id="bug"><div class="tscore" style="font-size:5vh">Loading&hellip;</div></div>
-      <div id="infostrip"></div>
-      <div id="field"></div>
+      <div id="bugmain">
+        <div id="flag"></div>
+        <div id="bug"><div class="tscore" style="font-size:5vh">Loading&hellip;</div></div>
+        <div id="infostrip"></div>
+        <div id="field"></div>
+        <div id="stack"></div>
+        <div id="cards"></div>
+      </div>
       <div id="lastplay"></div>
-      <div id="stack"></div>
-      <div id="cards"></div>
       <div id="hl"><div id="hlvid"></div><div id="hlside"><div id="hlscore"></div><div id="hlcap"></div><div id="hlstats"></div></div></div>
       <div id="ps"></div>
       <div id="standings"></div>
@@ -317,7 +321,7 @@ function promoteGames(force){
 }
 setInterval(function(){ promoteGames(false); }, 1000);
 function updateDelayBadge(){ var el=document.getElementById("delaybadge"); if(!el) return;
-  el.textContent = DELAY_SEC>0 ? ("DELAY "+((DELAY_SEC%60===0)?(DELAY_SEC/60)+" MIN":DELAY_SEC+" SEC")) : ""; }
+  el.textContent = DELAY_SEC>0 ? (DELAY_SEC+"s") : ""; }
 let flashTimer;
 function celebrate(team,col,delta){
   const label=delta>=6?"TOUCHDOWN":(delta===3?"FIELD GOAL":"SCORE");
