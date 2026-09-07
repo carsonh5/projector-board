@@ -999,13 +999,23 @@ function setTicker(poolOrArr, structSig, contentSig){
   const cSig = contentSig || "";
 
   if(sSig !== _tkStructSig){
-    /* Structure changed: full rebuild — new game set or mode switch */
+    /* Structure changed: rebuild content but PRESERVE the current scroll phase so the strip
+       keeps flowing (items keep entering from the right) instead of snapping to the start. */
+    const firstBuild = (_tkStructSig === "");
     _tkStructSig = sSig; _tkContentSig = cSig; _tkPool = pool; _lastTicker = sSig;
+    let tx=0; const tform=getComputedStyle(el).transform;
+    if(tform && tform.indexOf("matrix")===0){ const p=tform.slice(tform.indexOf("(")+1,tform.indexOf(")")).split(","); tx=parseFloat(p[4])||0; }
+    const prevHalf = (el.scrollWidth/2) || 1;
+    const phase = firstBuild ? 0 : ((((-tx % prevHalf) + prevHalf) % prevHalf) / prevHalf);   // 0..1 within one content width
     const items = pool.length ? pool.slice(0,TICKER_MAX).map(tickItem) : ['<span class="item">No games today</span>'];
     const html = items.join("");
     el.innerHTML = html + html;  /* duplicate for seamless loop */
     el.style.animation = "none";
-    requestAnimationFrame(function(){ const w=el.scrollWidth/2; el.style.animation="scroll "+Math.max(12,Math.round(w/TICKER_PXPS))+"s linear infinite"; });
+    requestAnimationFrame(function(){
+      const w=el.scrollWidth/2; const dur=Math.max(12,Math.round(w/TICKER_PXPS));
+      el.style.animation="scroll "+dur+"s linear infinite";
+      el.style.animationDelay = (-(phase*dur))+"s";   /* resume at the same phase — no snap */
+    });
     return;
   }
 
