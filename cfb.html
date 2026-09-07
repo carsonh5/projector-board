@@ -201,10 +201,10 @@
     object-fit: contain;
     display: block;
     filter:
-      drop-shadow(1.5px 0 0 #fff)
-      drop-shadow(-1.5px 0 0 #fff)
-      drop-shadow(0 1.5px 0 #fff)
-      drop-shadow(0 -1.5px 0 #fff);
+      drop-shadow(0.8px 0 0 #fff)
+      drop-shadow(-0.8px 0 0 #fff)
+      drop-shadow(0 0.8px 0 #fff)
+      drop-shadow(0 -0.8px 0 #fff);
   }
 
   /* rank chip + abbreviation row — rank same size as name, inline before it */
@@ -241,8 +241,8 @@
 
   /* timeout bars on the team band — row beneath the name */
   .gband-tos { display: flex; align-items: center; }
-  .gband-tos .tos { padding: 0; gap: 0.5vh; flex-direction: column; }
-  .gband-tos .to-bar { width: 2.4vw; height: 0.38vh; transform: none; border-radius: 1px; }   /* 3 clean horizontal lines under the name */
+  .gband-tos .tos { padding: 0; gap: 0.4vw; flex-direction: row; }
+  .gband-tos .to-bar { width: 1.4vw; height: 0.42vh; transform: none; border-radius: 1px; }   /* 3 short horizontal ticks, side by side, under the name */
 
   /* score column: fixed-width tabular cell */
   .gscorerow {
@@ -341,15 +341,15 @@
   .item { display: inline-flex; align-items: center; padding: 0 1.8vw; }
   .item .sep { color: #6a6f76; padding: 0 0.7vw; }
   .seclbl { color: #FFE84D; font-weight: 700; letter-spacing: 0.08em; }
-  /* curated logos (dark-bg PNGs from logos/): transparent bg, no pill */
+  /* curated logos (dark-bg PNGs from logos/, already white-outlined): transparent, no box, no extra stroke */
   .tklogo-curated { display: inline-flex; align-items: center; justify-content: center;
     height: 3.8vh; width: 3.8vh; flex: 0 0 auto; margin: 0 0.35vw; vertical-align: middle; }
   .tklogo-curated img { height: 100%; width: 100%; object-fit: contain; display: block; }
-  /* ESPN fallback logos: subtle dark-rounded backing so a dark logo doesn't vanish */
+  /* ESPN fallback logos: NO grey box — thin white outline so a dark logo stays visible on black */
   .tklogo-espn { display: inline-flex; align-items: center; justify-content: center;
-    height: 3.8vh; width: 3.8vh; flex: 0 0 auto; margin: 0 0.35vw; vertical-align: middle;
-    background: rgba(255,255,255,0.12); border-radius: 5px; padding: 0.2vh; }
-  .tklogo-espn img { height: 100%; width: 100%; object-fit: contain; display: block; }
+    height: 3.8vh; width: 3.8vh; flex: 0 0 auto; margin: 0 0.35vw; vertical-align: middle; }
+  .tklogo-espn img { height: 100%; width: 100%; object-fit: contain; display: block;
+    filter: drop-shadow(0.8px 0 0 #fff) drop-shadow(-0.8px 0 0 #fff) drop-shadow(0 0.8px 0 #fff) drop-shadow(0 -0.8px 0 #fff); }
   /* possession football inline on ticker */
   .tk-poss { display: inline-flex; align-items: center; margin: 0 0.25vw; font-size: 3vh; line-height: 1; vertical-align: middle; position: relative; top: -0.3vh; }
   .tk { border-bottom: 0.3vh solid #888; padding-bottom: 0.1vh; }
@@ -443,7 +443,16 @@ function teamColors(hex){ let n=parseInt(hex||"888888",16); if(isNaN(n)) n=0x888
 const rankNum = t => { const r=(t&&t.curatedRank&&t.curatedRank.current) || (t&&t.team&&t.team.curatedRank&&t.team.curatedRank.current); return (r&&r<=25)?r:99; };   // curatedRank lives on the competitor, not team
 const rk = t => { const r=rankNum(t); return r<99?`#${r} `:""; };
 let LOGO_MAP = {};   // curated dark-bg team logos (white-outlined); fall back to ESPN when a team isn't in the set
-fetch("logos/logo-map.json",{cache:"force-cache"}).then(r=>r.json()).then(m=>{ LOGO_MAP=m||{}; if(typeof render==="function"&&games.length) render(); }).catch(()=>{});
+fetch("logos/logo-map.json",{cache:"force-cache"}).then(r=>r.json()).then(m=>{ LOGO_MAP=m||{}; remapLogos(); }).catch(()=>{});
+/* the map loads async AFTER games are first fetched (which bake ESPN URLs). Re-resolve every game's
+   logos from the now-loaded map and force a full ticker rebuild so curated logos actually appear. */
+function curatedLogo(abbr,loc){ const f=LOGO_MAP[(abbr||"").toUpperCase()]||LOGO_MAP[(loc||"").toLowerCase()]; return f?("logos/"+f):null; }
+function remapLogos(){
+  if(!Object.keys(LOGO_MAP).length || !games.length) return;
+  games.forEach(function(g){ const a=curatedLogo(g.aAbbr,g.aLoc), h=curatedLogo(g.hAbbr,g.hLoc); if(a) g.aLogo=a; if(h) g.hLogo=h; });
+  _tkStructSig=""; _lastTicker="";   // force the ticker to rebuild with the new logos
+  if(typeof render==="function") render();
+}
 const logoOf = t => {
   const f = LOGO_MAP[(t.abbreviation||"").toUpperCase()] || LOGO_MAP[(t.location||"").toLowerCase()];
   if(f) return "logos/"+f;
@@ -560,9 +569,18 @@ setInterval(function(){ promoteGames(false); }, 1000);
 function updateDelayBadge(){ var el=document.getElementById("delaybadge"); if(!el) return;
   el.textContent = DELAY_SEC>0 ? (DELAY_SEC+"s") : ""; }
 let flashTimer;
+function scoreLabel(delta){
+  if(delta>=6) return "TOUCHDOWN";
+  if(delta===3) return "FIELD GOAL";
+  if(delta===2) return "TWO POINTS";
+  if(delta===1) return "EXTRA POINT GOOD";
+  return "SCORE";
+}
 function celebrate(team,col,delta){
-  const label=delta>=6?"TOUCHDOWN":(delta===3?"FIELD GOAL":"SCORE");
-  document.getElementById("flash-big").innerHTML = label.split("").map(function(ch,i){
+  const label=scoreLabel(delta);
+  const big=document.getElementById("flash-big");
+  big.style.fontSize = label.length>10 ? "8vh" : "11vh";   // shrink long labels (EXTRA POINT GOOD) so they fit
+  big.innerHTML = label.split("").map(function(ch,i){
     return `<span class="tdl" style="color:${col};animation-delay:${(0.045*i).toFixed(3)}s">${ch===" "?"&nbsp;":ch}</span>`; }).join("");
   document.getElementById("flash-sub").textContent=team;
   const f=document.getElementById("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on");
