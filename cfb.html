@@ -538,7 +538,7 @@ function _fbDate(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()
 function _dayKey(dt){ const x=new Date(dt); if(x.getHours()<6) x.setDate(x.getDate()-1); return _ymd(x); }
 /* pull the whole CFB week (range works in one call) so featuring ANY team finds its game — last final or next upcoming */
 function weekRange(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1);
-  const s=new Date(d); s.setDate(s.getDate()-3); const e=new Date(d); e.setDate(e.getDate()+8); return _ymd(s)+"-"+_ymd(e); }
+  const s=new Date(d); s.setDate(s.getDate()-7); const e=new Date(d); e.setDate(e.getDate()+8); return _ymd(s)+"-"+_ymd(e); }
 function sbUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates="+weekRange()+"&limit=300"; }
 
 function tick(){ const n=new Date(); let h=n.getHours(); const m=String(n.getMinutes()).padStart(2,"0");
