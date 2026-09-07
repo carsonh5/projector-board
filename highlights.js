@@ -56,7 +56,8 @@
   // Amazon Silk (and desktop Chrome) COMPOSITE inline video correctly. The Android System WebView
   // used by Fully Kiosk does NOT (video plays but shows black) — those get the image slideshow.
   var _isSilk = /\bSilk\//i.test(_ua);
-  var _isFireTVWebView = /\bAFT[A-Z0-9]/i.test(_ua) && !_isSilk;
+  var _isBoardKiosk = /BoardKiosk/i.test(_ua);   // our custom compositing kiosk app → video-capable
+  var _isFireTVWebView = /\bAFT[A-Z0-9]/i.test(_ua) && !_isSilk && !_isBoardKiosk;
   var _forceImg = (typeof window !== "undefined" && window._FORCE_IMG_HL);
   // mode: "video" (inline), "canvas" (blit), "img" (thumbnail slideshow)
   const _MODE = _hlModeParam === "video" ? "video"
