@@ -45,7 +45,7 @@
   #hl { display: none; position: absolute; inset: 0; z-index: 1; box-sizing: border-box; }
   body.hl #hl {
     display: grid;
-    grid-template-columns: 19fr 47fr 34fr;   /* fr units subtract the gaps automatically — never overflow */
+    grid-template-columns: 16fr 44fr 40fr;   /* fr units subtract the gaps automatically — never overflow */
     grid-template-rows: 100%;
     align-items: stretch;
     gap: 0.8vw;
@@ -182,8 +182,9 @@
   body.standings #standings, body.schedule #schedule { display: block; }
   body.standings #flag, body.standings #bug, body.standings #infostrip, body.standings #field, body.standings #stack, body.standings #cards, body.standings #hl, body.standings #ps { display: none; }
   body.schedule #flag, body.schedule #bug, body.schedule #infostrip, body.schedule #field, body.schedule #stack, body.schedule #cards, body.schedule #hl, body.schedule #ps { display: none; }
-  #flag .fchip { font-family: "Oswald", sans-serif; font-size: 2.8vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
-    padding: 0.35vh 1.5vw; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
+  #flag { line-height: 1; }
+  #flag .fchip { display: inline-block; font-family: "Oswald", sans-serif; font-size: 2.8vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
+    line-height: 1.25; padding: 0.7vh 1.6vw 0.6vh; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
 
   #bug { display: flex; align-items: center; width: 100%; }
   .tmod { flex: 1; display: flex; align-items: center; gap: 1vw; min-width: 0; }
@@ -807,6 +808,13 @@ function renderRecap(g){
     mountHighlights(document.getElementById("hlvid"), g.id, { noCaption:true,
       onEmpty:function(){ exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g); },
       onClip:function(clip){ var c=document.getElementById("hlcap"); if(c) c.textContent=clip.headline||""; } });
+    /* TEMP video diagnostics — text is screencap-visible even when the hardware video overlay is not */
+    if(new URLSearchParams(location.search).get("vdbg")==="1"){
+      var dbg=document.getElementById("hldbg"); if(!dbg){ dbg=document.createElement("div"); dbg.id="hldbg";
+        dbg.style.cssText="position:absolute;left:1vw;top:1vh;z-index:99;background:rgba(0,0,0,.8);color:#0f0;font:1.6vh monospace;padding:0.4vh 0.6vw;white-space:pre;"; document.getElementById("hl").appendChild(dbg); }
+      clearInterval(window._hldbgT); window._hldbgT=setInterval(function(){ var v=document.querySelector("#hlvid video"); if(!v){dbg.textContent="no <video>";return;}
+        dbg.textContent="rs="+v.readyState+" ns="+v.networkState+" "+v.videoWidth+"x"+v.videoHeight+" paused="+v.paused+" t="+(v.currentTime.toFixed(1))+" err="+(v.error?v.error.code:"-")+"\nsrc="+((v.currentSrc||"none").split("/").pop()||"none").slice(0,30); }, 500);
+    }
     fetch("https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event="+g.id).then(function(r){return r.json();}).then(function(d){ renderRecapStats(d); }).catch(function(){});
   }
 }
@@ -814,15 +822,23 @@ function renderRecapStats(d){
   var el=document.getElementById("hlstats"); if(!el) return; el.replaceChildren();
   var L=(d&&d.leaders)||[];
   if(!L.length) return;
-  /* build two-column grid — one column per team */
+  /* jersey + position lookup from the boxscore (leaders alone often lack them) */
+  var meta={};
+  var bx=(d.boxscore&&d.boxscore.players)||[];
+  bx.forEach(function(tp){ (tp.statistics||[]).forEach(function(sc){ (sc.athletes||[]).forEach(function(ae){ var a=ae.athlete; if(a&&a.id&&!meta[a.id]){ meta[a.id]={ jersey:a.jersey||"", pos:(a.position&&a.position.abbreviation)||"" }; } }); }); });
   var grid=document.createElement("div"); grid.className="hlstatsgrid";
   L.forEach(function(tl){
     var abbr=(tl.team&&(tl.team.abbreviation||tl.team.displayName))||"";
     var logo=(tl.team&&tl.team.logo)||"";
     var cats=tl.leaders||[];
-    var shortVal=function(dv){ dv=dv||""; var m=dv.match(/(\d[\d,]*)\s*YDS/i); return m?(m[1]+" YDS"):(dv.split(",")[0]||dv); };   // keep it short so text can be big
-    var pick=function(name){ var c=cats.find(function(x){return x.name===name;}); if(!c||!c.leaders||!c.leaders[0]) return null; var ld=c.leaders[0]; return { who:(ld.athlete&&(ld.athlete.shortName||ld.athlete.displayName))||"", val:shortVal(ld.displayValue||"") }; };
-    var rows=[["PASS",pick("passingYards")],["RUSH",pick("rushingYards")],["REC",pick("receivingYards")]].filter(function(r){return r[1];});
+    /* identity = #jersey POS Name (position implies the stat category); value = FULL stat line */
+    var pick=function(name){ var c=cats.find(function(x){return x.name===name;}); if(!c||!c.leaders||!c.leaders[0]) return null;
+      var ld=c.leaders[0], a=ld.athlete||{}, m=meta[a.id]||{};
+      var jr=m.jersey?("#"+m.jersey+" "):"";
+      var ps=(m.pos||(a.position&&a.position.abbreviation)||""); ps=ps?(ps+" "):"";
+      var nm=a.shortName||a.displayName||"";
+      return { who:(jr+ps+nm).trim(), val:ld.displayValue||"" }; };
+    var rows=[pick("passingYards"),pick("rushingYards"),pick("receivingYards")].filter(Boolean);
     if(!rows.length) return;
     var col=document.createElement("div"); col.className="hlstatcol";
     /* team header: logo + abbreviation */
@@ -830,12 +846,11 @@ function renderRecapStats(d){
     if(logo){ var limg=document.createElement("img"); limg.className="hlstathdr-logo"; limg.src=logo; limg.alt=abbr; hdr.appendChild(limg); }
     var habr=document.createElement("span"); habr.className="hlstathdr-abbr"; habr.textContent=abbr; hdr.appendChild(habr);
     col.appendChild(hdr);
-    /* stat rows: LABEL · player name · value (one horizontal line) */
+    /* one line per leader: "#10 QB J. Lewis" ........ "14/27, 124 YDS, 1 TD" */
     rows.forEach(function(r){
       var row=document.createElement("div"); row.className="hlstatrow";
-      var k=document.createElement("div"); k.className="hlstatk"; k.textContent=r[0]; row.appendChild(k);
-      var who=document.createElement("div"); who.className="hlstatplayer"; who.textContent=r[1].who||""; row.appendChild(who);
-      var val=document.createElement("div"); val.className="hlstatval"; val.textContent=r[1].val||""; row.appendChild(val);
+      var who=document.createElement("div"); who.className="hlstatplayer"; who.textContent=r.who||""; row.appendChild(who);
+      var val=document.createElement("div"); val.className="hlstatval"; val.textContent=r.val||""; row.appendChild(val);
       col.appendChild(row);
     });
     grid.appendChild(col);
