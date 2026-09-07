@@ -825,7 +825,7 @@ function renderRecap(g){
         var ua=(navigator.userAgent||"").slice(0,50);
         if(cv){ dbg.textContent="CANVAS mode probe="+(cv.getAttribute("data-probe")||"...")+"\nvid rs="+(v?v.readyState:"-")+" t="+(v?v.currentTime.toFixed(1):"-")+" "+(v?v.videoWidth+"x"+v.videoHeight:"")+"\nUA="+ua; }
         else if(im){ dbg.textContent="IMG mode "+im.naturalWidth+"x"+im.naturalHeight+" complete="+im.complete+"\nUA="+ua; }
-        else if(v){ dbg.textContent="VIDEO mode rs="+v.readyState+" "+v.videoWidth+"x"+v.videoHeight+" paused="+v.paused+"\nUA="+ua; }
+        else if(v){ dbg.textContent="VIDEO rs="+v.readyState+" ns="+v.networkState+" "+v.videoWidth+"x"+v.videoHeight+" paused="+v.paused+" err="+(v.error?v.error.code:"-")+" muted="+v.muted+"\nsrc="+((v.currentSrc||v.src||"none").split("/").pop()||"none").slice(0,26)+"\nUA="+ua; }
         else { dbg.textContent="no media el\nUA="+ua; }
       }, 500);
     }
