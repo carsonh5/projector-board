@@ -14,7 +14,9 @@
 <script>
 /* Load JS modules with the SAME build version as this page so GitHub Pages' CDN can't serve a
    stale module against fresh HTML (the bug that made Fire TV run old highlights.js). */
-(function(){ var v=new URLSearchParams(location.search).get("v")||"0";
+(function(){ var v=new URLSearchParams(location.search).get("v");
+  if(!v){ try{ var x=new XMLHttpRequest(); x.open("GET","version.txt?t="+Date.now(),false); x.send(); v=(x.responseText||"").trim(); }catch(e){} }
+  v=v||"0";
   ["highlights","playerstats","standings","schedule","td-celebration"].forEach(function(m){
     document.write('<scr'+'ipt src="'+m+'.js?v='+encodeURIComponent(v)+'"></scr'+'ipt>'); }); })();
 </script>
