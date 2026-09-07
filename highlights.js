@@ -240,7 +240,9 @@
       video.muted = true; video.defaultMuted = true; video.playsInline = true; video.autoplay = true;
       video.setAttribute("muted",""); video.setAttribute("playsinline",""); video.setAttribute("webkit-playsinline",""); video.setAttribute("autoplay",""); video.setAttribute("preload","auto");
       video.crossOrigin = "anonymous";   // needed so the canvas isn't tainted (ESPN CDN allows *)
-      video.style.cssText = "position:absolute;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none;";
+      // Force TextureView (frames in an in-page texture, readable by drawImage) instead of a
+      // hardware SurfaceView overlay: a transform/filter on the element itself defeats the overlay path.
+      video.style.cssText = "position:absolute;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none;transform:translateZ(0) scale(1.0001);filter:opacity(0.999);border-radius:1px;";
       const canvas = document.createElement("canvas");
       canvas.id = "hl-canvas";
       canvas.width = 640; canvas.height = 360;
@@ -260,7 +262,10 @@
       video.setAttribute("webkit-playsinline", "");
       video.setAttribute("autoplay", "");
       video.setAttribute("preload", "auto");
-      video.style.cssText = "width:100%;height:100%;object-fit:contain;background:#000;display:block;";
+      // Force TextureView compositing (in-page, stays in the mapped column) instead of a hardware
+      // SurfaceView overlay that Fire OS won't composite to screen. A transform/filter on the <video>
+      // element itself is the documented trigger. Harmless on desktop.
+      video.style.cssText = "width:100%;height:100%;object-fit:contain;background:#000;display:block;transform:translateZ(0) scale(1.0001);filter:opacity(0.999);border-radius:2px;will-change:transform;";
       container.appendChild(video);
       _videoEl = video;
     }
