@@ -813,8 +813,8 @@ function renderRecap(g){
         /* paint the clip thumbnail as the backdrop so a still frame always shows even where the
            WebView video overlay doesn't composite (Fire Stick); real video plays on top elsewhere */
         var vw=document.getElementById("hlvid"); if(vw && clip.thumbnail){ vw.style.backgroundImage="url('"+clip.thumbnail+"')"; vw.style.backgroundSize="cover"; vw.style.backgroundPosition="center"; } } });
-    /* TEMP diagnostics — text is screencap-visible even when a hardware video overlay is not */
-    if(true){
+    /* diagnostics gated behind ?vdbg=1 */
+    if(new URLSearchParams(location.search).get("vdbg")==="1"){
       var dbg=document.getElementById("hldbg"); if(!dbg){ dbg=document.createElement("div"); dbg.id="hldbg";
         dbg.style.cssText="position:absolute;left:1vw;top:1vh;z-index:99;background:rgba(0,0,0,.85);color:#0f0;font:1.5vh monospace;padding:0.4vh 0.6vw;white-space:pre;max-width:40vw;overflow:hidden;"; document.getElementById("hl").appendChild(dbg); }
       clearInterval(window._hldbgT); window._hldbgT=setInterval(function(){
