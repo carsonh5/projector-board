@@ -110,13 +110,8 @@
   #hlvid {
     flex: 1 1 0; min-height: 0; background: #000;
     border-radius: 0.5vh; overflow: hidden;
-    position: relative;
     /* keep 16:9 via object-fit on inner video/iframe — container just fills available space */
   }
-  /* Force Chromium/WebView to composite the video IN-PAGE (visible) instead of a hidden hardware
-     overlay: a near-invisible layer on top of the video defeats the overlay fast-path. */
-  #hlvid::after { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0.012); pointer-events: none; z-index: 2; }
-  #hlvid video, #hl-video { position: relative; z-index: 1; }
   /* caption sits below the video, small secondary label */
   #hlcap {
     flex: 0 0 auto;
