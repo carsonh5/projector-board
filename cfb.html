@@ -15,6 +15,7 @@
 <script src="playerstats.js"></script>
 <script src="standings.js"></script>
 <script src="schedule.js"></script>
+<script src="td-celebration.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #000; color: #fff; overflow: hidden;
@@ -286,6 +287,7 @@ async function load(){
         aName:rk(away.team)+away.team.abbreviation, hName:rk(home.team)+home.team.abbreviation,
         aLogo:logoOf(away.team), hLogo:logoOf(home.team), aTC:teamColors(away.team.color), hTC:teamColors(home.team.color),
         aColUnder:teamColors(away.team.color).bg, hColUnder:teamColors(home.team.color).bg,
+        aAlt:away.team.alternateColor||"", hAlt:home.team.alternateColor||"",
         aS,hS,state, detail, channel:channelOf(c), line, ou,
         aRank:aR, hRank:hR, isToday:(_dayKey(ev.date)===_fbDate()),
         venue:c.venue?.fullName||"", venCity:c.venue?.address?.city||"", venState:c.venue?.address?.state||"",
@@ -315,9 +317,39 @@ function promoteGames(force){
   _lastPickT=pick.t;
   games=pick.games;
   games.forEach(function(g){ const p=lastScores[g.id];
-    if(p&&!firstLoad){ if(g.aS>p.a) celebrate(g.aAbbr,g.aTC.bg,g.aS-p.a); if(g.hS>p.h) celebrate(g.hAbbr,g.hTC.bg,g.hS-p.h); }
+    if(p&&!firstLoad){ if(g.aS>p.a) onScore(g,"away",g.aS-p.a); if(g.hS>p.h) onScore(g,"home",g.hS-p.h); }
     lastScores[g.id]={a:g.aS,h:g.hS}; });
   firstLoad=false; render();
+}
+/* score change: feature-game touchdown => full takeover; otherwise the flash */
+var _tdActive=false, _tickerSaved="", _spotlightId=null;
+function onScore(g, side, delta){
+  var col=side==="away"?g.aTC.bg:g.hTC.bg, abbr=side==="away"?g.aAbbr:g.hAbbr;
+  if(delta>=6 && SCENE==="feature" && g.id===_spotlightId && !_tdActive && typeof mountTDCelebration==="function"){
+    _tdActive=true;
+    var primary=side==="away"?g.aTC.bg:g.hTC.bg;
+    var altRaw=side==="away"?g.aAlt:g.hAlt;
+    var secondary=altRaw?("#"+String(altRaw).replace(/^#/,"")):null;
+    var teamName=side==="away"?(g.aLoc||g.aAbbr):(g.hLoc||g.hAbbr);
+    var teamId=side==="away"?g.aId:g.hId;
+    tdTickerOn(primary, secondary);
+    mountTDCelebration(document.getElementById("zone-main"), { eventId:g.id, teamId:teamId, teamName:teamName,
+      primary:primary, secondary:secondary, onDone:function(){ _tdActive=false; tdTickerOff(); } });
+    return;
+  }
+  celebrate(abbr, col, delta);
+}
+function tdTickerOn(primary, secondary){
+  var z=document.getElementById("zone-ticker"), t=document.getElementById("t-ticker"); if(!z||!t) return;
+  _tickerSaved=z.style.background; z.style.background=secondary||primary;
+  var word='<span class="item" style="color:#fff;font-weight:900;letter-spacing:0.12em">TOUCHDOWN</span><span class="item sep">·</span>';
+  var many=""; for(var i=0;i<12;i++) many+=word;
+  _lastTicker="__td__"; t.innerHTML=many+many; t.style.animation="none";
+  requestAnimationFrame(function(){ var w=t.scrollWidth/2; t.style.animation="scroll "+Math.max(8,Math.round(w/(TICKER_PXPS||120)))+"s linear infinite"; });
+}
+function tdTickerOff(){
+  var z=document.getElementById("zone-ticker"); if(z) z.style.background=_tickerSaved||"";
+  _lastTicker=""; renderTicker();
 }
 setInterval(function(){ promoteGames(false); }, 1000);
 function updateDelayBadge(){ var el=document.getElementById("delaybadge"); if(!el) return;
@@ -561,6 +593,7 @@ let DEMO=null, demoIx=0;
 
 function renderSpotlight(g){
   holdSituation(g);   // keep down/distance + ball spot visible through timeouts and between-play gaps
+  _spotlightId = g.id;   // remember which game is featured so a TD by it triggers the takeover
   let color,flagText,chipText="#111";
   if(g.state==="in"){ let k=g.isUpset?"upset":(g.redzone?"rz":(g.isClose?"close":"live")); flagText=FLAGS[k][0]; color=FLAGS[k][1]; if(k==="live") chipText="#fff"; }
   else if(g.state==="pre"){ flagText="KICKOFF "+g.start; color=FLAGS.pre[1]; }
