@@ -202,9 +202,9 @@
 
   async function _fetchClips(eventId) {
     const url = SUMMARY_URL + encodeURIComponent(eventId);
-    const res = await fetch(url, {
-      headers: { "User-Agent": UA },
-    });
+    // NOTE: do NOT set a User-Agent header — it's a forbidden fetch header. Chrome/WebView silently
+    // ignores it, but GeckoView (Firefox) REJECTS the whole fetch, so clips never load on Fire TV.
+    const res = await fetch(url);
     if (!res.ok) throw new Error("ESPN summary HTTP " + res.status);
     const data = await res.json();
     const raw = data.videos || [];
