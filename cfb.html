@@ -46,14 +46,36 @@
   body.hl #hl { display: flex; align-items: stretch; gap: 1.2vw; padding: 0.6vh 1vw; }
   body.hl #flag, body.hl #bug, body.hl #infostrip, body.hl #field, body.hl #stack, body.hl #cards { display: none; }
   #hlvid { flex: 0 0 60%; min-width: 0; background: #000; border-radius: 0.6vh; overflow: hidden; }
-  #hlside { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1vh; padding: 0.4vh 0.4vw; overflow: hidden; }
-  #hlscore { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 3.4vh; color: #fff; letter-spacing: 0.02em; line-height: 1.1; }
-  #hlcap { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 2.6vh; color: #FFE84D; line-height: 1.2; }
-  #hlstats { display: flex; flex-direction: column; gap: 0.9vh; margin-top: 0.3vh; }
-  .hlteamname { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.3vh; color: #9aa0a6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2vh; }
-  .hlstat { font-family: "Barlow Condensed", sans-serif; font-size: 2.6vh; color: #e6e6e6; display: flex; align-items: baseline; gap: 0.6vw; }
-  .hlstat .k { color: #FFE84D; font-weight: 700; font-size: 2vh; flex: 0 0 4.4vw; letter-spacing: 0.04em; }
-  .hlstat b { color: #fff; font-weight: 700; }
+  #hlside { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1.4vh; padding: 0.8vh 0.6vw; overflow: hidden; }
+  /* ── scoreboard header ── */
+  #hlscore { display: flex; flex-direction: column; gap: 0.5vh; }
+  .hlscoreboard { display: flex; flex-direction: column; gap: 0.35vh; }
+  .hlfinal { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 1.7vh; color: #FFE84D; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 0.1vh; }
+  .hlteamrow { display: flex; align-items: center; gap: 0.6vw; padding: 0.45vh 0.5vw; border-radius: 0.5vh; }
+  .hlteamrow.winner { background: rgba(255,255,255,0.07); }
+  .hlteamlogo { width: 4.4vh; height: 4.4vh; object-fit: contain; background: #fff; border-radius: 0.35vh; padding: 0.2vh; flex-shrink: 0; }
+  .hlteampill { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.4vh; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.15vh 0.6vw 0.15vh 0.5vw; border-radius: 0.4vh; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hlteamscore { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 3.6vh; color: #fff; line-height: 1; min-width: 2.6vw; text-align: right; }
+  .hlteamscore.loser { color: #7a8290; font-weight: 400; }
+  /* ── stat leaders grid ── */
+  #hlstats { display: flex; flex-direction: column; gap: 0; flex: 1; min-height: 0; }
+  .hlstatsgrid { display: flex; gap: 0.7vw; flex: 1; min-height: 0; }
+  .hlstatcol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+  .hlstathdr { display: flex; align-items: center; gap: 0.4vw; padding: 0.4vh 0.4vw 0.55vh; border-bottom: 1px solid rgba(255,255,255,0.12); margin-bottom: 0.3vh; }
+  .hlstathdr-logo { width: 2.8vh; height: 2.8vh; object-fit: contain; background: #fff; border-radius: 0.25vh; padding: 0.15vh; flex-shrink: 0; }
+  .hlstathdr-abbr { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.1vh; color: #fff; letter-spacing: 0.06em; text-transform: uppercase; }
+  .hlstatrow { display: flex; flex-direction: column; gap: 0; padding: 0.55vh 0.4vw; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .hlstatrow:last-child { border-bottom: none; }
+  .hlstatk { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 1.55vh; color: #FFE84D; letter-spacing: 0.12em; text-transform: uppercase; line-height: 1; margin-bottom: 0.25vh; }
+  .hlstatval { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 3vh; color: #fff; line-height: 1; }
+  .hlstatplayer { font-family: "Barlow Condensed", sans-serif; font-weight: 500; font-size: 2.1vh; color: #b0b8c4; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* ── caption (secondary) ── */
+  #hlcap { font-family: "Barlow Condensed", sans-serif; font-weight: 500; font-size: 1.85vh; color: #7a8290; line-height: 1.25; padding: 0 0.2vw; }
+  /* legacy classes – kept for safety, unused in new layout */
+  .hlteamname { display: none; }
+  .hlteam { display: none; }
+  .hlstat { display: none; }
+  .hlstat .k { display: none; }
   #ps { display: none; position: absolute; inset: 0; z-index: 1; }
   body.ps #ps { display: block; }
   body.ps #flag, body.ps #bug, body.ps #infostrip, body.ps #field, body.ps #stack, body.ps #cards, body.ps #hl { display: none; }
@@ -88,7 +110,7 @@
   /* ===== field-position strip (live spotlight): white line + ball + arrow + first-down tick ===== */
   #field { width: 58%; display: none; align-items: center; }
   #field.on { display: flex; }
-  .fp-field { position: relative; width: 100%; height: 3vh; }
+  .fp-field { position: relative; width: 100%; height: 4vh; }
   .fp-line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #fff; transform: translateY(-50%); }
   .fp-first { position: absolute; top: 8%; bottom: 8%; width: 0.35vw; background: #FFE84D; }
   .fp-tick { position: absolute; top: 30%; bottom: 30%; width: 2.5px; background: rgba(255,255,255,.6); transform: translateX(-50%); }
@@ -134,7 +156,7 @@
   .gcard {
     flex: 0 0 26vw;          /* fixed width — no flex shrink/grow */
     width: 26vw;
-    height: 40vh;            /* fixed height — enforces identical footprint */
+    height: 24vh;            /* compact broadcast footprint — fits the zone, footer always visible, minimal dead space */
     display: grid;
     grid-template-rows: 1fr 1fr auto;   /* band-away | band-home | footer */
     border: 0.3vh solid #05070a;
@@ -191,8 +213,8 @@
   .grank {
     font-family: "Oswald", sans-serif;
     font-weight: 700;
-    font-size: 3.6vh;    /* matches .gname */
-    opacity: 0.80;
+    font-size: 4.3vh;    /* matches .gname, same color (no dim) */
+    opacity: 1;
     flex: 0 0 auto;
     line-height: 1;
   }
@@ -200,7 +222,7 @@
     font-family: "Oswald", sans-serif;
     font-weight: 700;
     font-style: italic;
-    font-size: 3.6vh;
+    font-size: 4.3vh;
     text-transform: uppercase;
     letter-spacing: 0.01em;
     white-space: nowrap;
@@ -219,8 +241,8 @@
 
   /* timeout bars on the team band — row beneath the name */
   .gband-tos { display: flex; align-items: center; }
-  .gband-tos .tos { padding: 0; gap: 0.35vh; }
-  .gband-tos .to-bar { width: 1.1vw; height: 0.5vh; }
+  .gband-tos .tos { padding: 0; gap: 0.5vh; flex-direction: column; }
+  .gband-tos .to-bar { width: 2.4vw; height: 0.38vh; transform: none; border-radius: 1px; }   /* 3 clean horizontal lines under the name */
 
   /* score column: fixed-width tabular cell */
   .gscorerow {
@@ -302,10 +324,10 @@
     color: #111;
     font-family: "Oswald", sans-serif;
     font-weight: 700;
-    font-size: 1.8vh;
+    font-size: 3.4vh;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0.25vh 0.9vw 0.2vh;
+    letter-spacing: 0.08em;
+    padding: 0.35vh 1.1vw 0.3vh;
     line-height: 1;
     pointer-events: none;
   }
@@ -627,7 +649,32 @@ function exitPS(){ if(_psEvent){ try{stopPlayerStats();}catch(e){} _psEvent=null
 /* recap: video left, score+caption+stat leaders right */
 function renderRecap(g){
   document.body.classList.add("hl"); document.body.classList.remove("cards","stacked"); exitPS(); _cdDate=null;
-  var sc=document.getElementById("hlscore"); if(sc) sc.textContent=(g.aLoc||g.aAbbr).toUpperCase()+"  "+g.aS+"   –   "+g.hS+"  "+(g.hLoc||g.hAbbr).toUpperCase()+"   ·   FINAL";
+  /* build broadcast scoreboard header */
+  var sc=document.getElementById("hlscore");
+  if(sc){
+    sc.replaceChildren();
+    var aWin=Number(g.aS)>Number(g.hS), hWin=Number(g.hS)>Number(g.aS);
+    var fin=document.createElement("div"); fin.className="hlfinal"; fin.textContent="FINAL"; sc.appendChild(fin);
+    var board=document.createElement("div"); board.className="hlscoreboard"; sc.appendChild(board);
+    /* helper: one team row */
+    function mkTeamRow(logo,loc,abbr,score,tc,isWinner){
+      var row=document.createElement("div"); row.className="hlteamrow"+(isWinner?" winner":"");
+      /* logo */
+      if(logo){ var img=document.createElement("img"); img.className="hlteamlogo"; img.src=logo; img.alt=abbr||""; row.appendChild(img); }
+      /* name pill */
+      var pill=document.createElement("div"); pill.className="hlteampill";
+      pill.textContent=(loc||abbr||"").toUpperCase();
+      if(tc&&tc.bg){ pill.style.background=tc.bg; pill.style.color=tc.text||"#fff"; } else { pill.style.background="#1e2530"; pill.style.color="#fff"; }
+      row.appendChild(pill);
+      /* score */
+      var sv=document.createElement("div"); sv.className="hlteamscore"+((!isWinner&&(aWin||hWin))?" loser":"");
+      sv.textContent=score!=null?score:"";
+      row.appendChild(sv);
+      return row;
+    }
+    board.appendChild(mkTeamRow(g.aLogo,g.aLoc,g.aAbbr,g.aS,g.aTC,aWin));
+    board.appendChild(mkTeamRow(g.hLogo,g.hLoc,g.hAbbr,g.hS,g.hTC,hWin));
+  }
   if(_hlEvent!==g.id){
     _hlEvent=g.id;
     var cap=document.getElementById("hlcap"); if(cap) cap.textContent="";
@@ -641,23 +688,33 @@ function renderRecap(g){
 function renderRecapStats(d){
   var el=document.getElementById("hlstats"); if(!el) return; el.replaceChildren();
   var L=(d&&d.leaders)||[];
+  if(!L.length) return;
+  /* build two-column grid — one column per team */
+  var grid=document.createElement("div"); grid.className="hlstatsgrid";
   L.forEach(function(tl){
     var abbr=(tl.team&&(tl.team.abbreviation||tl.team.displayName))||"";
+    var logo=(tl.team&&tl.team.logo)||"";
     var cats=tl.leaders||[];
     var pick=function(name){ var c=cats.find(function(x){return x.name===name;}); if(!c||!c.leaders||!c.leaders[0]) return null; var ld=c.leaders[0]; return { who:(ld.athlete&&(ld.athlete.shortName||ld.athlete.displayName))||"", val:ld.displayValue||"" }; };
     var rows=[["PASS",pick("passingYards")],["RUSH",pick("rushingYards")],["REC",pick("receivingYards")]].filter(function(r){return r[1];});
     if(!rows.length) return;
-    var team=document.createElement("div"); team.className="hlteam";
-    var nm=document.createElement("div"); nm.className="hlteamname"; nm.textContent=abbr; team.appendChild(nm);
+    var col=document.createElement("div"); col.className="hlstatcol";
+    /* team header: logo + abbreviation */
+    var hdr=document.createElement("div"); hdr.className="hlstathdr";
+    if(logo){ var limg=document.createElement("img"); limg.className="hlstathdr-logo"; limg.src=logo; limg.alt=abbr; hdr.appendChild(limg); }
+    var habr=document.createElement("span"); habr.className="hlstathdr-abbr"; habr.textContent=abbr; hdr.appendChild(habr);
+    col.appendChild(hdr);
+    /* stat rows: label → value → player name */
     rows.forEach(function(r){
-      var row=document.createElement("div"); row.className="hlstat";
-      var k=document.createElement("span"); k.className="k"; k.textContent=r[0]; row.appendChild(k);
-      row.appendChild(document.createTextNode((r[1].who||"")+" "));
-      var b=document.createElement("b"); b.textContent=r[1].val||""; row.appendChild(b);
-      team.appendChild(row);
+      var row=document.createElement("div"); row.className="hlstatrow";
+      var k=document.createElement("div"); k.className="hlstatk"; k.textContent=r[0]; row.appendChild(k);
+      var val=document.createElement("div"); val.className="hlstatval"; val.textContent=r[1].val||""; row.appendChild(val);
+      var who=document.createElement("div"); who.className="hlstatplayer"; who.textContent=r[1].who||""; row.appendChild(who);
+      col.appendChild(row);
     });
-    el.appendChild(team);
+    grid.appendChild(col);
   });
+  el.appendChild(grid);
 }
 /* player stats scene: full box (module) for the team's most recent played game */
 function renderPlayerStatsScene(){
