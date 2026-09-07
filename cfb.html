@@ -32,7 +32,7 @@
   #delaybadge:empty { display: none; }
 
   #bugwrap { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.7vh; min-height: 0; padding: 0 3vw 1.4vh; }
-  #venue { flex: 0 0 auto; margin: 0.5vh 0 0.3vh; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.6vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #venue { flex: 0 0 auto; margin: 0; padding: 0 3vw; font-family: "Barlow Condensed", sans-serif; font-size: 2.6vh; color: #b0b4bb; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #venue:empty { display: none; }
   body.cards #venue, body.stacked #venue, body.hl #venue, body.ps #venue, body.standings #venue, body.schedule #venue { display: none; }
   #lastplay { font-family: "Barlow Condensed", sans-serif; font-size: 3.6vh; font-weight: 600; color: #c4c8ce; text-align: center; max-width: 82%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -69,12 +69,12 @@
   .plate img { height: 6.5vh; object-fit: contain; display: block; }
   body.white-logos .plate { background: transparent; }
   body.white-logos .plate img { filter: brightness(0) invert(1); }
-  .tcell { height: 8vh; display: inline-flex; align-items: center; padding: 0 1.5vw; font-family: "Oswald", sans-serif;
-    font-size: 4.4vh; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;
+  .tcell { height: 7.4vh; display: inline-flex; align-items: center; padding: 0 1.5vw; font-family: "Oswald", sans-serif;
+    font-size: 4.2vh; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;
     clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%); }
-  .tscore { height: 8vh; min-width: 8vw; display: inline-flex; align-items: center; justify-content: center;
-    font-family: "Oswald", sans-serif; font-size: 7.6vh; font-weight: 700; font-variant-numeric: tabular-nums; }
-  #center { flex: 0 0 auto; height: 8vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3vh; padding: 0 1.5vw; }
+  .tscore { height: 7.4vh; min-width: 8vw; display: inline-flex; align-items: center; justify-content: center;
+    font-family: "Oswald", sans-serif; font-size: 7vh; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #center { flex: 0 0 auto; height: 7.4vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3vh; padding: 0 1.5vw; }
   #status { font-family: "Oswald", sans-serif; font-size: 4.4vh; font-weight: 600; white-space: nowrap; }
   #dd { font-family: "Barlow Condensed", sans-serif; font-size: 3.4vh; color: #e6e6e6; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; white-space: nowrap; display: flex; align-items: center; }
   .rvl { display: inline-block; width: 3px; height: 3vh; background: #FF2400; margin: 0 0.8vw; border-radius: 1px; }
@@ -194,8 +194,8 @@
 <body>
   <div class="zone" id="zone-main">
     <div id="head"><div><div id="clock">--:--</div><div id="date"></div></div><div class="hd-right"><div id="count">loading&hellip;</div><div id="delaybadge"></div></div></div>
-    <div id="venue"></div>
     <div id="bugwrap">
+      <div id="venue"></div>
       <div id="flag"></div>
       <div id="bug"><div class="tscore" style="font-size:5vh">Loading&hellip;</div></div>
       <div id="infostrip"></div>
