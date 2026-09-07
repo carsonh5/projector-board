@@ -104,13 +104,19 @@
     // Clear advance timer
     clearTimeout(_advanceTimer);
 
-    // Load clip
+    // Load clip — Fire Stick / Fully Kiosk webview needs muted set as an ATTRIBUTE before src,
+    // plus a retry once the media is actually decodable, or autoplay silently no-ops.
+    _videoEl.muted = true; _videoEl.defaultMuted = true;
+    _videoEl.setAttribute("muted", "");
+    _videoEl.setAttribute("playsinline", "");
+    _videoEl.setAttribute("webkit-playsinline", "");
+    _videoEl.setAttribute("autoplay", "");
     _videoEl.src = src;
-    _videoEl.currentTime = 0;
-    _videoEl.muted = true;
-    _videoEl.play().catch(function () {
-      // Autoplay blocked — still update caption; user tap will unblock
-    });
+    _videoEl.load();
+    var _tryPlay = function () { if (!_active || !_videoEl) return; var p = _videoEl.play(); if (p && p.catch) p.catch(function () {}); };
+    _tryPlay();
+    _videoEl.addEventListener("loadeddata", _tryPlay, { once: true });
+    _videoEl.addEventListener("canplay", _tryPlay, { once: true });
 
     _updateCaption(clip, idx, _clips.length);
 
@@ -157,8 +163,15 @@
     const video = document.createElement("video");
     video.id = "hl-video";
     video.muted = true;
+    video.defaultMuted = true;
     video.playsInline = true;
     video.autoplay = true;
+    // Attributes (not just properties) — required for Fire Stick / Fully Kiosk webview autoplay policy
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    video.setAttribute("autoplay", "");
+    video.setAttribute("preload", "auto");
     // No controls — projector display
     video.style.cssText = "width:100%;height:100%;object-fit:contain;background:#000;display:block;";
     container.appendChild(video);
