@@ -126,27 +126,171 @@
   /* pre-game countdown (single feature) */
   .cd { font-family: "Oswald", sans-serif; font-size: 3.6vh; font-weight: 700; color: #35E0E0; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
   /* ===== game cards (feature view): opponent-top / opponent-bottom in one box, side by side ===== */
-  #cards { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; gap: 1.6vw; padding: 0 2vw; }
+  #cards { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; gap: 2vw; padding: 0 2vw; }
   body.cards #cards { display: flex; }
   body.cards #flag, body.cards #bug, body.cards #infostrip, body.cards #field, body.cards #stack { display: none; }
-  .gcard { flex: 0 1 32vw; width: 32vw; max-width: 34vw; max-height: 42vh; display: flex; flex-direction: column;
-    border: 0.3vh solid #05070a; border-radius: 1vh; overflow: hidden; box-shadow: 0 0 0 1px #2a2f37, 0 1vh 3vh #0009; background: #0c0e12; }
-  body.cards.n1 .gcard { flex-basis: 40vw; width: 40vw; max-width: 44vw; }
-  .gteam { flex: 1; min-height: 0; padding: 1.2vh 1.4vw; display: flex; flex-direction: row; align-items: center; gap: 1vw; overflow: hidden; }
-  .gteam .gmain { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.3vh; }
-  .gteam .glogo { flex: 0 0 auto; background: #f0f0f0; border-radius: 16%; padding: 0.7vh; display: flex; align-items: center; justify-content: center; }
-  .gteam .glogo img { height: 8vh; width: 8vh; object-fit: contain; display: block; }
-  .gtop { display: flex; align-items: baseline; gap: 0.6vw; }
-  .grank { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.6vh; opacity: 0.85; }
-  .gname { font-family: "Oswald", sans-serif; font-weight: 700; font-style: italic; font-size: 4.4vh; text-transform: uppercase; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .gscorerow { display: flex; align-items: center; gap: 0.9vw; z-index: 1; }
-  .gscore { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 7.2vh; line-height: 0.85; font-variant-numeric: tabular-nums; }
-  .gposs .fbico { height: 3.4vh; }
-  .gfoot { background: #0a0c10; display: flex; flex-direction: column; flex: 0 0 auto; }
-  .gstat { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.9vh; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; padding: 0.7vh 0 0.3vh; }
-  .gstat.pre { color: #35E0E0; } .gstat.fin { color: #d8dce2; }
-  .gdd { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 3vh; color: #FFE84D; text-transform: uppercase; text-align: center; padding: 0.2vh 0 0.8vh; letter-spacing: 0.03em; }
-  .gline { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 2.4vh; color: #cfd3d8; text-transform: uppercase; text-align: center; padding: 0 0 0.7vh; letter-spacing: 0.02em; }
+
+  /* Card shell — fixed-width, all cards same size; narrower than before */
+  .gcard {
+    flex: 0 0 auto;
+    width: 26vw;
+    display: grid;
+    grid-template-rows: 1fr 1fr auto;   /* band-away | band-home | footer */
+    border: 0.3vh solid #05070a;
+    border-radius: 1vh;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px #2a2f37, 0 1vh 3vh #0009;
+    background: #0c0e12;
+    min-height: 0;
+    max-height: 44vh;
+  }
+  body.cards.n1 .gcard { width: 38vw; }
+
+  /* Each team band: CSS grid — [rank+abbrev | score | logo] with fixed columns */
+  .gteam {
+    display: grid;
+    grid-template-columns: 1fr auto auto;  /* text grows, score fixed, logo fixed */
+    align-items: center;
+    padding: 1vh 1.2vw 1vh 1.4vw;
+    gap: 0 1vw;
+    min-height: 0;
+    overflow: visible;   /* never clip the band */
+  }
+  /* gmain: holds rank+abbrev on one row; no shrinking or overflow clipping */
+  .gteam .gmain {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2vh;
+    min-width: 0;
+    overflow: visible;
+  }
+  /* logo pill: fixed square, vertically centered, same across both bands */
+  .gteam .glogo {
+    flex: 0 0 auto;
+    width: 7.5vh;
+    height: 7.5vh;
+    background: #f0f0f0;
+    border-radius: 16%;
+    padding: 0.55vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gteam .glogo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+  /* rank chip + abbreviation row — no clipping ever */
+  .gtop { display: flex; align-items: baseline; gap: 0.5vw; overflow: visible; }
+  .grank { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.4vh; opacity: 0.85; flex: 0 0 auto; }
+  .gname {
+    font-family: "Oswald", sans-serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 4.2vh;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: visible;        /* NEVER clip abbreviations */
+    text-overflow: clip;
+    line-height: 1;
+  }
+
+  /* score column: fixed-width tabular cell */
+  .gscorerow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3vh;
+    min-width: 4.5ch;
+  }
+  .gscore {
+    font-family: "Oswald", sans-serif;
+    font-weight: 700;
+    font-size: 6.8vh;
+    line-height: 0.9;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /* possession football under score */
+  .gposs { display: flex; align-items: center; justify-content: center; }
+  .gposs .fbico { height: 2.6vh; width: auto; }
+
+  /* ---- Footer ---- */
+  .gfoot {
+    background: #0a0c10;
+    display: grid;
+    /* game-status row | dd+yardline row | timeouts row | odds row */
+    grid-template-rows: auto;
+    flex: 0 0 auto;
+    padding: 0.6vh 0.8vw 0.7vh;
+  }
+
+  /* clock / start / FINAL */
+  .gstat {
+    font-family: "Oswald", sans-serif;
+    font-weight: 700;
+    font-size: 2.9vh;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+    line-height: 1.1;
+  }
+  .gstat.pre { color: #35E0E0; }
+  .gstat.fin { color: #d8dce2; }
+
+  /* down & distance + yard line */
+  .gdd {
+    font-family: "Barlow Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 2.6vh;
+    color: #FFE84D;
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 0.25vh;
+    letter-spacing: 0.03em;
+    line-height: 1.1;
+  }
+
+  /* timeouts row: away timeouts | · | home timeouts, with side labels */
+  .gtos-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5vw;
+    margin-top: 0.4vh;
+  }
+  .gtos-lbl {
+    font-family: "Barlow Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 2.2vh;
+    color: #7a7f88;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex: 0 0 auto;
+  }
+  .gtos-lbl.has-ball { color: #fff; }
+  /* reuse existing .tos / .to-bar for timeout bars */
+  .gtos-row .tos { padding: 0 0.3vw; gap: 0.4vh; }
+  .gtos-row .to-bar { width: 1.2vw; height: 0.55vh; }
+
+  /* possession indicator dot in the timeouts row */
+  .gtos-ball { font-size: 1.8vh; margin: 0 0.2vw; display: flex; align-items: center; }
+  .gtos-ball .fbico { height: 2.0vh; width: auto; }
+
+  /* odds/channel line */
+  .gline {
+    font-family: "Barlow Condensed", sans-serif;
+    font-weight: 600;
+    font-size: 2.4vh;
+    color: #cfd3d8;
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 0.3vh;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
@@ -246,7 +390,7 @@ function teamColors(hex){ let n=parseInt(hex||"888888",16); if(isNaN(n)) n=0x888
   let r=(n>>16)&255,g=(n>>8)&255,b=n&255; const L0=0.299*r+0.587*g+0.114*b;
   if(L0<95){ const f=95/Math.max(L0,1); r=Math.min(255,r*f); g=Math.min(255,g*f); b=Math.min(255,b*f); }
   const L=0.299*r+0.587*g+0.114*b; return { bg:`rgb(${r|0},${g|0},${b|0})`, text: L>150?"#111":"#fff" }; }
-const rankNum = t => { const r=t?.curatedRank?.current; return (r&&r<=25)?r:99; };
+const rankNum = t => { const r=(t&&t.curatedRank&&t.curatedRank.current) || (t&&t.team&&t.team.curatedRank&&t.team.curatedRank.current); return (r&&r<=25)?r:99; };   // curatedRank lives on the competitor, not team
 const rk = t => { const r=rankNum(t); return r<99?`#${r} `:""; };
 let LOGO_MAP = {};   // curated dark-bg team logos (white-outlined); fall back to ESPN when a team isn't in the set
 fetch("logos/logo-map.json",{cache:"force-cache"}).then(r=>r.json()).then(m=>{ LOGO_MAP=m||{}; if(typeof render==="function"&&games.length) render(); }).catch(()=>{});
@@ -272,7 +416,7 @@ async function load(){
       const c=ev.competitions[0];
       const home=c.competitors.find(t=>t.homeAway==="home"), away=c.competitors.find(t=>t.homeAway==="away");
       const st=ev.status.type, state=st.state, hS=+home.score||0, aS=+away.score||0, fav=favSide(c);
-      const aR=rankNum(away.team), hR=rankNum(home.team);
+      const aR=rankNum(away), hR=rankNum(home);
       const isUpset=state==="in"&&fav&&((fav==="home"?aS:hS)>(fav==="home"?hS:aS));
       const period=c.status?.period||0, isClose=state==="in"&&period>=4&&Math.abs(hS-aS)<=8;
       let watch=-1;
@@ -289,7 +433,7 @@ async function load(){
         if(clk && ord) detail=clk+" · "+ord; }
       return { id:ev.id, date:ev.date, aAbbr:away.team.abbreviation, hAbbr:home.team.abbreviation,
         aLoc:away.team.location||"", hLoc:home.team.location||"",
-        aName:rk(away.team)+away.team.abbreviation, hName:rk(home.team)+home.team.abbreviation,
+        aName:rk(away)+away.team.abbreviation, hName:rk(home)+home.team.abbreviation,
         aLogo:logoOf(away.team), hLogo:logoOf(home.team), aTC:teamColors(away.team.color), hTC:teamColors(home.team.color),
         aColUnder:teamColors(away.team.color).bg, hColUnder:teamColors(home.team.color).bg,
         aAlt:away.team.alternateColor||"", hAlt:home.team.alternateColor||"",
@@ -538,22 +682,51 @@ function renderStack(list){ document.getElementById("stack").innerHTML=list.map(
 /* one game card: opponent-top / opponent-bottom in one box (team-color bands + status footer) */
 function gameCard(g, single){
   const live=g.state==="in", pre=g.state==="pre", ps=possSide(g);
-  const rankTag=(r)=> (r&&r<99&&r<=25) ? `<span class="grank">${r}</span>` : "";
+  const rankTag=(r)=> (r&&r<99&&r<=25) ? `<span class="grank">#${r}</span>` : "";
+
+  /* band: CSS-grid row — [gmain: rank+abbrev] [gscorerow: score+poss] [glogo] */
   const band=(loc,abbr,logo,score,rank,tc,ball)=>{
     const nm=((single?(loc||abbr):(abbr||loc))||"").toUpperCase();
+    const possEl=ball ? `<span class="gposs">${FBALL}</span>` : "";
     return `<div class="gteam" style="background:${tc.bg};color:${tc.text}">`
-      + `<div class="gmain"><div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span></div>`
-      + `<div class="gscorerow"><span class="gscore">${score}</span>${ball?`<span class="gposs">${FBALL}</span>`:""}</div></div>`
-      + `<span class="glogo"><img src="${logo}" onerror="this.closest('.glogo').style.visibility='hidden'"></span></div>`;
+      + `<div class="gmain"><div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span></div></div>`
+      + `<div class="gscorerow"><span class="gscore">${score}</span>${possEl}</div>`
+      + `<span class="glogo"><img src="${logo}" onerror="this.closest('.glogo').style.visibility='hidden'"></span>`
+      + `</div>`;
   };
+
   const aS=pre?"":g.aS, hS=pre?"":g.hS;
   const lines=[g.channel,g.line,g.ou].filter(Boolean).join(" · ");
+
   let foot;
-  if(live) foot=`<div class="gfoot"><div class="gstat">${g.detail}</div>${(g.dd||g.possText)?`<div class="gdd">${g.dd||""}${g.dd&&g.possText?" · ":""}${g.possText||""}</div>`:""}</div>`;
-  else if(pre) foot=`<div class="gfoot"><div class="gstat pre">${g.start}</div>${single?`<div class="gdd" id="cd"></div>`:""}${lines?`<div class="gline">${lines}</div>`:""}</div>`;
-  else foot=`<div class="gfoot"><div class="gstat fin">FINAL</div></div>`;
-  return `<div class="gcard">`+band(g.aLoc,g.aAbbr,g.aLogo,aS,g.aRank,g.aTC,ps==="away")
-    +band(g.hLoc,g.hAbbr,g.hLogo,hS,g.hRank,g.hTC,ps==="home")+foot+`</div>`;
+  if(live){
+    /* clock row */
+    const clockRow=`<div class="gstat">${g.detail}</div>`;
+    /* down & distance + yard line */
+    const sitStr=[g.dd,g.possText].filter(Boolean).join(" · ");
+    const ddRow=sitStr ? `<div class="gdd">${sitStr}</div>` : "";
+    /* timeouts row: AWAY [bars] · [ball?] · [bars] HOME */
+    const aBall=(ps==="away"), hBall=(ps==="home");
+    const aLbl=`<span class="gtos-lbl${aBall?" has-ball":""}">${g.aAbbr}</span>`;
+    const hLbl=`<span class="gtos-lbl${hBall?" has-ball":""}">${g.hAbbr}</span>`;
+    const aTos=tosBars(g.aTO!=null?g.aTO:null);
+    const hTos=tosBars(g.hTO!=null?g.hTO:null);
+    const ballEl=(ps!==null) ? `<span class="gtos-ball">${FBALL}</span>` : `<span class="gtos-ball" style="opacity:0">${FBALL}</span>`;
+    const tosRow=(g.aTO!=null||g.hTO!=null)
+      ? `<div class="gtos-row">${aLbl}${aTos}${ballEl}${hTos}${hLbl}</div>`
+      : "";
+    foot=`<div class="gfoot">${clockRow}${ddRow}${tosRow}</div>`;
+  } else if(pre){
+    foot=`<div class="gfoot"><div class="gstat pre">${g.start}</div>${single?`<div class="gdd" id="cd"></div>`:""}${lines?`<div class="gline">${lines}</div>`:""}</div>`;
+  } else {
+    foot=`<div class="gfoot"><div class="gstat fin">FINAL</div></div>`;
+  }
+
+  return `<div class="gcard">`
+    + band(g.aLoc,g.aAbbr,g.aLogo,aS,g.aRank,g.aTC,ps==="away")
+    + band(g.hLoc,g.hAbbr,g.hLogo,hS,g.hRank,g.hTC,ps==="home")
+    + foot
+    + `</div>`;
 }
 /* best game this week for a featured team: live > soonest upcoming > most-recent final */
 function bestGameFor(f){
