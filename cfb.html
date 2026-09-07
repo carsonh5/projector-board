@@ -45,7 +45,7 @@
   #hl { display: none; position: absolute; inset: 0; z-index: 1; box-sizing: border-box; }
   body.hl #hl {
     display: grid;
-    grid-template-columns: 22fr 50fr 28fr;   /* fr units subtract the gaps automatically — never overflow */
+    grid-template-columns: 19fr 47fr 34fr;   /* fr units subtract the gaps automatically — never overflow */
     grid-template-rows: 100%;
     align-items: stretch;
     gap: 0.8vw;
@@ -69,9 +69,9 @@
   }
   .hlscoreboard { display: flex; flex-direction: column; gap: 0.5vh; }
   .hlfinal {
-    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 1.5vh;
-    color: #FFE84D; letter-spacing: 0.22em; text-transform: uppercase;
-    margin-bottom: 0.3vh; text-align: center;
+    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.6vh;
+    color: #FFE84D; letter-spacing: 0.2em; text-transform: uppercase;
+    margin-bottom: 0.4vh; text-align: center;
   }
   /* each team block stacked vertically: abbrev → logo → score */
   .hlteamrow {
@@ -83,15 +83,14 @@
   .hllsrow { display: flex; align-items: center; justify-content: space-between; gap: 0.6vw; padding: 0 0.4vw; }
   /* abbreviation above logo */
   .hlteampill {
-    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.1vh;
-    letter-spacing: 0.04em; text-transform: uppercase;
+    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 3.6vh;
+    letter-spacing: 0.02em; text-transform: uppercase;
     padding: 0.15vh 0.5vw; border-radius: 0.35vh;
     width: 100%; text-align: center; box-sizing: border-box;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .hlteamlogo {
-    width: 6vh; height: 6vh; object-fit: contain;
-    filter: drop-shadow(0 0 0.8px #fff) drop-shadow(0 0 0.8px #fff);
+    width: 6.5vh; height: 6.5vh; object-fit: contain;
     flex-shrink: 0;
   }
   /* large final score beside the logo */
@@ -141,13 +140,12 @@
     margin-bottom: 0.3vh; flex-shrink: 0;
   }
   .hlstathdr-logo {
-    width: 3vh; height: 3vh; object-fit: contain;
-    filter: drop-shadow(0 0 0.8px #fff);
+    width: 4.4vh; height: 4.4vh; object-fit: contain;
     flex-shrink: 0;
   }
   .hlstathdr-abbr {
-    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.6vh;
-    color: #fff; letter-spacing: 0.05em; text-transform: uppercase;
+    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 3.8vh;
+    color: #fff; letter-spacing: 0.03em; text-transform: uppercase;
   }
   /* one leader on a single horizontal line: LABEL · player name · value */
   .hlstatrow {
@@ -156,17 +154,17 @@
     flex-shrink: 0;
   }
   .hlstatk {
-    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2vh;
-    color: #FFE84D; letter-spacing: 0.06em; text-transform: uppercase;
-    line-height: 1; flex: 0 0 4.4vw;
+    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 3.6vh;
+    color: #FFE84D; letter-spacing: 0.03em; text-transform: uppercase;
+    line-height: 1; flex: 0 0 6vw;
   }
   .hlstatval {
-    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.7vh;
+    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 3.6vh;
     color: #fff; line-height: 1; flex: 0 0 auto; white-space: nowrap; margin-left: auto;
   }
   .hlstatplayer {
     font-family: "Barlow Condensed", sans-serif; font-weight: 600;
-    font-size: 2.3vh; color: #c4c8ce; line-height: 1.1; flex: 1 1 auto; min-width: 0;
+    font-size: 3.6vh; color: #c4c8ce; line-height: 1.1; flex: 1 1 auto; min-width: 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
@@ -822,7 +820,8 @@ function renderRecapStats(d){
     var abbr=(tl.team&&(tl.team.abbreviation||tl.team.displayName))||"";
     var logo=(tl.team&&tl.team.logo)||"";
     var cats=tl.leaders||[];
-    var pick=function(name){ var c=cats.find(function(x){return x.name===name;}); if(!c||!c.leaders||!c.leaders[0]) return null; var ld=c.leaders[0]; return { who:(ld.athlete&&(ld.athlete.shortName||ld.athlete.displayName))||"", val:ld.displayValue||"" }; };
+    var shortVal=function(dv){ dv=dv||""; var m=dv.match(/(\d[\d,]*)\s*YDS/i); return m?(m[1]+" YDS"):(dv.split(",")[0]||dv); };   // keep it short so text can be big
+    var pick=function(name){ var c=cats.find(function(x){return x.name===name;}); if(!c||!c.leaders||!c.leaders[0]) return null; var ld=c.leaders[0]; return { who:(ld.athlete&&(ld.athlete.shortName||ld.athlete.displayName))||"", val:shortVal(ld.displayValue||"") }; };
     var rows=[["PASS",pick("passingYards")],["RUSH",pick("rushingYards")],["REC",pick("receivingYards")]].filter(function(r){return r[1];});
     if(!rows.length) return;
     var col=document.createElement("div"); col.className="hlstatcol";
