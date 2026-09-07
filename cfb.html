@@ -807,7 +807,10 @@ function renderRecap(g){
     var st0=document.getElementById("hlstats"); if(st0) st0.replaceChildren();
     mountHighlights(document.getElementById("hlvid"), g.id, { noCaption:true,
       onEmpty:function(){ exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g); },
-      onClip:function(clip){ var c=document.getElementById("hlcap"); if(c) c.textContent=clip.headline||""; } });
+      onClip:function(clip){ var c=document.getElementById("hlcap"); if(c) c.textContent=clip.headline||"";
+        /* paint the clip thumbnail as the backdrop so a still frame always shows even where the
+           WebView video overlay doesn't composite (Fire Stick); real video plays on top elsewhere */
+        var vw=document.getElementById("hlvid"); if(vw && clip.thumbnail){ vw.style.backgroundImage="url('"+clip.thumbnail+"')"; vw.style.backgroundSize="cover"; vw.style.backgroundPosition="center"; } } });
     /* TEMP video diagnostics — text is screencap-visible even when the hardware video overlay is not */
     if(new URLSearchParams(location.search).get("vdbg")==="1"){
       var dbg=document.getElementById("hldbg"); if(!dbg){ dbg=document.createElement("div"); dbg.id="hldbg";

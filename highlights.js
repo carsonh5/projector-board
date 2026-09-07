@@ -172,8 +172,10 @@
     video.setAttribute("webkit-playsinline", "");
     video.setAttribute("autoplay", "");
     video.setAttribute("preload", "auto");
-    // No controls — projector display
-    video.style.cssText = "width:100%;height:100%;object-fit:contain;background:#000;display:block;";
+    // No controls — projector display. Transparent bg so the clip THUMBNAIL painted on the
+    // container shows through on devices where the WebView video overlay doesn't composite
+    // (e.g. Fire Stick). Where video renders normally (desktop) it paints opaque frames on top.
+    video.style.cssText = "width:100%;height:100%;object-fit:contain;background:transparent;display:block;position:relative;z-index:2;";
     container.appendChild(video);
 
     // Caption overlay — skipped when the host renders the caption in a side panel (noCaption)
