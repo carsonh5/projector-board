@@ -993,7 +993,19 @@ function bestGameFor(f){
   if(w==="last")     return post[0]||live[0]||pre[0]||ms[0];
   if(w==="upcoming") return pre[0]||live[0]||post[0]||ms[0];
   if(w==="current")  return live[0]||pre[0]||post[0]||ms[0];
-  return live[0]||pre[0]||post[0]||ms[0];   // auto
+  /* auto: live > recent-final recap (within ~3.5 days) > upcoming > older final.
+     Right after a game ends it shows the recap, then flips to the next game as it approaches. */
+  if(live[0]) return live[0];
+  const now=Date.now(), p0=post[0], r0=pre[0];
+  const RECAP_WINDOW=3.6*24*3600*1000;
+  if(p0){
+    const since=now-new Date(p0.date).getTime();
+    if(since>=0 && since<RECAP_WINDOW){
+      if(r0){ const until=new Date(r0.date).getTime()-now; if(until>=0 && until<since) return r0; }
+      return p0;
+    }
+  }
+  return r0||p0||ms[0];
 }
 function matchupGame(){   // the single game where every featured team appears (a real matchup)
   return games.find(function(g){ const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm);
