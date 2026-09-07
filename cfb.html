@@ -437,9 +437,12 @@
 
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
+  #zone-ticker { will-change: transform; transform: translateZ(0); }
   #zone-ticker .track { display: inline-flex; align-items: center; white-space: nowrap;
-    font-family: "Barlow Condensed", sans-serif; font-size: 4.6vh; font-weight: 700; will-change: transform; }
-  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    font-family: "Barlow Condensed", sans-serif; font-size: 4.6vh; font-weight: 700;
+    will-change: transform; transform: translateZ(0); backface-visibility: hidden; }
+  /* translate3d keeps the marquee on the GPU compositor (smoother on the Fire Stick) */
+  @keyframes scroll { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
   .item { display: inline-flex; align-items: center; padding: 0 1.8vw; }
   .item .sep { color: #6a6f76; padding: 0 0.7vw; }
   .seclbl { color: #FFE84D; font-weight: 700; letter-spacing: 0.08em; }

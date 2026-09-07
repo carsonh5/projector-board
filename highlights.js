@@ -52,13 +52,17 @@
   // to the screen (the <video> hole-punch shows black). Fallback modes render in-page instead.
   var _hlModeParam = "";
   try { _hlModeParam = new URLSearchParams(location.search).get("hlmode") || ""; } catch(e) {}
-  const _isFireTV = /\bAFT[A-Z0-9]|Fully|Silk|AndroidTV|Android TV/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") ||
-    (typeof window !== "undefined" && window._FORCE_IMG_HL);
-  // mode: "video" (WebView inline), "canvas" (blit to canvas), "img" (thumbnail slideshow)
+  var _ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+  // Amazon Silk (and desktop Chrome) COMPOSITE inline video correctly. The Android System WebView
+  // used by Fully Kiosk does NOT (video plays but shows black) — those get the image slideshow.
+  var _isSilk = /\bSilk\//i.test(_ua);
+  var _isFireTVWebView = /\bAFT[A-Z0-9]/i.test(_ua) && !_isSilk;
+  var _forceImg = (typeof window !== "undefined" && window._FORCE_IMG_HL);
+  // mode: "video" (inline), "canvas" (blit), "img" (thumbnail slideshow)
   const _MODE = _hlModeParam === "video" ? "video"
     : _hlModeParam === "canvas" ? "canvas"
     : _hlModeParam === "img" ? "img"
-    : (_isFireTV ? "img" : "video");
+    : ((_isFireTVWebView || _forceImg) ? "img" : "video");
   const _IMG_MODE = _MODE === "img";
   const _CANVAS_MODE = _MODE === "canvas";
   const IMG_DWELL_S = 6;
