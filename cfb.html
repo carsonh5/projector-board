@@ -130,10 +130,11 @@
   body.cards #cards { display: flex; }
   body.cards #flag, body.cards #bug, body.cards #infostrip, body.cards #field, body.cards #stack { display: none; }
 
-  /* Card shell — fixed-width, all cards same size; narrower than before */
+  /* Card shell — FIXED identical size for every card; both cards always same footprint */
   .gcard {
-    flex: 0 0 auto;
+    flex: 0 0 26vw;          /* fixed width — no flex shrink/grow */
     width: 26vw;
+    height: 40vh;            /* fixed height — enforces identical footprint */
     display: grid;
     grid-template-rows: 1fr 1fr auto;   /* band-away | band-home | footer */
     border: 0.3vh solid #05070a;
@@ -141,59 +142,85 @@
     overflow: hidden;
     box-shadow: 0 0 0 1px #2a2f37, 0 1vh 3vh #0009;
     background: #0c0e12;
-    min-height: 0;
-    max-height: 44vh;
   }
-  body.cards.n1 .gcard { width: 38vw; }
+  body.cards.n1 .gcard { flex: 0 0 38vw; width: 38vw; }
 
-  /* Each team band: CSS grid — [rank+abbrev | score | logo] with fixed columns */
+  /* Each team band: CSS grid — [gmain: rank+abbrev+poss+tos] | [score] | [logo] */
   .gteam {
     display: grid;
     grid-template-columns: 1fr auto auto;  /* text grows, score fixed, logo fixed */
     align-items: center;
-    padding: 1vh 1.2vw 1vh 1.4vw;
+    padding: 0.9vh 1.2vw 0.9vh 1.4vw;
     gap: 0 1vw;
-    min-height: 0;
-    overflow: visible;   /* never clip the band */
+    overflow: hidden;
   }
-  /* gmain: holds rank+abbrev on one row; no shrinking or overflow clipping */
+  /* gmain: holds rank+abbrev+football+timeouts stacked; no clipping of abbreviations */
   .gteam .gmain {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 0.2vh;
+    gap: 0.35vh;
     min-width: 0;
     overflow: visible;
   }
-  /* logo pill: fixed square, vertically centered, same across both bands */
+  /* logo: sits directly on the team-color band — NO white pill */
   .gteam .glogo {
     flex: 0 0 auto;
-    width: 7.5vh;
-    height: 7.5vh;
-    background: #f0f0f0;
-    border-radius: 16%;
-    padding: 0.55vh;
+    width: 7vh;
+    height: 7vh;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .gteam .glogo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  /* white outline via drop-shadow so logos read on any team color */
+  .gteam .glogo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    filter:
+      drop-shadow(1.5px 0 0 #fff)
+      drop-shadow(-1.5px 0 0 #fff)
+      drop-shadow(0 1.5px 0 #fff)
+      drop-shadow(0 -1.5px 0 #fff);
+  }
 
-  /* rank chip + abbreviation row — no clipping ever */
-  .gtop { display: flex; align-items: baseline; gap: 0.5vw; overflow: visible; }
-  .grank { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.4vh; opacity: 0.85; flex: 0 0 auto; }
+  /* rank chip + abbreviation row — rank same size as name, inline before it */
+  .gtop { display: flex; align-items: baseline; gap: 0.4vw; overflow: visible; flex-wrap: nowrap; }
+  /* rank: same font-size as .gname so "#24 LOU" reads as one unit */
+  .grank {
+    font-family: "Oswald", sans-serif;
+    font-weight: 700;
+    font-size: 3.6vh;    /* matches .gname */
+    opacity: 0.80;
+    flex: 0 0 auto;
+    line-height: 1;
+  }
   .gname {
     font-family: "Oswald", sans-serif;
     font-weight: 700;
     font-style: italic;
-    font-size: 4.2vh;
+    font-size: 3.6vh;
     text-transform: uppercase;
     letter-spacing: 0.01em;
     white-space: nowrap;
-    overflow: visible;        /* NEVER clip abbreviations */
+    overflow: visible;
     text-overflow: clip;
     line-height: 1;
   }
+  /* possession football: inline to the right of the team name */
+  .gposs-inline {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.5vw;
+    vertical-align: middle;
+  }
+  .gposs-inline .fbico { height: 2.4vh; width: auto; }
+
+  /* timeout bars on the team band — row beneath the name */
+  .gband-tos { display: flex; align-items: center; }
+  .gband-tos .tos { padding: 0; gap: 0.35vh; }
+  .gband-tos .to-bar { width: 1.1vw; height: 0.5vh; }
 
   /* score column: fixed-width tabular cell */
   .gscorerow {
@@ -201,93 +228,63 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.3vh;
     min-width: 4.5ch;
   }
   .gscore {
     font-family: "Oswald", sans-serif;
     font-weight: 700;
-    font-size: 6.8vh;
-    line-height: 0.9;
+    font-size: 6.2vh;
+    line-height: 1;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  /* possession football under score */
-  .gposs { display: flex; align-items: center; justify-content: center; }
-  .gposs .fbico { height: 2.6vh; width: auto; }
 
   /* ---- Footer ---- */
   .gfoot {
     background: #0a0c10;
-    display: grid;
-    /* game-status row | dd+yardline row | timeouts row | odds row */
-    grid-template-rows: auto;
+    display: flex;
+    flex-direction: column;
     flex: 0 0 auto;
-    padding: 0.6vh 0.8vw 0.7vh;
+    padding: 0.55vh 0.8vw 0.6vh;
+    gap: 0.2vh;
   }
 
-  /* clock / start / FINAL */
+  /* Single-line status row: clock · quarter   DD · yard-line */
   .gstat {
     font-family: "Oswald", sans-serif;
     font-weight: 700;
-    font-size: 2.9vh;
+    font-size: 2.6vh;
     color: #fff;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     text-align: center;
-    line-height: 1.1;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .gstat.pre { color: #35E0E0; }
   .gstat.fin { color: #d8dce2; }
 
-  /* down & distance + yard line */
+  /* down & distance — shares the same line as clock via .gstat-row; kept as distinct span inside */
   .gdd {
     font-family: "Barlow Condensed", sans-serif;
     font-weight: 700;
     font-size: 2.6vh;
     color: #FFE84D;
     text-transform: uppercase;
-    text-align: center;
-    margin-top: 0.25vh;
     letter-spacing: 0.03em;
-    line-height: 1.1;
+    line-height: 1.15;
   }
-
-  /* timeouts row: away timeouts | · | home timeouts, with side labels */
-  .gtos-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5vw;
-    margin-top: 0.4vh;
-  }
-  .gtos-lbl {
-    font-family: "Barlow Condensed", sans-serif;
-    font-weight: 700;
-    font-size: 2.2vh;
-    color: #7a7f88;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    flex: 0 0 auto;
-  }
-  .gtos-lbl.has-ball { color: #fff; }
-  /* reuse existing .tos / .to-bar for timeout bars */
-  .gtos-row .tos { padding: 0 0.3vw; gap: 0.4vh; }
-  .gtos-row .to-bar { width: 1.2vw; height: 0.55vh; }
-
-  /* possession indicator dot in the timeouts row */
-  .gtos-ball { font-size: 1.8vh; margin: 0 0.2vw; display: flex; align-items: center; }
-  .gtos-ball .fbico { height: 2.0vh; width: auto; }
 
   /* odds/channel line */
   .gline {
     font-family: "Barlow Condensed", sans-serif;
     font-weight: 600;
-    font-size: 2.4vh;
+    font-size: 2.3vh;
     color: #cfd3d8;
     text-transform: uppercase;
     text-align: center;
-    margin-top: 0.3vh;
     letter-spacing: 0.02em;
     line-height: 1.1;
   }
@@ -716,18 +713,34 @@ function stackRow(g){
 }
 function renderStack(list){ document.getElementById("stack").innerHTML=list.map(stackRow).join(""); _cdDate=null; }
 
+/* Team-color override map: when a team's abbreviation is in this map, use the specified
+   bg/text instead of the ESPN-derived teamColors. Add entries here for any team whose ESPN
+   primary color is wrong for the broadcast look. */
+const CARD_COLOR_OVERRIDE = {
+  "ND": { bg: "#C99700", text: "#0C2340" },   /* Notre Dame: gold band, navy text */
+};
+
 /* one game card: opponent-top / opponent-bottom in one box (team-color bands + status footer) */
 function gameCard(g, single){
   const live=g.state==="in", pre=g.state==="pre", ps=possSide(g);
   const rankTag=(r)=> (r&&r<99&&r<=25) ? `<span class="grank">#${r}</span>` : "";
 
-  /* band: CSS-grid row — [gmain: rank+abbrev] [gscorerow: score+poss] [glogo] */
-  const band=(loc,abbr,logo,score,rank,tc,ball)=>{
+  /* band: CSS-grid row — [gmain: rank+abbrev+poss+tos] [gscorerow: score] [glogo]
+     Timeouts appear as small bars on the band itself, beneath the team name.
+     Possession football appears inline to the right of the team name. */
+  const band=(loc,abbr,logo,score,rank,tc,ball,to)=>{
     const nm=((single?(loc||abbr):(abbr||loc))||"").toUpperCase();
-    const possEl=ball ? `<span class="gposs">${FBALL}</span>` : "";
-    return `<div class="gteam" style="background:${tc.bg};color:${tc.text}">`
-      + `<div class="gmain"><div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span></div></div>`
-      + `<div class="gscorerow"><span class="gscore">${score}</span>${possEl}</div>`
+    /* Apply team-color override if the abbrev is in the map */
+    const ovr = CARD_COLOR_OVERRIDE[(abbr||"").toUpperCase()];
+    const bg  = ovr ? ovr.bg   : tc.bg;
+    const txt = ovr ? ovr.text : tc.text;
+    /* Possession football inline right of name */
+    const possEl = ball ? `<span class="gposs-inline">${FBALL}</span>` : "";
+    /* Timeout bars below the name row — only when to data is present */
+    const tosEl = (to!=null) ? `<div class="gband-tos">${tosBars(to)}</div>` : "";
+    return `<div class="gteam" style="background:${bg};color:${txt}">`
+      + `<div class="gmain"><div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span>${possEl}</div>${tosEl}</div>`
+      + `<div class="gscorerow"><span class="gscore">${score}</span></div>`
       + `<span class="glogo"><img src="${logo}" onerror="this.closest('.glogo').style.visibility='hidden'"></span>`
       + `</div>`;
   };
@@ -737,22 +750,13 @@ function gameCard(g, single){
 
   let foot;
   if(live){
-    /* clock row */
-    const clockRow=`<div class="gstat">${g.detail}</div>`;
-    /* down & distance + yard line */
+    /* Single footer line: "10:38 · 2ND    2ND & 10 · WIS 29"
+       Left part = clock/quarter (g.detail), right part = DD + yard line; separated by em-space */
     const sitStr=[g.dd,g.possText].filter(Boolean).join(" · ");
-    const ddRow=sitStr ? `<div class="gdd">${sitStr}</div>` : "";
-    /* timeouts row: AWAY [bars] · [ball?] · [bars] HOME */
-    const aBall=(ps==="away"), hBall=(ps==="home");
-    const aLbl=`<span class="gtos-lbl${aBall?" has-ball":""}">${g.aAbbr}</span>`;
-    const hLbl=`<span class="gtos-lbl${hBall?" has-ball":""}">${g.hAbbr}</span>`;
-    const aTos=tosBars(g.aTO!=null?g.aTO:null);
-    const hTos=tosBars(g.hTO!=null?g.hTO:null);
-    const ballEl=(ps!==null) ? `<span class="gtos-ball">${FBALL}</span>` : `<span class="gtos-ball" style="opacity:0">${FBALL}</span>`;
-    const tosRow=(g.aTO!=null||g.hTO!=null)
-      ? `<div class="gtos-row">${aLbl}${aTos}${ballEl}${hTos}${hLbl}</div>`
-      : "";
-    foot=`<div class="gfoot">${clockRow}${ddRow}${tosRow}</div>`;
+    const oneLine = sitStr
+      ? `${g.detail}<span style="color:#555;padding:0 0.6vw">|</span><span class="gdd">${sitStr}</span>`
+      : g.detail;
+    foot=`<div class="gfoot"><div class="gstat">${oneLine}</div></div>`;
   } else if(pre){
     foot=`<div class="gfoot"><div class="gstat pre">${g.start}</div>${single?`<div class="gdd" id="cd"></div>`:""}${lines?`<div class="gline">${lines}</div>`:""}</div>`;
   } else {
@@ -760,8 +764,8 @@ function gameCard(g, single){
   }
 
   return `<div class="gcard">`
-    + band(g.aLoc,g.aAbbr,g.aLogo,aS,g.aRank,g.aTC,ps==="away")
-    + band(g.hLoc,g.hAbbr,g.hLogo,hS,g.hRank,g.hTC,ps==="home")
+    + band(g.aLoc,g.aAbbr,g.aLogo,aS,g.aRank,g.aTC,ps==="away",g.aTO)
+    + band(g.hLoc,g.hAbbr,g.hLogo,hS,g.hRank,g.hTC,ps==="home",g.hTO)
     + foot
     + `</div>`;
 }
