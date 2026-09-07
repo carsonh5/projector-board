@@ -49,7 +49,12 @@
   // Fire TV / Amazon devices (model prefix "AFT") cannot composite the WebView video overlay to the
   // screen — the <video> hole-punch shows black. Detect them and use an image slideshow of the clip
   // thumbnails instead, which composites in-page and always displays.
-  const _IMG_MODE = /\bAFT[A-Z0-9]|Fully|Silk|AndroidTV|Android TV/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") || (typeof window!=="undefined" && window._FORCE_IMG_HL);
+  var _hlModeParam = "";
+  try { _hlModeParam = new URLSearchParams(location.search).get("hlmode") || ""; } catch(e) {}
+  const _IMG_MODE = _hlModeParam === "video" ? false :
+    (_hlModeParam === "img" ||
+     /\bAFT[A-Z0-9]|Fully|Silk|AndroidTV|Android TV/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") ||
+     (typeof window !== "undefined" && window._FORCE_IMG_HL));
   const IMG_DWELL_S = 6;
 
   // ── Internal helpers ───────────────────────────────────────────────────────
