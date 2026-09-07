@@ -110,8 +110,13 @@
   #hlvid {
     flex: 1 1 0; min-height: 0; background: #000;
     border-radius: 0.5vh; overflow: hidden;
+    position: relative;
     /* keep 16:9 via object-fit on inner video/iframe — container just fills available space */
   }
+  /* Force Chromium/WebView to composite the video IN-PAGE (visible) instead of a hidden hardware
+     overlay: a near-invisible layer on top of the video defeats the overlay fast-path. */
+  #hlvid::after { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,0.012); pointer-events: none; z-index: 2; }
+  #hlvid video, #hl-video { position: relative; z-index: 1; }
   /* caption sits below the video, small secondary label */
   #hlcap {
     flex: 0 0 auto;
@@ -809,7 +814,7 @@ function renderRecap(g){
       onEmpty:function(){ exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g); },
       onClip:function(clip){ var c=document.getElementById("hlcap"); if(c) c.textContent=clip.headline||""; } });
     /* TEMP video diagnostics — text is screencap-visible even when the hardware video overlay is not */
-    if(true){
+    if(new URLSearchParams(location.search).get("vdbg")==="1"){
       var dbg=document.getElementById("hldbg"); if(!dbg){ dbg=document.createElement("div"); dbg.id="hldbg";
         dbg.style.cssText="position:absolute;left:1vw;top:1vh;z-index:99;background:rgba(0,0,0,.8);color:#0f0;font:1.6vh monospace;padding:0.4vh 0.6vw;white-space:pre;"; document.getElementById("hl").appendChild(dbg); }
       clearInterval(window._hldbgT); window._hldbgT=setInterval(function(){ var v=document.querySelector("#hlvid video"); if(!v){dbg.textContent="no <video>";return;}
