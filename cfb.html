@@ -811,12 +811,17 @@ function renderRecap(g){
         /* paint the clip thumbnail as the backdrop so a still frame always shows even where the
            WebView video overlay doesn't composite (Fire Stick); real video plays on top elsewhere */
         var vw=document.getElementById("hlvid"); if(vw && clip.thumbnail){ vw.style.backgroundImage="url('"+clip.thumbnail+"')"; vw.style.backgroundSize="cover"; vw.style.backgroundPosition="center"; } } });
-    /* TEMP video diagnostics — text is screencap-visible even when the hardware video overlay is not */
-    if(new URLSearchParams(location.search).get("vdbg")==="1"){
+    /* TEMP diagnostics — text is screencap-visible even when a hardware video overlay is not */
+    if(true){
       var dbg=document.getElementById("hldbg"); if(!dbg){ dbg=document.createElement("div"); dbg.id="hldbg";
-        dbg.style.cssText="position:absolute;left:1vw;top:1vh;z-index:99;background:rgba(0,0,0,.8);color:#0f0;font:1.6vh monospace;padding:0.4vh 0.6vw;white-space:pre;"; document.getElementById("hl").appendChild(dbg); }
-      clearInterval(window._hldbgT); window._hldbgT=setInterval(function(){ var v=document.querySelector("#hlvid video"); if(!v){dbg.textContent="no <video>";return;}
-        dbg.textContent="rs="+v.readyState+" ns="+v.networkState+" "+v.videoWidth+"x"+v.videoHeight+" paused="+v.paused+" t="+(v.currentTime.toFixed(1))+" err="+(v.error?v.error.code:"-")+"\nsrc="+((v.currentSrc||"none").split("/").pop()||"none").slice(0,30); }, 500);
+        dbg.style.cssText="position:absolute;left:1vw;top:1vh;z-index:99;background:rgba(0,0,0,.85);color:#0f0;font:1.5vh monospace;padding:0.4vh 0.6vw;white-space:pre;max-width:40vw;overflow:hidden;"; document.getElementById("hl").appendChild(dbg); }
+      clearInterval(window._hldbgT); window._hldbgT=setInterval(function(){
+        var im=document.getElementById("hl-image"), v=document.getElementById("hl-video");
+        var ua=(navigator.userAgent||"").slice(0,60);
+        if(im){ dbg.textContent="IMG mode\n"+im.naturalWidth+"x"+im.naturalHeight+" complete="+im.complete+"\nsrc="+((im.src||"none").split("/").pop()||"none").slice(0,28)+"\nUA="+ua; }
+        else if(v){ dbg.textContent="VIDEO mode rs="+v.readyState+" "+v.videoWidth+"x"+v.videoHeight+" paused="+v.paused+"\nUA="+ua; }
+        else { dbg.textContent="no media el\nUA="+ua; }
+      }, 500);
     }
     fetch("https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event="+g.id).then(function(r){return r.json();}).then(function(d){ renderRecapStats(d); }).catch(function(){});
   }
