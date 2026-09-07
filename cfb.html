@@ -292,17 +292,47 @@
     line-height: 1.1;
   }
 
+  /* ===== TICKER category label ===== */
+  /* Pinned to the top edge of the ticker zone, shifted up by its own height,
+     so it always sits flush against the ticker's top edge regardless of zone layout. */
+  #tk-label {
+    position: fixed;
+    top: var(--tk-t, 76vh);
+    transform: translateY(-100%);
+    left: var(--tk-l, 0);
+    z-index: 2;
+    background: #FFE84D;
+    color: #111;
+    font-family: "Oswald", sans-serif;
+    font-weight: 700;
+    font-size: 1.8vh;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.25vh 0.9vw 0.2vh;
+    line-height: 1;
+    pointer-events: none;
+  }
+  #tk-label:empty { display: none; }
+
   /* ===== TICKER band ===== */
   #zone-ticker { top: var(--tk-t,76vh); bottom: var(--tk-b,15vh); left: var(--tk-l,0); right: var(--tk-r,0); z-index: 1; display: flex; align-items: center; }
-  #zone-ticker .track { display: inline-block; white-space: nowrap;
+  #zone-ticker .track { display: inline-flex; align-items: center; white-space: nowrap;
     font-family: "Barlow Condensed", sans-serif; font-size: 4.6vh; font-weight: 700; will-change: transform; }
   @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-  .item { display: inline-block; padding: 0 1.8vw; }
+  .item { display: inline-flex; align-items: center; padding: 0 1.8vw; }
   .item .sep { color: #6a6f76; padding: 0 0.7vw; }
   .seclbl { color: #FFE84D; font-weight: 700; letter-spacing: 0.08em; }
-  .tkplate { padding: 0.3vh; margin: 0 0.3vw; vertical-align: middle; }
-  .tkplate img { height: 3.8vh; object-fit: contain; display: block; }
+  /* curated logos (dark-bg PNGs from logos/): transparent bg, no pill */
+  .tklogo-curated { display: inline-flex; align-items: center; justify-content: center;
+    height: 3.8vh; width: 3.8vh; flex: 0 0 auto; margin: 0 0.35vw; vertical-align: middle; }
+  .tklogo-curated img { height: 100%; width: 100%; object-fit: contain; display: block; }
+  /* ESPN fallback logos: subtle dark-rounded backing so a dark logo doesn't vanish */
+  .tklogo-espn { display: inline-flex; align-items: center; justify-content: center;
+    height: 3.8vh; width: 3.8vh; flex: 0 0 auto; margin: 0 0.35vw; vertical-align: middle;
+    background: rgba(255,255,255,0.12); border-radius: 5px; padding: 0.2vh; }
+  .tklogo-espn img { height: 100%; width: 100%; object-fit: contain; display: block; }
+  /* possession football inline on ticker */
+  .tk-poss { display: inline-flex; align-items: center; margin: 0 0.25vw; font-size: 2.2vh; line-height: 1; }
   .tk { border-bottom: 0.3vh solid #888; padding-bottom: 0.1vh; }
   .score { font-variant-numeric: tabular-nums; }
 
@@ -358,6 +388,7 @@
       <div id="schedule"></div>
     </div>
   </div>
+  <div id="tk-label"></div>
   <div class="zone" id="zone-ticker"><div class="track" id="t-ticker"><span class="item">Loading&hellip;</span></div></div>
   <div class="gap" id="gapA"></div><div class="gap" id="gapB"></div>
   <div class="zone" id="flash"><div class="big" id="flash-big"></div><div class="sub" id="flash-sub"></div></div>
@@ -493,12 +524,18 @@ function tdTickerOn(primary, secondary){
   _tickerSaved=z.style.background; z.style.background=secondary||primary;
   var word='<span class="item" style="color:#fff;font-weight:900;letter-spacing:0.12em">TOUCHDOWN</span><span class="item sep">·</span>';
   var many=""; for(var i=0;i<12;i++) many+=word;
-  _lastTicker="__td__"; t.innerHTML=many+many; t.style.animation="none";
+  /* reset both sigs so tdTickerOff's renderTicker forces a full track rebuild */
+  _lastTicker="__td__"; _tkStructSig="__td__"; _tkContentSig=""; _tkPool=[];
+  /* hide the category label during TD takeover */
+  var lbl=document.getElementById("tk-label"); if(lbl) lbl.textContent="";
+  t.innerHTML=many+many; t.style.animation="none";
   requestAnimationFrame(function(){ var w=t.scrollWidth/2; t.style.animation="scroll "+Math.max(8,Math.round(w/(TICKER_PXPS||120)))+"s linear infinite"; });
 }
 function tdTickerOff(){
   var z=document.getElementById("zone-ticker"); if(z) z.style.background=_tickerSaved||"";
-  _lastTicker=""; renderTicker();
+  /* clear both sigs so the next renderTicker always does a full rebuild + restores label */
+  _lastTicker=""; _tkStructSig=""; _tkContentSig=""; _tkPool=[];
+  renderTicker();
 }
 setInterval(function(){ promoteGames(false); }, 1000);
 function updateDelayBadge(){ var el=document.getElementById("delaybadge"); if(!el) return;
@@ -790,21 +827,76 @@ function renderSpotlight(g){
   _cdDate = (g.state==="pre" && g.date) ? new Date(g.date).getTime() : null; tickCountdown();
 }
 
-/* ticker item + section builder */
-// logos back in (paged ticker is static -> images are cheap); no color underline
-const T=(logo,abbr,col)=>`<span class="plate tkplate"><img src="${logo}" onerror="this.closest('.plate').style.display='none'"></span>${abbr}`;
+/* ===== TICKER — logos, possession indicator, in-place update, category label ===== */
+
+/* Distinguish curated dark-bg local logos (path starts "logos/") from ESPN fallback URLs.
+   Curated: transparent background, no pill.
+   ESPN fallback: subtle semi-transparent rounded backing so dark logos stay visible. */
+function tkLogo(logo){
+  const isCurated = logo && logo.startsWith("logos/");
+  const cls = isCurated ? "tklogo-curated" : "tklogo-espn";
+  return `<span class="${cls}"><img src="${logo}" onerror="this.parentNode.style.display='none'"></span>`;
+}
+
+/* Build a single ticker team cell: logo + abbreviation */
+const T = (logo, abbr) => tkLogo(logo) + abbr;
+
+/* Possession indicator: small football emoji, subtle, aligned */
+const tkPoss = () => `<span class="tk-poss">🏈</span>`;
+
+/* Build one ticker item's INNER content (not the outer .item wrapper).
+   Separated so we can patch it in-place without touching the wrapper. */
+function tickItemInner(g){
+  /* possession side: "away"|"home"|null */
+  const ps = (g.state==="in" && g.poss)
+    ? (String(g.poss)===String(g.aId) ? "away" : String(g.poss)===String(g.hId) ? "home" : null)
+    : null;
+
+  const aLabel = T(g.aLogo, g.aAbbr) + (ps==="away" ? tkPoss() : "");
+  const hLabel = T(g.hLogo, g.hAbbr) + (ps==="home" ? tkPoss() : "");
+
+  const chan = g.channel ? ` <span class="sep">·</span> <span class="lbl">${g.channel}</span>` : "";
+  const ln   = g.line    ? ` <span class="sep">·</span> ${g.line}` : "";
+
+  if(g.state==="in"){
+    const f = g.isUpset ? '<span class="upset">UPSET </span>' : (g.isClose ? '<span class="close">CLOSE </span>' : '');
+    return `<span class="score">${aLabel} ${g.aS} – ${hLabel} ${g.hS}</span> <span class="sep">·</span> ${f}<span class="live">${g.detail}</span>${chan}${ln}`;
+  }
+  if(g.state==="pre"){
+    return `<span class="pre">${aLabel} @ ${hLabel}</span> <span class="sep">·</span> ${g.start}${chan}${ln}`;
+  }
+  return `<span class="score">${aLabel} ${g.aS} – ${hLabel} ${g.hS}</span> <span class="sep">·</span> <span class="final">${g.detail}</span>`;
+}
+
+/* Full item HTML (outer wrapper + inner) — used when building the track from scratch */
 function tickItem(g){
-  const a=T(g.aLogo,g.aAbbr,g.aColUnder), h=T(g.hLogo,g.hAbbr,g.hColUnder);
-  const chan=g.channel?` <span class="sep">·</span> <span class="lbl">${g.channel}</span>`:"";
-  const ln=g.line?` <span class="sep">·</span> ${g.line}`:"";
-  if(g.state==="in"){ const f=g.isUpset?'<span class="upset">UPSET </span>':(g.isClose?'<span class="close">CLOSE </span>':'');
-    return `<span class="item"><span class="score">${a} ${g.aS} – ${h} ${g.hS}</span> <span class="sep">·</span> ${f}<span class="live">${g.detail}</span>${chan}${ln}</span>`; }
-  if(g.state==="pre"){ return `<span class="item"><span class="pre">${a} @ ${h}</span> <span class="sep">·</span> ${g.start}${chan}${ln}</span>`; }
-  return `<span class="item"><span class="score">${a} ${g.aS} – ${h} ${g.hS}</span> <span class="sep">·</span> <span class="final">${g.detail}</span></span>`;
+  return `<span class="item" data-gid="${g.id}">${tickItemInner(g)}</span>`;
 }
 const seclbl = t => `<span class="item"><span class="seclbl">${t}</span></span>`;
 
+/* Category label text for each TICKER_MODE value */
+const TICKER_LABELS = {
+  live:       "LIVE",
+  all:        "TODAY'S GAMES",
+  upcoming:   "UPCOMING",
+  top25:      "TOP 25",
+  rankings:   "AP TOP 25",
+  post:       "RESULTS",
+};
+function setTickerLabel(mode){
+  const el = document.getElementById("tk-label");
+  if(!el) return;
+  el.textContent = TICKER_LABELS[mode] || (mode ? mode.toUpperCase() : "");
+}
+
 let spotIx=0;
+
+/* _tkStructSig: tracks game ids+states only — used to decide when to full-rebuild the track.
+   _tkContentSig: tracks scores+clocks — used to detect in-place update needs.
+   _tkPool: the last pool of game objects, so we can patch in-place. */
+let _tkStructSig = "", _tkContentSig = "";
+let _tkPool = [];
+
 function renderTicker(){
   const today=games.filter(g=>g.isToday);
   const mode=TICKER_MODE||"all";
@@ -818,9 +910,16 @@ function renderTicker(){
       .concat(today.filter(g=>g.state==="post").sort((a,b)=>a.topRank-b.topRank).slice(0,16));
   }
   if(!pool.length) pool=today.slice(0,16);
-  const sig=mode+"|"+pool.map(g=>g.id+g.state+g.aS+g.hS).join(",");
-  setTicker(pool.map(tickItem), sig);
+
+  /* structure sig: mode + game ids + states (drives full rebuild) */
+  const structSig = mode + "|" + pool.map(g=>g.id+"|"+g.state).join(",");
+  /* content sig: scores + detail/clock + possession (drives in-place patch) */
+  const contentSig = pool.map(g=>g.aS+"|"+g.hS+"|"+g.detail+"|"+(g.poss||"")).join(",");
+
+  setTickerLabel(mode);
+  setTicker(pool, structSig, contentSig);
 }
+
 function render(){
   if(DEMO){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   if(SCENE==="playerstats" && FEATURE.length){ exitStandings(); exitSchedule(); document.getElementById("count").textContent="PLAYER STATS · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderPlayerStatsScene(); renderTicker(); return; }
@@ -870,12 +969,59 @@ setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).th
     else if(v!==_ver){ var u=new URL(location.href); u.searchParams.set("v",v); location.replace(u.toString()); } })
   .catch(function(){}); }, 20000);
 const TICKER_PXPS=90, TICKER_MAX=22; let _lastTicker="";   // continuous scroll
-function setTicker(arr, sig){ const el=document.getElementById("t-ticker");
-  const key = sig || (arr.length? ("n"+arr.length) : "empty");
-  if(key===_lastTicker) return; _lastTicker=key;   // rebuild (restart scroll) ONLY when the game SET changes — not on clock ticks
-  const html=(arr.length?arr.slice(0,TICKER_MAX):['<span class="item">No games today</span>']).join("");
-  el.innerHTML=html+html; el.style.animation="none";
-  requestAnimationFrame(function(){ const w=el.scrollWidth/2; el.style.animation="scroll "+Math.max(12,Math.round(w/TICKER_PXPS))+"s linear infinite"; }); }
+
+/* setTicker — called by renderTicker with pool (array of game objects), structSig, contentSig.
+   Maintains two-copy seamless marquee. Full rebuild only when structure (game set/states) changes.
+   In-place patch when only scores/clocks/possession change — scroll animation is NOT reset. */
+function setTicker(poolOrArr, structSig, contentSig){
+  const el = document.getElementById("t-ticker"); if(!el) return;
+
+  /* TD-ticker writes plain HTML string arrays (legacy path); detect by element type */
+  const isLegacy = poolOrArr.length > 0 && typeof poolOrArr[0] === "string";
+  if(isLegacy){
+    /* legacy call: poolOrArr is array of HTML strings, structSig is the combined key */
+    const key = structSig || ("n"+poolOrArr.length);
+    if(key === _lastTicker) return;
+    _lastTicker = key; _tkStructSig = key; _tkContentSig = ""; _tkPool = [];
+    const html = (poolOrArr.length ? poolOrArr.slice(0,TICKER_MAX) : ['<span class="item">No games today</span>']).join("");
+    el.innerHTML = html + html; el.style.animation = "none";
+    requestAnimationFrame(function(){ const w=el.scrollWidth/2; el.style.animation="scroll "+Math.max(12,Math.round(w/TICKER_PXPS))+"s linear infinite"; });
+    return;
+  }
+
+  /* Normal path: poolOrArr is array of game objects */
+  const pool = poolOrArr;
+  const sSig = structSig || ("n"+pool.length);
+  const cSig = contentSig || "";
+
+  if(sSig !== _tkStructSig){
+    /* Structure changed: full rebuild — new game set or mode switch */
+    _tkStructSig = sSig; _tkContentSig = cSig; _tkPool = pool; _lastTicker = sSig;
+    const items = pool.length ? pool.slice(0,TICKER_MAX).map(tickItem) : ['<span class="item">No games today</span>'];
+    const html = items.join("");
+    el.innerHTML = html + html;  /* duplicate for seamless loop */
+    el.style.animation = "none";
+    requestAnimationFrame(function(){ const w=el.scrollWidth/2; el.style.animation="scroll "+Math.max(12,Math.round(w/TICKER_PXPS))+"s linear infinite"; });
+    return;
+  }
+
+  if(cSig !== _tkContentSig){
+    /* Content-only change (scores/clock/possession): patch items in-place — scroll continues uninterrupted */
+    _tkContentSig = cSig; _tkPool = pool;
+    /* The track contains TWO copies of each item (for the seamless loop).
+       Each item has data-gid matching g.id. Find all matching spans and patch innerHTML. */
+    const lookup = {};
+    pool.slice(0,TICKER_MAX).forEach(function(g){ lookup[g.id] = tickItemInner(g); });
+    const items = el.querySelectorAll(".item[data-gid]");
+    items.forEach(function(span){
+      const gid = span.getAttribute("data-gid");
+      if(lookup[gid] !== undefined && span.innerHTML !== lookup[gid]){
+        span.innerHTML = lookup[gid];
+      }
+    });
+  }
+  /* else: nothing changed — no-op */
+}
 
 /* ===== ZONES + MAPPING MODE (add ?map=1 to the URL to edit; saved on this device) ===== */
 const ZDEF={ m:{t:30.75,r:0,b:24.7,l:0}, tk:{t:76,r:0,b:15,l:0}, gA:{t:75,r:54.45,b:14,l:43.85}, gB:{t:75,r:24.35,b:14,l:71.45} };
