@@ -44,17 +44,23 @@
   let _advanceTimer = null;
   let _videoEl = null;
   let _capEl = null;
+  let _canvasEl = null;   // canvas mode: blit hidden-video frames here (composites in-page)
+  let _rafId = null;
   let _active = false;
   let _onClip = null;  // caller callback, set per mountHighlights() call
-  // Fire TV / Amazon devices (model prefix "AFT") cannot composite the WebView video overlay to the
-  // screen — the <video> hole-punch shows black. Detect them and use an image slideshow of the clip
-  // thumbnails instead, which composites in-page and always displays.
+  // Fire TV / Amazon devices (model prefix "AFT") cannot composite the WebView inline-video overlay
+  // to the screen (the <video> hole-punch shows black). Fallback modes render in-page instead.
   var _hlModeParam = "";
   try { _hlModeParam = new URLSearchParams(location.search).get("hlmode") || ""; } catch(e) {}
-  const _IMG_MODE = _hlModeParam === "video" ? false :
-    (_hlModeParam === "img" ||
-     /\bAFT[A-Z0-9]|Fully|Silk|AndroidTV|Android TV/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") ||
-     (typeof window !== "undefined" && window._FORCE_IMG_HL));
+  const _isFireTV = /\bAFT[A-Z0-9]|Fully|Silk|AndroidTV|Android TV/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "") ||
+    (typeof window !== "undefined" && window._FORCE_IMG_HL);
+  // mode: "video" (WebView inline), "canvas" (blit to canvas), "img" (thumbnail slideshow)
+  const _MODE = _hlModeParam === "video" ? "video"
+    : _hlModeParam === "canvas" ? "canvas"
+    : _hlModeParam === "img" ? "img"
+    : (_isFireTV ? "img" : "video");
+  const _IMG_MODE = _MODE === "img";
+  const _CANVAS_MODE = _MODE === "canvas";
   const IMG_DWELL_S = 6;
 
   // ── Internal helpers ───────────────────────────────────────────────────────
@@ -104,6 +110,38 @@
     if (_onClip) _onClip(clip, idx, total);
   }
 
+  var _canvasProbe = { frames: 0, nonBlack: 0, decided: false };
+  function _startCanvasLoop() {
+    if (_rafId) return;
+    var ctx = _canvasEl && _canvasEl.getContext ? _canvasEl.getContext("2d") : null;
+    if (!ctx) return;
+    var loop = function () {
+      if (!_active || !_canvasEl || !_videoEl) return;
+      try {
+        ctx.drawImage(_videoEl, 0, 0, _canvasEl.width, _canvasEl.height);
+        // Auto-detect: sample the center; if frames stay black while the video is playing,
+        // the WebView won't expose decoded frames → give up on canvas (host can fall back).
+        if (!_canvasProbe.decided && _videoEl.currentTime > 0.3) {
+          _canvasProbe.frames++;
+          try {
+            var d = ctx.getImageData(_canvasEl.width >> 1, _canvasEl.height >> 1, 1, 1).data;
+            if (d[0] + d[1] + d[2] > 24) _canvasProbe.nonBlack++;
+          } catch (e) { _canvasProbe.tainted = true; }
+          if (_canvasProbe.frames >= 20) {
+            _canvasProbe.decided = true;
+            _canvasProbe.works = _canvasProbe.nonBlack >= 2;
+            if (_canvasEl) _canvasEl.setAttribute("data-probe", _canvasProbe.works ? "ok" : "black");
+          }
+        }
+      } catch (e) {}
+      _rafId = root.requestAnimationFrame ? root.requestAnimationFrame(loop) : setTimeout(loop, 40);
+    };
+    _rafId = root.requestAnimationFrame ? root.requestAnimationFrame(loop) : setTimeout(loop, 40);
+  }
+  function _stopCanvasLoop() {
+    if (_rafId) { if (root.cancelAnimationFrame) root.cancelAnimationFrame(_rafId); else clearTimeout(_rafId); _rafId = null; }
+  }
+
   function _playClip(idx) {
     if (!_active || !_videoEl || !_clips.length) return;
     idx = ((idx % _clips.length) + _clips.length) % _clips.length;
@@ -121,6 +159,18 @@
     }
 
     const src = clip.mp4 || _srcOf(clip);   // clips are already mapped to {mp4}; _srcOf needs raw ESPN shape
+
+    if (_CANVAS_MODE) {
+      _videoEl.muted = true; _videoEl.setAttribute("muted","");
+      _videoEl.src = src; _videoEl.load();
+      var _tp = function(){ if(!_active||!_videoEl) return; var p=_videoEl.play(); if(p&&p.catch) p.catch(function(){}); };
+      _tp(); _videoEl.addEventListener("loadeddata", _tp, {once:true}); _videoEl.addEventListener("canplay", _tp, {once:true});
+      _startCanvasLoop();
+      _updateCaption(clip, idx, _clips.length);
+      var _cm = (clip.duration ? Math.min(clip.duration, CLIP_MAX_DURATION_S) : CLIP_MAX_DURATION_S) * 1000;
+      _advanceTimer = setTimeout(function(){ _playClip(_idx + 1); }, _cm);
+      return;
+    }
     // Load clip — webview needs muted set as an ATTRIBUTE before src, plus a retry once decodable.
     _videoEl.muted = true; _videoEl.defaultMuted = true;
     _videoEl.setAttribute("muted", "");
@@ -182,6 +232,21 @@
       img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;background:#000;";
       container.appendChild(img);
       _videoEl = img;   // reuse the same handle; _playClip branches on _IMG_MODE
+    } else if (_CANVAS_MODE) {
+      // Blit hidden-video frames to a canvas (composites in-page like an image → visible on Fire TV
+      // IF the WebView exposes decoded frames to drawImage; auto-detected at runtime).
+      const video = document.createElement("video");
+      video.id = "hl-video";
+      video.muted = true; video.defaultMuted = true; video.playsInline = true; video.autoplay = true;
+      video.setAttribute("muted",""); video.setAttribute("playsinline",""); video.setAttribute("webkit-playsinline",""); video.setAttribute("autoplay",""); video.setAttribute("preload","auto");
+      video.crossOrigin = "anonymous";   // needed so the canvas isn't tainted (ESPN CDN allows *)
+      video.style.cssText = "position:absolute;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none;";
+      const canvas = document.createElement("canvas");
+      canvas.id = "hl-canvas";
+      canvas.width = 640; canvas.height = 360;
+      canvas.style.cssText = "width:100%;height:100%;object-fit:contain;display:block;background:#000;";
+      container.appendChild(video); container.appendChild(canvas);
+      _videoEl = video; _canvasEl = canvas;
     } else {
       const video = document.createElement("video");
       video.id = "hl-video";
@@ -285,11 +350,14 @@
     _active = false;
     clearTimeout(_advanceTimer);
     _advanceTimer = null;
+    _stopCanvasLoop();
     if (_videoEl) {
       if (typeof _videoEl.pause === "function") _videoEl.pause();
       _videoEl.src = "";
       _videoEl = null;
     }
+    _canvasEl = null;
+    _canvasProbe = { frames: 0, nonBlack: 0, decided: false };
     _capEl = null;
     _clips = [];
     _idx = 0;

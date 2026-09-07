@@ -818,9 +818,10 @@ function renderRecap(g){
       var dbg=document.getElementById("hldbg"); if(!dbg){ dbg=document.createElement("div"); dbg.id="hldbg";
         dbg.style.cssText="position:absolute;left:1vw;top:1vh;z-index:99;background:rgba(0,0,0,.85);color:#0f0;font:1.5vh monospace;padding:0.4vh 0.6vw;white-space:pre;max-width:40vw;overflow:hidden;"; document.getElementById("hl").appendChild(dbg); }
       clearInterval(window._hldbgT); window._hldbgT=setInterval(function(){
-        var im=document.getElementById("hl-image"), v=document.getElementById("hl-video");
-        var ua=(navigator.userAgent||"").slice(0,60);
-        if(im){ dbg.textContent="IMG mode\n"+im.naturalWidth+"x"+im.naturalHeight+" complete="+im.complete+"\nsrc="+((im.src||"none").split("/").pop()||"none").slice(0,28)+"\nUA="+ua; }
+        var im=document.getElementById("hl-image"), v=document.getElementById("hl-video"), cv=document.getElementById("hl-canvas");
+        var ua=(navigator.userAgent||"").slice(0,50);
+        if(cv){ dbg.textContent="CANVAS mode probe="+(cv.getAttribute("data-probe")||"...")+"\nvid rs="+(v?v.readyState:"-")+" t="+(v?v.currentTime.toFixed(1):"-")+" "+(v?v.videoWidth+"x"+v.videoHeight:"")+"\nUA="+ua; }
+        else if(im){ dbg.textContent="IMG mode "+im.naturalWidth+"x"+im.naturalHeight+" complete="+im.complete+"\nUA="+ua; }
         else if(v){ dbg.textContent="VIDEO mode rs="+v.readyState+" "+v.videoWidth+"x"+v.videoHeight+" paused="+v.paused+"\nUA="+ua; }
         else { dbg.textContent="no media el\nUA="+ua; }
       }, 500);
