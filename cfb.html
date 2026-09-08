@@ -102,7 +102,7 @@
     font-family: "Oswald", sans-serif; font-weight: 700; font-size: 6vh;
     color: #fff; line-height: 1; text-align: right; font-variant-numeric: tabular-nums;
   }
-  .hlteamscore.loser { color: #5a6270; font-weight: 400; }
+  .hlteamscore.loser { color: #7a8290; font-weight: 500; }
   /* divider between teams */
   .hlteamdiv { height: 1px; background: rgba(255,255,255,0.1); margin: 0.2vh 0.4vw; }
 
@@ -333,10 +333,14 @@
     text-transform: uppercase;
     letter-spacing: 0.01em;
     white-space: nowrap;
-    overflow: visible;
-    text-overflow: clip;
+    min-width: 0;                 /* allow the flex item to shrink so ellipsis can kick in */
+    overflow: hidden;
+    text-overflow: ellipsis;      /* graceful truncation instead of a hard clip by .gteam */
     line-height: 1;
   }
+  /* 4-up cards are narrower — shrink the name/rank a touch so longer abbreviations never truncate */
+  body.cards.n4 .gname, body.cards.n4 .grank { font-size: 3.6vh; }
+  body.cards.n4 .gteam .glogo { width: 5.8vh; height: 5.8vh; }   /* keep the pre-game logo inside the shorter n4 band */
   /* possession football: inline to the right of the team name */
   .gposs-inline {
     display: inline-flex;
@@ -416,6 +420,9 @@
     text-align: center;
     letter-spacing: 0.02em;
     line-height: 1.1;
+    white-space: nowrap;          /* keep channel/odds on one line */
+    overflow: hidden;
+    text-overflow: ellipsis;      /* so a long "ESPN · GEORGIA -14.5 · O/U 52.5" can't wrap and crush the bands */
   }
 
   /* ===== TICKER category label ===== */
@@ -446,10 +453,9 @@
   #zone-ticker .track { display: inline-flex; align-items: center; white-space: nowrap;
     font-family: "Barlow Condensed", sans-serif; font-size: 4.6vh; font-weight: 700;
     will-change: transform; transform: translateZ(0); backface-visibility: hidden; }
-  /* translate3d keeps the marquee on the GPU compositor (smoother on the Fire Stick) */
-  @keyframes scroll { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+  /* the marquee runs on the compositor via the Web Animations API (see tkBuildTrack) — no CSS keyframes */
   .item { display: inline-flex; align-items: center; padding: 0 1.8vw; }
-  .item .sep { color: #6a6f76; padding: 0 0.7vw; }
+  .item .sep { color: #8a8f96; padding: 0 0.7vw; }
   .seclbl { color: #FFE84D; font-weight: 700; letter-spacing: 0.08em; }
   /* curated logos (dark-bg PNGs from logos/, already white-outlined): transparent, no box, no extra stroke */
   .tklogo-curated { display: inline-flex; align-items: center; justify-content: center;
@@ -590,8 +596,9 @@ async function load(){
     const res=await fetch(sbUrl()); if(!res.ok) throw new Error("HTTP "+res.status);
     const data=await res.json();
     const fresh=(data.events||[]).map(ev=>{
-      const c=ev.competitions[0];
-      const home=c.competitors.find(t=>t.homeAway==="home"), away=c.competitors.find(t=>t.homeAway==="away");
+      const c=ev&&ev.competitions&&ev.competitions[0];
+      const home=c&&c.competitors&&c.competitors.find(t=>t.homeAway==="home"), away=c&&c.competitors&&c.competitors.find(t=>t.homeAway==="away");
+      if(!c || !home || !away || !ev.status || !ev.status.type) return null;   // skip malformed events instead of crashing the whole load
       const st=ev.status.type, state=st.state, hS=+home.score||0, aS=+away.score||0, fav=favSide(c);
       const aR=rankNum(away), hR=rankNum(home);
       const isUpset=state==="in"&&fav&&((fav==="home"?aS:hS)>(fav==="home"?hS:aS));
@@ -623,7 +630,7 @@ async function load(){
         poss:c.situation?.possession||"", aId:away.team.id, hId:home.team.id, dist:(c.situation&&c.situation.distance!=null?+c.situation.distance:null),
         aTO:(c.situation&&c.situation.awayTimeouts!=null?+c.situation.awayTimeouts:null), hTO:(c.situation&&c.situation.homeTimeouts!=null?+c.situation.homeTimeouts:null),
         isUpset, isClose, watch, start: (function(d){return d.toLocaleDateString("en-US",{weekday:"short"}).toUpperCase()+" "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});})(new Date(ev.date)) };
-    });
+    }).filter(Boolean);
     _snaps.push({t:Date.now(), games:fresh});
     const _keep=Date.now()-180000; while(_snaps.length>2 && _snaps[0].t<_keep) _snaps.shift();   // keep ~3 min of history
     promoteGames(true);
@@ -651,7 +658,7 @@ function promoteGames(force){
 var _tdActive=false, _tickerSaved="", _spotlightId=null;
 function onScore(g, side, delta){
   var col=side==="away"?g.aTC.bg:g.hTC.bg, abbr=side==="away"?g.aAbbr:g.hAbbr;
-  if(delta>=6 && SCENE==="feature" && g.id===_spotlightId && !_tdActive && typeof mountTDCelebration==="function"){
+  if(delta>=6 && (SCENE==="feature"||SCENE==="live") && g.id===_spotlightId && !_tdActive && typeof mountTDCelebration==="function"){
     _tdActive=true;
     var primary=side==="away"?g.aTC.bg:g.hTC.bg;
     var altRaw=side==="away"?g.aAlt:g.hAlt;
@@ -773,14 +780,15 @@ function possSide(g){ if(g.state!=="in"||!g.poss) return null;
   if(String(g.poss)===String(g.hId)) return "home";
   if(String(g.poss)===String(g.aId)) return "away"; return null; }
 function tosBars(to){ if(to==null) return "";
+  to=Math.max(0,Math.min(3,to));   // clamp so an odd ESPN value (e.g. a replay-granted OT timeout) can't misrender
   let b=""; for(let i=0;i<3;i++) b+=`<span class="to-bar${ i<(3-to) ? ' off':'' }"></span>`;   // empty from the top down
   return `<span class="tos">${b}</span>`; }
 
 /* pre-game countdown + multi-feature stacked mini-bugs */
 let _cdDate=null, _hlEvent=null;
-function exitHL(){ if(_hlEvent){ try{stopHighlights();}catch(e){} _hlEvent=null; } document.body.classList.remove("hl"); }
+function exitHL(){ if(_hlEvent){ try{stopHighlights();}catch(e){} _hlEvent=null; } clearInterval(window._hldbgT); document.body.classList.remove("hl"); }
 var _psEvent=null;
-function exitPS(){ if(_psEvent){ try{stopPlayerStats();}catch(e){} _psEvent=null; } document.body.classList.remove("ps"); }
+function exitPS(){ if(_psEvent){ try{stopPlayerStats();}catch(e){} _psEvent=null; } document.body.classList.remove("ps"); var _e=document.getElementById("ps"); if(_e) _e.style.display=""; }
 /* recap: 3-column grid — left score | middle video | right stats */
 function renderRecap(g){
   document.body.classList.add("hl"); document.body.classList.remove("cards","stacked"); exitPS(); _cdDate=null;
@@ -820,6 +828,7 @@ function renderRecap(g){
     var st0=document.getElementById("hlstats"); if(st0) st0.replaceChildren();
     mountHighlights(document.getElementById("hlvid"), g.id, { noCaption:true,
       onEmpty:function(){ exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g); },
+      onError:function(){ exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(g); },
       onClip:function(clip){ var c=document.getElementById("hlcap"); if(c) c.textContent=clip.headline||"";
         /* paint the clip thumbnail as the backdrop so a still frame always shows even where the
            WebView video overlay doesn't composite (Fire Stick); real video plays on top elsewhere */
@@ -892,7 +901,7 @@ function renderPlayerStatsScene(){
   if(_psEvent!==g.id){ _psEvent=g.id; mountPlayerStats(document.getElementById("ps"), g.id, team, { onEmpty:function(){ exitPS(); renderSpotlight(g); } }); }
 }
 var _stConf=null;
-function exitStandings(){ if(_stConf){ try{stopStandings();}catch(e){} _stConf=null; } document.body.classList.remove("standings"); }
+function exitStandings(){ if(_stConf){ try{stopStandings();}catch(e){} _stConf=null; } document.body.classList.remove("standings"); var _e=document.getElementById("standings"); if(_e) _e.style.display=""; }
 function renderStandingsScene(){
   var conf=FEATURE[0]||"";
   if(!conf || typeof mountStandings!=="function"){ exitStandings(); document.body.classList.remove("cards","stacked"); noGames("No standings"); return; }
@@ -900,7 +909,7 @@ function renderStandingsScene(){
   if(_stConf!==conf){ _stConf=conf; mountStandings(document.getElementById("standings"), conf, { onEmpty:function(){ exitStandings(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
 }
 var _schTeam=null;
-function exitSchedule(){ if(_schTeam){ try{stopSchedule();}catch(e){} _schTeam=null; } document.body.classList.remove("schedule"); }
+function exitSchedule(){ if(_schTeam){ try{stopSchedule();}catch(e){} _schTeam=null; } document.body.classList.remove("schedule"); var _e=document.getElementById("schedule"); if(_e) _e.style.display=""; }
 function renderScheduleScene(){
   var team=FEATURE[0]||"";
   if(!team || typeof mountSchedule!=="function"){ exitSchedule(); document.body.classList.remove("cards","stacked"); noGames("No schedule for "+(team||"that team")); return; }
@@ -974,7 +983,7 @@ function gameCard(g, single){
        Left part = clock/quarter (g.detail), right part = DD + yard line; separated by em-space */
     const sitStr=[g.dd,g.possText].filter(Boolean).join(" · ");
     const oneLine = sitStr
-      ? `${g.detail}<span style="color:#555;padding:0 0.6vw">|</span><span class="gdd">${sitStr}</span>`
+      ? `${g.detail}<span style="color:#888;padding:0 0.6vw">|</span><span class="gdd">${sitStr}</span>`
       : g.detail;
     foot=`<div class="gfoot"><div class="gstat">${oneLine}</div></div>`;
   } else if(pre){
@@ -1180,6 +1189,7 @@ function render(){
   if(DEMO){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   if(SCENE==="playerstats" && FEATURE.length){ exitStandings(); exitSchedule(); document.getElementById("count").textContent="PLAYER STATS · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderPlayerStatsScene(); renderTicker(); return; }
   if(SCENE==="standings" && FEATURE.length){ exitPS(); exitSchedule(); document.getElementById("count").textContent="STANDINGS · "+FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" "); renderStandingsScene(); renderTicker(); return; }
+  if(SCENE==="schedule" && FEATURE.length){ exitPS(); exitStandings(); document.getElementById("count").textContent="SCHEDULE · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderScheduleScene(); renderTicker(); return; }
   if(SCENE==="live"){   /* "show the live game" — lock onto whatever is live, no team names needed */
     exitPS(); exitStandings(); exitSchedule();
     const liveG = games.filter(function(g){return g.state==="in";}).sort(function(a,b){return b.watch-a.watch;});
@@ -1197,7 +1207,7 @@ function render(){
       const list=liveG.slice(0,4);
       document.body.classList.remove("n1","n2","n3","n4"); document.body.classList.add("n"+list.length);
       document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g,false);}).join("");
-      _cdDate=null;
+      _cdDate=null; _spotlightId=null;   /* cards view has no single spotlight → don't let a stale id trigger a TD takeover */
     }
     renderTicker(); return;
   }
@@ -1222,9 +1232,9 @@ function render(){
       const list=cards.slice(0,4);
       document.body.classList.remove("n1","n2","n3","n4"); document.body.classList.add("n"+list.length);
       document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g,false);}).join("");
-      _cdDate=null;
+      _cdDate=null; _spotlightId=null;   /* cards view has no single spotlight → don't let a stale id trigger a TD takeover */
     } else {
-      exitHL(); noGames("No games for "+FEATURE.map(f=>f[0].toUpperCase()+f.slice(1).replace(/_/g," ")).join(" / "));
+      exitHL(); noGames("No games for "+FEATURE.filter(Boolean).map(f=>(f[0].toUpperCase()+f.slice(1)).replace(/_/g," ")).join(" / "));
     }
   } else {
     exitHL();
@@ -1255,7 +1265,7 @@ const TICKER_PXPS=90, TICKER_MAX=22; let _lastTicker="";   // continuous scroll
 let _tkUnitW=0, _tkAnim=null, _tkDur=0, _tkEverBuilt=false;
 function _tkContainerW(){ const z=document.getElementById("zone-ticker"); return (z&&z.clientWidth)||window.innerWidth||1920; }
 function _tkPhase(){   // 0..1 position within one loop, so a rebuild resumes exactly where it was
-  if(!_tkAnim || !_tkDur) return 0;
+  if(!_tkAnim || !_tkDur || _tkAnim._isIntro) return 0;   // intro uses a different duration → don't derive a loop phase from it
   let t=_tkAnim.currentTime; if(typeof t!=="number" || !isFinite(t)) t=0;
   return (((t % _tkDur)+_tkDur)%_tkDur)/_tkDur;
 }
@@ -1287,6 +1297,7 @@ function tkBuildTrack(itemsHTML, firstScrollIn){
     /* intro: slide in from off the right edge, then seamlessly continue into the loop */
     const introDur=Math.max(1,(contW/TICKER_PXPS))*1000;
     const intro=el.animate([{transform:"translateX("+contW+"px)"},{transform:"translateX(0px)"}],{duration:introDur, easing:"linear", fill:"forwards"});
+    intro._isIntro=true;
     _tkAnim=intro;
     intro.onfinish=function(){ if(_tkAnim!==intro) return; const loop=el.animate(loopFrames, loopOpts); _tkAnim=loop; try{ intro.cancel(); }catch(e){} };
   } else {

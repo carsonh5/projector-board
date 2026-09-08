@@ -48,6 +48,9 @@
   let _rafId = null;
   let _active = false;
   let _onClip = null;  // caller callback, set per mountHighlights() call
+  let _onEmpty = null; // caller fallback, used when clips run out OR every clip fails to play
+  let _mountGen = 0;   // bumped each mount so a slow fetch from a previous mount can't clobber the current one
+  let _consecErrors = 0; // consecutive clip playback failures — bail to onEmpty when the whole list is broken
   // Fire TV / Amazon devices (model prefix "AFT") cannot composite the WebView inline-video overlay
   // to the screen (the <video> hole-punch shows black). Fallback modes render in-page instead.
   var _hlModeParam = "";
@@ -204,22 +207,29 @@
     const url = SUMMARY_URL + encodeURIComponent(eventId);
     // NOTE: do NOT set a User-Agent header — it's a forbidden fetch header. Chrome/WebView silently
     // ignores it, but GeckoView (Firefox) REJECTS the whole fetch, so clips never load on Fire TV.
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("ESPN summary HTTP " + res.status);
-    const data = await res.json();
-    const raw = data.videos || [];
-    return raw
-      .map(function (v) {
-        return {
-          id: String(v.id || ""),
-          headline: String(v.headline || ""),
-          duration: v.duration || null,
-          thumbnail: v.thumbnail || null,
-          mp4: _srcOf(v),
-          webUrl: (v.links && v.links.web && v.links.web.href) || null,
-        };
-      })
-      .filter(function (v) { return v.mp4; });
+    var _ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    // abort a stalled request after 8s so a bad Wi-Fi moment can't leave the recap on a blank frame.
+    var _tid = _ctrl ? setTimeout(function () { _ctrl.abort(); }, 8000) : null;
+    try {
+      const res = await fetch(url, _ctrl ? { signal: _ctrl.signal } : undefined);
+      if (!res.ok) throw new Error("ESPN summary HTTP " + res.status);
+      const data = await res.json();
+      const raw = data.videos || [];
+      return raw
+        .map(function (v) {
+          return {
+            id: String(v.id || ""),
+            headline: String(v.headline || ""),
+            duration: v.duration || null,
+            thumbnail: v.thumbnail || null,
+            mp4: _srcOf(v),
+            webUrl: (v.links && v.links.web && v.links.web.href) || null,
+          };
+        })
+        .filter(function (v) { return v.mp4; });
+    } finally {
+      if (_tid) clearTimeout(_tid);
+    }
   }
 
   // ── DOM builder ────────────────────────────────────────────────────────────
@@ -288,17 +298,25 @@
     }
 
     if (!_IMG_MODE && _videoEl) {
+      // A clip that actually starts playing means the list is healthy — reset the broken-clip counter.
+      _videoEl.addEventListener("playing", function () { _consecErrors = 0; });
       // 'Ended' listener — advance immediately on natural end
       _videoEl.addEventListener("ended", function () {
+        _consecErrors = 0;
         clearTimeout(_advanceTimer);
         _playClip(_idx + 1);
       });
-      // Error listener — skip broken clip
+      // Error listener — skip broken clip; if EVERY clip in the list is broken, give up and let the
+      // board fall back to the spotlight instead of re-fetching dead URLs forever.
       _videoEl.addEventListener("error", function () {
         clearTimeout(_advanceTimer);
-        _advanceTimer = setTimeout(function () {
-          _playClip(_idx + 1);
-        }, 500);
+        _consecErrors++;
+        if (_consecErrors >= (_clips.length || 1)) {
+          var cb = _onEmpty; stopHighlights();
+          if (cb) cb();
+          return;
+        }
+        _advanceTimer = setTimeout(function () { _playClip(_idx + 1); }, 500);
       });
     }
 
@@ -324,8 +342,11 @@
   async function mountHighlights(container, eventId, opts) {
     opts = opts || {};
     stopHighlights(); // clean up any prior instance
+    const myGen = ++_mountGen;   // a slow fetch from a superseded mount is discarded below
     _container = container;
     _active = true;
+    _consecErrors = 0;
+    _onEmpty = opts.onEmpty || null;
 
     _buildDOM(container, opts.noCaption);
 
@@ -333,10 +354,13 @@
     try {
       clips = await _fetchClips(eventId);
     } catch (err) {
+      if (myGen !== _mountGen) return;   // a newer mount started while fetching — abandon this one
       _active = false;
       if (opts.onError) opts.onError(err);
       return;
     }
+
+    if (myGen !== _mountGen) return;     // superseded between fetch and playback
 
     if (!clips || !clips.length) {
       _active = false;
@@ -372,6 +396,7 @@
     _clips = [];
     _idx = 0;
     _onClip = null;
+    _onEmpty = null;
   }
 
   // ── Export ─────────────────────────────────────────────────────────────────
