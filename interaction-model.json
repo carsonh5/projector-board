@@ -36,9 +36,21 @@
             "go to the {TEAM} game",
             "feature the {TEAM} game",
             "feature {TEAM} versus {OPPONENT} game",
+            "feature {TEAM} verse {OPPONENT}",
+            "feature {TEAM} vs {OPPONENT}",
             "show me {TEAM} and {OPPONENT}",
             "show {TEAM} and {OPPONENT}",
-            "put on {TEAM} and {OPPONENT}"
+            "put on {TEAM} and {OPPONENT}",
+            "{TEAM} versus {OPPONENT}",
+            "{TEAM} verse {OPPONENT}",
+            "{TEAM} vs {OPPONENT}",
+            "{TEAM} against {OPPONENT}",
+            "pull up {TEAM} versus {OPPONENT}",
+            "pull up {TEAM} verse {OPPONENT}",
+            "pull up {TEAM} against {OPPONENT}",
+            "show me {TEAM} versus {OPPONENT}",
+            "show {TEAM} versus {OPPONENT}",
+            "put on {TEAM} versus {OPPONENT}"
           ]
         },
         {
@@ -173,7 +185,7 @@
         {
           "name": "AskIntent",
           "slots": [ { "name": "query", "type": "AMAZON.SearchQuery" } ],
-          "samples": [ "show {query}", "show me {query}", "pull up {query}", "pull up the {query}", "put on {query}", "put up {query}", "give me {query}", "i want {query}", "how about {query}", "what about {query}", "bring up {query}", "let me see {query}", "for {query}" ]
+          "samples": [ "show {query}", "show me {query}", "pull up {query}", "pull up the {query}", "put on {query}", "put up {query}", "give me {query}", "gimme {query}", "get me {query}", "get {query}", "i want {query}", "i wanna see {query}", "i want to see {query}", "how about {query}", "what about {query}", "bring up {query}", "throw up {query}", "throw on {query}", "let me see {query}", "lets see {query}", "can you show {query}", "can you pull up {query}", "switch to {query}", "go to {query}", "for {query}" ]
         },
         {
           "name": "AMAZON.HelpIntent",
@@ -748,7 +760,10 @@
                   "the Buffs",
                   "Buffs",
                   "CU Buffs",
-                  "Boulder"
+                  "Boulder",
+                  "Colorados",
+                  "the Buffaloes",
+                  "Colorado Buffs"
                 ]
               }
             },
@@ -1040,7 +1055,9 @@
                   "Mississippi",
                   "the Rebels",
                   "OM",
-                  "Oxford"
+                  "Oxford",
+                  "Old Miss",
+                  "Olay Miss"
                 ]
               }
             },
