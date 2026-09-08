@@ -712,11 +712,15 @@ function celebrate(team,col,delta){
   if(window.confetti){ confetti({colors:[col,"#ffffff"], particleCount:delta>=6?200:70, spread:110, startVelocity:50, origin:{y:0.55}, ticks:230}); }
 }
 
+/* ESPN's public feed reports team timeouts inaccurately (frequently stuck at 3/3 even after they're
+   used, with timeoutsUsed=0), so hide the timeout ticks rather than display wrong data. Flip to true
+   only once remaining timeouts are computed from the play-by-play. */
+const SHOW_TIMEOUTS=false;
 function plate(logo){ return `<span class="plate"><img src="${logo}" onerror="this.closest('.plate').style.display='none'"></span>`; }
 function tmod(logo,name,score,tc,home,to,ball){
   const cell=`<span class="tcell" style="background:${tc.bg};color:${tc.text}">${name}</span>`;
   const sc=score!==""?`<span class="tscore">${score}</span>`:"";
-  const tos=tosBars(to);
+  const tos=SHOW_TIMEOUTS?tosBars(to):"";
   const fb=ball?FBALL:"";
   return `<div class="tmod ${home?'home':'away'}">${home ? sc+tos+cell+plate(logo)+fb : fb+plate(logo)+cell+tos+sc}</div>`;
 }
@@ -966,7 +970,7 @@ function gameCard(g, single){
     /* Possession football inline right of name */
     const possEl = ball ? `<span class="gposs-inline">${FBALL}</span>` : "";
     /* Timeout bars below the name row — only when to data is present */
-    const tosEl = (to!=null) ? `<div class="gband-tos">${tosBars(to)}</div>` : "";
+    const tosEl = (SHOW_TIMEOUTS && to!=null) ? `<div class="gband-tos">${tosBars(to)}</div>` : "";
     return `<div class="gteam" style="background:${bg};color:${txt}">`
       + `<div class="gmain"><div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span>${possEl}</div>${tosEl}</div>`
       + `<div class="gscorerow"><span class="gscore">${score}</span></div>`
