@@ -17,40 +17,37 @@
           ],
           "samples": [
             "feature {TEAM}",
-            "feature {TEAM} versus {OPPONENT}",
-            "feature {TEAM} and {OPPONENT}",
-            "feature {TEAM} against {OPPONENT}",
-            "pull up the {TEAM} game",
-            "pull up {TEAM}",
-            "put on {TEAM}",
-            "put on the {TEAM} game",
             "show {TEAM}",
-            "show me the {TEAM} game",
-            "show me {TEAM}",
-            "watch {TEAM}",
-            "watch the {TEAM} game",
+            "put {TEAM} on",
+            "pull up {TEAM}",
             "bring up {TEAM}",
-            "switch to {TEAM}",
+            "throw up the {TEAM} game",
+            "throw up {TEAM}",
+            "i want to watch {TEAM}",
+            "i wanna watch {TEAM}",
+            "lets watch {TEAM}",
             "go to {TEAM}",
-            "switch to the {TEAM} game",
-            "go to the {TEAM} game",
-            "feature the {TEAM} game",
-            "feature {TEAM} versus {OPPONENT} game",
-            "feature {TEAM} verse {OPPONENT}",
-            "feature {TEAM} vs {OPPONENT}",
-            "show me {TEAM} and {OPPONENT}",
-            "show {TEAM} and {OPPONENT}",
-            "put on {TEAM} and {OPPONENT}",
+            "switch to {TEAM}",
+            "gimme {TEAM}",
+            "lock in {TEAM}",
+            "put on {TEAM}",
             "{TEAM} versus {OPPONENT}",
-            "{TEAM} verse {OPPONENT}",
             "{TEAM} vs {OPPONENT}",
             "{TEAM} against {OPPONENT}",
+            "pull up {TEAM} and {OPPONENT}",
+            "the {TEAM} versus {OPPONENT} game",
+            "show me {TEAM} versus {OPPONENT}",
+            "show me {TEAM} and {OPPONENT}",
+            "put on {TEAM} versus {OPPONENT}",
+            "bring up {TEAM} versus {OPPONENT}",
+            "i wanna watch {TEAM} versus {OPPONENT}",
+            "feature {TEAM} verse {OPPONENT}",
+            "feature {TEAM} vs {OPPONENT}",
+            "{TEAM} verse {OPPONENT}",
             "pull up {TEAM} versus {OPPONENT}",
             "pull up {TEAM} verse {OPPONENT}",
             "pull up {TEAM} against {OPPONENT}",
-            "show me {TEAM} versus {OPPONENT}",
-            "show {TEAM} versus {OPPONENT}",
-            "put on {TEAM} versus {OPPONENT}"
+            "show {TEAM} versus {OPPONENT}"
           ]
         },
         {
@@ -63,17 +60,20 @@
           ],
           "samples": [
             "add {TEAM}",
-            "also add {TEAM}",
-            "add {TEAM} to the board",
             "also show {TEAM}",
-            "throw {TEAM} up there",
-            "also feature {TEAM}",
+            "also add {TEAM}",
+            "throw {TEAM} up there too",
             "add the {TEAM} game",
-            "also add the {TEAM} game",
             "put {TEAM} up too",
+            "put {TEAM} on too",
+            "show {TEAM} too",
             "include {TEAM}",
-            "and also {TEAM}",
-            "and {TEAM} too"
+            "bring up {TEAM} too",
+            "pull up {TEAM} too",
+            "throw {TEAM} on too",
+            "and {TEAM}",
+            "add {TEAM} to the board",
+            "show {TEAM} as well"
           ]
         },
         {
@@ -87,15 +87,16 @@
           "samples": [
             "remove {TEAM}",
             "drop {TEAM}",
-            "take off {TEAM}",
             "take {TEAM} off",
             "get rid of {TEAM}",
+            "lose {TEAM}",
             "hide {TEAM}",
-            "stop showing {TEAM}",
+            "take off {TEAM}",
             "remove the {TEAM} game",
             "drop the {TEAM} game",
-            "take off the {TEAM} game",
-            "get rid of the {TEAM} game"
+            "i dont want {TEAM}",
+            "stop showing {TEAM}",
+            "get {TEAM} out of here"
           ]
         },
         {
@@ -104,18 +105,22 @@
           "samples": [
             "show all games",
             "all games",
-            "show everything",
-            "the whole slate",
-            "show all",
-            "everything",
-            "show the whole slate",
-            "all of them",
-            "show all the games",
+            "todays games",
+            "tonights games",
+            "whats on",
+            "what games are on",
             "show me everything",
-            "show me all games",
-            "show me all the games",
-            "full board",
-            "show the full board"
+            "the whole board",
+            "show all the games",
+            "pull up all games",
+            "whats playing",
+            "college football",
+            "show me some football",
+            "back to all games",
+            "show everything",
+            "every game",
+            "give me all the games",
+            "what football games are on"
           ]
         },
         {
@@ -127,18 +132,21 @@
             }
           ],
           "samples": [
-            "feature {TEAM} player stats",
-            "show {TEAM} player stats",
             "{TEAM} player stats",
-            "{TEAM} stats",
             "player stats for {TEAM}",
+            "stats for {TEAM}",
             "show me {TEAM} stats",
-            "show me {TEAM} player stats",
-            "pull up {TEAM} stats",
-            "pull up {TEAM} player stats",
-            "get {TEAM} stats",
-            "{TEAM} player statistics",
-            "show {TEAM} stats"
+            "who is balling for {TEAM}",
+            "{TEAM} box score",
+            "{TEAM} stats",
+            "show the stats for {TEAM}",
+            "pull up stats for {TEAM}",
+            "player stats {TEAM}",
+            "individual stats for {TEAM}",
+            "who is playing well for {TEAM}",
+            "show me the box score for {TEAM}",
+            "get me stats for {TEAM}",
+            "bring up stats for {TEAM}"
           ]
         },
         {
@@ -150,15 +158,21 @@
             }
           ],
           "samples": [
-            "show {TEAM} schedule",
             "{TEAM} schedule",
-            "pull up {TEAM} schedule",
+            "show the schedule for {TEAM}",
+            "when does {TEAM} play",
+            "{TEAM} upcoming games",
+            "the schedule for {TEAM}",
+            "who does {TEAM} play",
+            "pull up the schedule for {TEAM}",
+            "upcoming games for {TEAM}",
+            "what games does {TEAM} have",
+            "show me the schedule for {TEAM}",
+            "when is {TEAM} playing",
             "what is {TEAM} schedule",
-            "show me {TEAM} schedule",
-            "get {TEAM} schedule",
-            "{TEAM}'s schedule",
-            "show the {TEAM} schedule",
-            "pull up the {TEAM} schedule"
+            "show {TEAM} schedule",
+            "future games for {TEAM}",
+            "who does {TEAM} play next"
           ]
         },
         {
@@ -170,41 +184,84 @@
             }
           ],
           "samples": [
-            "show {CONFERENCE} standings",
             "{CONFERENCE} standings",
+            "show {CONFERENCE} standings",
             "conference standings",
             "standings",
-            "show me {CONFERENCE} standings",
-            "pull up {CONFERENCE} standings",
+            "the standings",
+            "where does everybody stand in the {CONFERENCE}",
+            "{CONFERENCE} rankings",
             "show the {CONFERENCE} standings",
-            "get {CONFERENCE} standings",
+            "pull up {CONFERENCE} standings",
+            "show me the {CONFERENCE} standings",
+            "show me standings",
             "show me the standings",
-            "show standings"
+            "where does {CONFERENCE} stand",
+            "who is on top in the {CONFERENCE}",
+            "how are the {CONFERENCE} standings"
           ]
         },
         {
           "name": "AskIntent",
-          "slots": [ { "name": "query", "type": "AMAZON.SearchQuery" } ],
-          "samples": [ "show {query}", "show me {query}", "pull up {query}", "pull up the {query}", "put on {query}", "put up {query}", "give me {query}", "gimme {query}", "get me {query}", "get {query}", "i want {query}", "i wanna see {query}", "i want to see {query}", "how about {query}", "what about {query}", "bring up {query}", "throw up {query}", "throw on {query}", "let me see {query}", "lets see {query}", "can you show {query}", "can you pull up {query}", "switch to {query}", "go to {query}", "for {query}" ]
+          "slots": [
+            {
+              "name": "query",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "show me {query}",
+            "pull up {query}",
+            "put on {query}",
+            "bring up {query}",
+            "i want to see {query}",
+            "can you show {query}",
+            "lets watch {query}",
+            "throw up {query}",
+            "give me {query}",
+            "how about {query}",
+            "what about {query}",
+            "put up {query}",
+            "switch to {query}",
+            "go to {query}",
+            "i wanna see {query}",
+            "show {query}",
+            "display {query}",
+            "get me {query}",
+            "let me see {query}",
+            "can you pull up {query}",
+            "can you bring up {query}",
+            "i would like to see {query}",
+            "throw on {query}",
+            "whats going on with {query}",
+            "check on {query}",
+            "gimme {query}",
+            "get {query}",
+            "lets see {query}",
+            "the live game",
+            "whats live",
+            "whats on right now",
+            "the game thats on right now"
+          ]
         },
         {
           "name": "AMAZON.HelpIntent",
-          "slots": [],
           "samples": []
         },
         {
           "name": "AMAZON.StopIntent",
-          "slots": [],
           "samples": []
         },
         {
           "name": "AMAZON.CancelIntent",
-          "slots": [],
           "samples": []
         },
         {
           "name": "AMAZON.FallbackIntent",
-          "slots": [],
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
           "samples": []
         }
       ],
@@ -275,7 +332,9 @@
                   "Georgia Tech Yellow Jackets",
                   "Georgia Tech",
                   "the Jackets",
-                  "Tech"
+                  "Tech",
+                  "georgia teck",
+                  "g tech"
                 ]
               }
             },
@@ -305,7 +364,9 @@
                   "Miami",
                   "Dolphins",
                   "the Dolphins",
-                  "Fins"
+                  "Fins",
+                  "the u",
+                  "miami florida"
                 ]
               }
             },
@@ -347,7 +408,8 @@
                   "Pittsburgh",
                   "Steelers",
                   "the Steelers",
-                  "Steel Curtain"
+                  "Steel Curtain",
+                  "pitt"
                 ]
               }
             },
@@ -560,7 +622,9 @@
                   "the Buckeyes",
                   "the Bucks",
                   "tOSU",
-                  "Columbus"
+                  "Columbus",
+                  "ohio st",
+                  "the ohio state"
                 ]
               }
             },
@@ -643,7 +707,10 @@
                   "USC Trojans",
                   "USC",
                   "the Trojans",
-                  "Los Angeles USC"
+                  "Los Angeles USC",
+                  "southern cal",
+                  "u s c",
+                  "southern california"
                 ]
               }
             },
@@ -728,7 +795,9 @@
                   "BYU",
                   "Brigham Young",
                   "the Cougars",
-                  "Cougs"
+                  "Cougs",
+                  "brigham young",
+                  "b y u"
                 ]
               }
             },
@@ -846,7 +915,8 @@
                   "TCU Horned Frogs",
                   "TCU",
                   "Texas Christian",
-                  "Frogs"
+                  "Frogs",
+                  "t c u"
                 ]
               }
             },
@@ -873,7 +943,9 @@
                   "UCF Knights",
                   "UCF",
                   "the Knights",
-                  "University of Central Florida"
+                  "University of Central Florida",
+                  "central florida",
+                  "u c f"
                 ]
               }
             },
@@ -1007,7 +1079,10 @@
                   "Louisiana State",
                   "the Tigers",
                   "Tiger Stadium",
-                  "Baton Rouge"
+                  "Baton Rouge",
+                  "l s u",
+                  "ellis u",
+                  "the tigers"
                 ]
               }
             },
@@ -1056,6 +1131,12 @@
                   "the Rebels",
                   "OM",
                   "Oxford",
+                  "olay miss",
+                  "old miss",
+                  "ola miss",
+                  "ole mis",
+                  "oleigh miss",
+                  "holy miss",
                   "Old Miss",
                   "Olay Miss"
                 ]
@@ -1120,7 +1201,11 @@
                   "the Aggies",
                   "Gig Em",
                   "Gig 'em",
-                  "TAMU"
+                  "TAMU",
+                  "texas a and m",
+                  "texas am",
+                  "a and m",
+                  "a n m"
                 ]
               }
             },
@@ -1979,7 +2064,7 @@
                   "SJSU",
                   "San Jose State Spartans",
                   "San Jose State",
-                  "San José State"
+                  "San Jos\u00c3\u00a9 State"
                 ]
               }
             },
@@ -2257,7 +2342,9 @@
                   "Miami Dolphins",
                   "Miami",
                   "the Dolphins",
-                  "Fins"
+                  "Fins",
+                  "the u",
+                  "miami florida"
                 ]
               }
             },
@@ -2360,7 +2447,8 @@
                   "Pittsburgh Steelers",
                   "Pittsburgh",
                   "the Steelers",
-                  "Steel Curtain"
+                  "Steel Curtain",
+                  "pitt"
                 ]
               }
             },
@@ -2431,6 +2519,20 @@
                   "Washington Commanders",
                   "Washington",
                   "the Commanders"
+                ]
+              }
+            },
+            {
+              "id": "cfb_smu_mustangs",
+              "name": {
+                "value": "SMU",
+                "synonyms": [
+                  "Southern Methodist",
+                  "Mustangs",
+                  "SMU Mustangs",
+                  "Southern Methodist Mustangs",
+                  "the Mustangs",
+                  "S M U"
                 ]
               }
             }
