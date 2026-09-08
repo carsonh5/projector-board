@@ -1180,7 +1180,27 @@ function render(){
   if(DEMO){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   if(SCENE==="playerstats" && FEATURE.length){ exitStandings(); exitSchedule(); document.getElementById("count").textContent="PLAYER STATS · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderPlayerStatsScene(); renderTicker(); return; }
   if(SCENE==="standings" && FEATURE.length){ exitPS(); exitSchedule(); document.getElementById("count").textContent="STANDINGS · "+FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" "); renderStandingsScene(); renderTicker(); return; }
-  if(SCENE==="schedule" && FEATURE.length){ exitPS(); exitStandings(); document.getElementById("count").textContent="SCHEDULE · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderScheduleScene(); renderTicker(); return; }
+  if(SCENE==="live"){   /* "show the live game" — lock onto whatever is live, no team names needed */
+    exitPS(); exitStandings(); exitSchedule();
+    const liveG = games.filter(function(g){return g.state==="in";}).sort(function(a,b){return b.watch-a.watch;});
+    document.getElementById("count").textContent = "LIVE · " + liveG.length + (liveG.length===1?" GAME":" GAMES");
+    if(!liveG.length){
+      /* nothing live right now — don't go blank; roll the next-up / just-final games instead */
+      exitHL(); document.body.classList.remove("cards","stacked");
+      const rot = games.filter(function(g){return g.isToday && g.state==="pre";})
+                    .concat(games.filter(function(g){return g.isToday && g.state==="post";}));
+      if(rot.length) renderSpotlight(rot[spotIx%rot.length]); else noGames("No live games right now");
+    } else if(liveG.length===1){
+      exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(liveG[0]);   /* single live game, full detail */
+    } else {
+      exitHL(); document.body.classList.add("cards"); document.body.classList.remove("stacked");
+      const list=liveG.slice(0,4);
+      document.body.classList.remove("n1","n2","n3","n4"); document.body.classList.add("n"+list.length);
+      document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g,false);}).join("");
+      _cdDate=null;
+    }
+    renderTicker(); return;
+  }
   exitPS(); exitStandings(); exitSchedule();
   const featMode = !showAll && FEATURE.length;
   const today = games.filter(g=>g.isToday);
