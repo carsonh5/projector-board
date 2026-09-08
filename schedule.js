@@ -259,13 +259,21 @@
   // ── DOM builder ────────────────────────────────────────────────────────────
 
   /**
-   * Determine how many columns to use.
-   * ≤ 9 games  → 3 columns (3×3)
-   * 10-12 games → 3 columns (4/4/4 or similar)
-   * > 12 games  → 4 columns
+   * More columns = fewer rows per column = taller rows = bigger, readable text.
+   * A full CFB season (~12-13 games) uses 4 columns (3-4 rows each).
    */
   function _colCount(gameCount) {
-    return gameCount > 12 ? 4 : 3;
+    if (gameCount <= 6) return 2;
+    if (gameCount <= 9) return 3;
+    return 4;
+  }
+
+  /** "9/12 - 3:30 PM EDT" -> "3:30 PM" — the date is already shown on line 1, so drop the
+   *  redundant leading date and the timezone to keep the line short and readable. */
+  function _shortTime(sd) {
+    if (!sd) return "TBD";
+    var m = sd.match(/(\d{1,2}:\d{2}\s*[AP]M)/i);
+    return m ? m[1].toUpperCase() : sd;
   }
 
   /** Derive season year from the first game's ISO date string. Falls back to current year. */
@@ -278,73 +286,42 @@
   }
 
   function _buildCenteredHeader(container, teamInfo, record, rows) {
+    // Compact single row: logo + TEAM NAME + season · record — keeps the header short so the
+    // games grid gets the height.
     const bar = _el("div",
-      "display:flex;flex-direction:column;align-items:center;justify-content:center;" +
-      "padding:1.6vh 2vw 1.4vh;" +
-      "background:" + P.header + ";" +
-      "border-bottom:2px solid " + P.border + ";" +
-      "flex-shrink:0;" +
-      "gap:0.5vh;"
-    );
-
-    // Top row: logo + team name (large, centered)
-    const nameRow = _el("div",
-      "display:flex;align-items:center;justify-content:center;gap:1.4vw;"
+      "display:flex;align-items:center;justify-content:center;gap:1.2vw;" +
+      "padding:1vh 2vw;background:" + P.header + ";" +
+      "border-bottom:2px solid " + P.border + ";flex-shrink:0;"
     );
 
     if (teamInfo.id) {
       const logoWrap = _el("div",
-        "width:7vh;height:7vh;flex-shrink:0;" +
-        "background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;" +
-        "overflow:hidden;"
+        "width:6vh;height:6vh;flex-shrink:0;background:#fff;border-radius:50%;" +
+        "display:flex;align-items:center;justify-content:center;overflow:hidden;"
       );
       const img = document.createElement("img");
       img.src = LOGO_BASE + teamInfo.id + ".png";
       img.alt = "";
-      img.style.cssText = "width:5.6vh;height:5.6vh;object-fit:contain;display:block;";
+      img.style.cssText = "width:4.8vh;height:4.8vh;object-fit:contain;display:block;";
       img.onerror = function () { logoWrap.style.display = "none"; };
       logoWrap.appendChild(img);
-      nameRow.appendChild(logoWrap);
+      bar.appendChild(logoWrap);
     }
 
     const nameEl = _el("span",
-      "font-family:'Oswald',sans-serif;font-size:5vh;font-weight:700;" +
-      "letter-spacing:0.04em;color:" + P.text + ";text-transform:uppercase;" +
-      "white-space:nowrap;"
+      "font-family:'Oswald',sans-serif;font-size:4.8vh;font-weight:700;" +
+      "letter-spacing:0.03em;color:" + P.text + ";text-transform:uppercase;white-space:nowrap;"
     );
     nameEl.textContent = teamInfo.displayName || teamInfo.location || "";
-    nameRow.appendChild(nameEl);
+    bar.appendChild(nameEl);
 
-    bar.appendChild(nameRow);
-
-    // Bottom row: season label + record
-    const subRow = _el("div",
-      "display:flex;align-items:center;justify-content:center;gap:2vw;"
+    const metaEl = _el("span",
+      "font-family:'Barlow Condensed',sans-serif;font-size:3vh;font-weight:600;" +
+      "color:" + P.label + ";letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;"
     );
+    metaEl.textContent = _seasonYear(rows) + (record ? "  ·  " + record : "");
+    bar.appendChild(metaEl);
 
-    const seasonEl = _el("span",
-      "font-family:'Barlow Condensed',sans-serif;font-size:2.4vh;font-weight:600;" +
-      "color:" + P.label + ";letter-spacing:0.14em;text-transform:uppercase;"
-    );
-    seasonEl.textContent = _seasonYear(rows) + " SCHEDULE";
-    subRow.appendChild(seasonEl);
-
-    if (record) {
-      const sep = _el("span",
-        "font-family:'Barlow Condensed',sans-serif;font-size:2.2vh;color:" + P.border + ";"
-      );
-      sep.textContent = "|";
-      subRow.appendChild(sep);
-
-      const recEl = _el("span",
-        "font-family:'Oswald',sans-serif;font-size:2.4vh;font-weight:600;" +
-        "color:" + P.dim + ";letter-spacing:0.08em;"
-      );
-      recEl.textContent = record;
-      subRow.appendChild(recEl);
-    }
-
-    bar.appendChild(subRow);
     container.appendChild(bar);
   }
 
@@ -358,151 +335,104 @@
    * Deliberately taller and larger text than the old row design.
    */
   function _buildCard(row) {
-    const bgColor = row.isCurrent ? P.current : "transparent";
-    const borderLeft = row.isCurrent
-      ? "border-left:3px solid " + P.label + ";"
-      : "border-left:3px solid transparent;";
-
+    // flex:1 1 0 makes every card share its column's height equally, so a column always fits
+    // exactly (no overflow / no off-screen rows) regardless of how many games it holds.
     const card = _el("div",
-      "display:flex;flex-direction:column;justify-content:center;" +
-      "padding:1.1vh 1.1vw 1.0vh 0.9vw;" +
-      "background:" + bgColor + ";" +
-      borderLeft +
-      "border-bottom:1px solid " + P.border + ";" +
-      "min-width:0;box-sizing:border-box;"
+      "display:flex;flex-direction:column;justify-content:center;gap:0.6vh;" +
+      "flex:1 1 0;min-height:0;overflow:hidden;box-sizing:border-box;" +
+      "padding:0.4vh 1vw 0.4vh 0.9vw;" +
+      (row.isCurrent ? "background:" + P.current + ";border-left:4px solid " + P.label + ";"
+                     : "border-left:4px solid transparent;") +
+      "border-bottom:1px solid " + P.border + ";"
     );
 
-    // ── Line 1: date + opponent ──────────────────────────────────────────────
-    const line1 = _el("div",
-      "display:flex;align-items:center;gap:0.55vw;min-width:0;flex-wrap:nowrap;"
-    );
+    // ── Line 1: date · [logo] vs/@ #rank OPP ──
+    const line1 = _el("div", "display:flex;align-items:center;gap:0.5vw;min-width:0;");
 
-    // Date chip
     const dateEl = _el("span",
-      "font-family:'Oswald',sans-serif;font-size:2.3vh;font-weight:600;" +
-      "color:" + P.dim + ";white-space:nowrap;flex-shrink:0;" +
-      "letter-spacing:0.04em;"
+      "font-family:'Oswald',sans-serif;font-size:3.6vh;font-weight:600;" +
+      "color:" + P.dim + ";white-space:nowrap;flex-shrink:0;"
     );
     dateEl.textContent = row.dateDisp;
     line1.appendChild(dateEl);
 
-    // Thin separator dot
-    const dot = _el("span",
-      "color:" + P.border + ";font-size:2.3vh;flex-shrink:0;margin:0 0.1vw;"
-    );
-    dot.textContent = "·";
-    line1.appendChild(dot);
-
-    // Opponent logo (small)
-    const logoWrap = _el("div",
-      "width:3vh;height:3vh;flex-shrink:0;" +
-      "background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;" +
-      "overflow:hidden;"
-    );
     if (row.oppId) {
+      const logoWrap = _el("div",
+        "width:3.6vh;height:3.6vh;flex-shrink:0;background:#fff;border-radius:50%;" +
+        "display:flex;align-items:center;justify-content:center;overflow:hidden;margin-left:0.2vw;"
+      );
       const img = document.createElement("img");
       img.src = LOGO_BASE + row.oppId + ".png";
       img.alt = "";
-      img.style.cssText = "width:2.3vh;height:2.3vh;object-fit:contain;display:block;";
-      img.onerror = function () {
-        logoWrap.style.background = P.surface;
-        logoWrap.style.border = "1px solid " + P.border;
-      };
+      img.style.cssText = "width:2.9vh;height:2.9vh;object-fit:contain;display:block;";
+      img.onerror = function () { logoWrap.style.display = "none"; };
       logoWrap.appendChild(img);
-    } else {
-      logoWrap.style.background = P.surface;
+      line1.appendChild(logoWrap);
     }
-    line1.appendChild(logoWrap);
 
-    // vs/@ marker
     const vsSpan = _el("span",
-      "font-family:'Barlow Condensed',sans-serif;font-size:2.2vh;font-weight:500;" +
+      "font-family:'Barlow Condensed',sans-serif;font-size:3.4vh;font-weight:500;" +
       "color:" + P.dim + ";flex-shrink:0;"
     );
     vsSpan.textContent = row.vsAt;
     line1.appendChild(vsSpan);
 
-    // Rank (if any)
     if (row.oppRank) {
       const rnk = _el("span",
-        "font-family:'Oswald',sans-serif;font-size:2vh;font-weight:700;" +
-        "color:" + P.rank + ";flex-shrink:0;letter-spacing:0.02em;"
+        "font-family:'Oswald',sans-serif;font-size:3.2vh;font-weight:700;" +
+        "color:" + P.rank + ";flex-shrink:0;"
       );
       rnk.textContent = "#" + row.oppRank;
       line1.appendChild(rnk);
     }
 
-    // Opponent abbreviation
     const abbrEl = _el("span",
-      "font-family:'Barlow Condensed',sans-serif;font-size:2.6vh;font-weight:700;" +
+      "font-family:'Barlow Condensed',sans-serif;font-size:4.2vh;font-weight:700;" +
       "color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
-      "min-width:0;letter-spacing:0.03em;"
+      "min-width:0;letter-spacing:0.02em;"
     );
     abbrEl.textContent = row.oppAbbr;
     line1.appendChild(abbrEl);
 
     card.appendChild(line1);
 
-    // ── Line 2: result or kickoff time ───────────────────────────────────────
-    let resultColor = P.dim;
-    if (row.resultClass === "win")  resultColor = P.win;
-    if (row.resultClass === "loss") resultColor = P.loss;
-    if (row.resultClass === "live") resultColor = P.live;
-
-    // For win/loss: show W/L bold + score dimmer
-    const line2 = _el("div",
-      "display:flex;align-items:baseline;gap:0.4vw;margin-top:0.35vh;min-width:0;"
-    );
+    // ── Line 2: result (W/L score) or kickoff time · TV ──
+    const line2 = _el("div", "display:flex;align-items:baseline;gap:0.4vw;min-width:0;");
 
     if (row.resultClass === "win" || row.resultClass === "loss") {
-      // Split "W 35-14" → badge + score
+      const color = row.resultClass === "win" ? P.win : P.loss;
       const parts = row.result.split(" ");
-      const badge = parts[0] || "";   // "W" or "L"
-      const score = parts.slice(1).join(" ");
-
       const badgeEl = _el("span",
-        "font-family:'Oswald',sans-serif;font-size:2.6vh;font-weight:700;" +
-        "color:" + resultColor + ";letter-spacing:0.06em;flex-shrink:0;"
+        "font-family:'Oswald',sans-serif;font-size:4vh;font-weight:700;color:" + color + ";flex-shrink:0;letter-spacing:0.04em;"
       );
-      badgeEl.textContent = badge;
+      badgeEl.textContent = parts[0] || "";
       line2.appendChild(badgeEl);
-
-      if (score) {
-        const scoreEl = _el("span",
-          "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:600;" +
-          "color:" + P.dim + ";white-space:nowrap;"
-        );
-        scoreEl.textContent = score;
-        line2.appendChild(scoreEl);
-      }
+      const scoreEl = _el("span",
+        "font-family:'Barlow Condensed',sans-serif;font-size:3.6vh;font-weight:600;color:" + P.dim + ";white-space:nowrap;"
+      );
+      scoreEl.textContent = parts.slice(1).join(" ");
+      line2.appendChild(scoreEl);
     } else if (row.resultClass === "live") {
       const liveEl = _el("span",
-        "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:700;" +
-        "color:" + P.live + ";white-space:nowrap;" +
-        "background:rgba(255,106,0,0.12);border-radius:3px;padding:0.1vh 0.4vw;"
+        "font-family:'Barlow Condensed',sans-serif;font-size:3.6vh;font-weight:700;color:" + P.live + ";" +
+        "white-space:nowrap;background:rgba(255,106,0,0.14);border-radius:3px;padding:0.1vh 0.5vw;"
       );
       liveEl.textContent = row.result;
       line2.appendChild(liveEl);
     } else {
-      // Upcoming: kickoff time
       const timeEl = _el("span",
-        "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:600;" +
-        "color:" + P.dim + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+        "font-family:'Barlow Condensed',sans-serif;font-size:3.8vh;font-weight:600;color:" + P.dim + ";" +
+        "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;"
       );
-      timeEl.textContent = row.result;  // e.g. "9/12 - 3:30 PM EDT" or "TBD"
+      timeEl.textContent = _shortTime(row.result);
       line2.appendChild(timeEl);
-
-      // TV network inline on the same line for upcoming games (saves vertical space)
       if (row.tv) {
-        const tvSep = _el("span",
-          "color:" + P.border + ";font-size:2.2vh;flex-shrink:0;margin:0 0.2vw;"
-        );
+        const tvSep = _el("span", "color:" + P.border + ";font-size:3.2vh;flex-shrink:0;margin:0 0.15vw;");
         tvSep.textContent = "·";
         line2.appendChild(tvSep);
-
         const tvEl = _el("span",
-          "font-family:'Barlow Condensed',sans-serif;font-size:2.2vh;font-weight:600;" +
-          "color:" + P.dim + ";white-space:nowrap;flex-shrink:0;"
+          "font-family:'Barlow Condensed',sans-serif;font-size:3.2vh;font-weight:600;color:" + P.dim + ";" +
+          "white-space:nowrap;flex-shrink:0;"
         );
         tvEl.textContent = row.tv;
         line2.appendChild(tvEl);
@@ -510,7 +440,6 @@
     }
 
     card.appendChild(line2);
-
     return card;
   }
 
@@ -522,53 +451,31 @@
 
     _buildCenteredHeader(container, teamInfo, record, rows);
 
-    // ── Multi-column grid body ──────────────────────────────────────────────
     const numCols = _colCount(rows.length);
-    const colSize = Math.ceil(rows.length / numCols);
 
-    // Build column arrays: top-to-bottom reading order within each column
+    // Distribute games so column heights differ by at most one (e.g. 13 games -> 4/3/3/3, not 4/4/4/1).
+    const base = Math.floor(rows.length / numCols);
+    const extra = rows.length % numCols;   // this many leading columns get one more game
     const columns = [];
+    let idx = 0;
     for (let c = 0; c < numCols; c++) {
-      columns.push(rows.slice(c * colSize, c * colSize + colSize));
+      const size = base + (c < extra ? 1 : 0);
+      columns.push(rows.slice(idx, idx + size));
+      idx += size;
     }
 
-    // Outer body: takes all remaining height, no scroll (projector — fit it)
+    // Body fills all remaining height; each column's flex:1 cards divide it evenly (no overflow).
     const body = _el("div",
       "flex:1;display:grid;min-height:0;" +
-      "grid-template-columns:repeat(" + numCols + ",1fr);" +
-      "gap:0;"
+      "grid-template-columns:repeat(" + numCols + ",1fr);gap:0;"
     );
 
     columns.forEach(function (colRows, ci) {
-      const borderStyle = ci < numCols - 1
-        ? "border-right:1px solid " + P.border + ";"
-        : "";
-
       const colEl = _el("div",
-        "display:flex;flex-direction:column;" + borderStyle
+        "display:flex;flex-direction:column;min-height:0;min-width:0;" +
+        (ci < numCols - 1 ? "border-right:1px solid " + P.border + ";" : "")
       );
-
-      // Column header label bar
-      const colHdrEl = _el("div",
-        "display:flex;align-items:center;gap:0.6vw;" +
-        "padding:0.5vh 1.1vw 0.45vh 0.9vw;" +
-        "background:" + P.header + ";" +
-        "border-bottom:1px solid " + P.border + ";" +
-        "flex-shrink:0;"
-      );
-      const colHdrText = _el("span",
-        "font-family:'Oswald',sans-serif;font-size:1.5vh;font-weight:700;" +
-        "letter-spacing:0.14em;color:" + P.dim + ";text-transform:uppercase;"
-      );
-      colHdrText.textContent = "DATE  ·  OPPONENT";
-      colHdrEl.appendChild(colHdrText);
-      colEl.appendChild(colHdrEl);
-
-      // Cards
-      colRows.forEach(function (r) {
-        colEl.appendChild(_buildCard(r));
-      });
-
+      colRows.forEach(function (r) { colEl.appendChild(_buildCard(r)); });
       body.appendChild(colEl);
     });
 

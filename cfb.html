@@ -186,6 +186,11 @@
   body.standings #standings, body.schedule #schedule { display: block; }
   body.standings #flag, body.standings #bug, body.standings #infostrip, body.standings #field, body.standings #stack, body.standings #cards, body.standings #hl, body.standings #ps { display: none; }
   body.schedule #flag, body.schedule #bug, body.schedule #infostrip, body.schedule #field, body.schedule #stack, body.schedule #cards, body.schedule #hl, body.schedule #ps { display: none; }
+  /* Full-panel scenes: drop the top clock/date and the ticker category label (which overlaps the
+     panel), and grow the panel up into that reclaimed space so it's big and nothing covers it. */
+  body.schedule #head, body.standings #head { display: none; }
+  body.schedule #tk-label, body.standings #tk-label, body.ps #tk-label { display: none; }
+  body.schedule #zone-main, body.standings #zone-main { top: 6vh; bottom: 24.5vh; }
   #flag { line-height: 1; }
   #flag .fchip { display: inline-block; font-family: "Oswald", sans-serif; font-size: 2.8vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
     line-height: 1.25; padding: 0.7vh 1.6vw 0.6vh; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
