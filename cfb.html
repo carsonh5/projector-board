@@ -73,9 +73,9 @@
   }
   .hlscoreboard { display: flex; flex-direction: column; gap: 0.5vh; }
   .hlfinal {
-    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.6vh;
-    color: #FFE84D; letter-spacing: 0.2em; text-transform: uppercase;
-    margin-bottom: 0.4vh; text-align: center;
+    font-family: "Oswald", sans-serif; font-weight: 700; font-size: 5vh;
+    color: #FFE84D; letter-spacing: 0.18em; text-transform: uppercase;
+    margin-bottom: 0.6vh; text-align: center; line-height: 1;
   }
   /* each team block stacked vertically: abbrev → logo → score */
   .hlteamrow {
@@ -1226,33 +1226,27 @@ setInterval(function(){ fetch("version.txt?t="+Date.now(),{cache:"no-store"}).th
   .catch(function(){}); }, 20000);
 const TICKER_PXPS=90, TICKER_MAX=22; let _lastTicker="";   // continuous scroll
 
-/* ===== continuous marquee, driven by requestAnimationFrame =====
-   The old CSS @keyframes marquee restarted every time the game set changed and — with the
-   negative-animation-delay hack — visibly "appeared halfway through". This rAF loop keeps ONE
-   continuous offset that survives every rebuild, so items always flow in from the right edge and
-   a content change never snaps the strip. The track is the pool rendered as N identical copies;
-   we wrap at exactly one copy width, which is seamless because every copy is identical. */
-let _tkOffset=0, _tkUnitW=0, _tkRAF=null, _tkLastTs=0, _tkEverBuilt=false;
+/* ===== continuous marquee, driven by the Web Animations API (compositor thread) =====
+   Running the scroll on the compositor (like a CSS animation) instead of a main-thread rAF loop
+   keeps it BUTTERY on the Fire Stick — score fetches, DOM patches and video decoding can't jank it.
+   We keep precise control of the animation's currentTime so a rebuild resumes at the same phase
+   (no snap / no "appears halfway"). The track is the pool rendered as N identical copies; the loop
+   translates by exactly one copy width, which is seamless because every copy is identical. */
+let _tkUnitW=0, _tkAnim=null, _tkDur=0, _tkEverBuilt=false;
 function _tkContainerW(){ const z=document.getElementById("zone-ticker"); return (z&&z.clientWidth)||window.innerWidth||1920; }
-function tickerFrame(ts){
-  const el=document.getElementById("t-ticker"); if(!el){ _tkRAF=null; return; }
-  if(!_tkLastTs) _tkLastTs=ts;
-  let dt=(ts-_tkLastTs)/1000; _tkLastTs=ts;
-  if(dt>0.1) dt=0.1;   // clamp big gaps (tab backgrounded) so the strip never leaps
-  if(_tkUnitW>0){
-    _tkOffset += TICKER_PXPS*dt;
-    while(_tkOffset >= _tkUnitW) _tkOffset -= _tkUnitW;   // seamless wrap at one copy width
-    el.style.transform = "translate3d("+(-_tkOffset).toFixed(1)+"px,0,0)";
-  }
-  _tkRAF=requestAnimationFrame(tickerFrame);
+function _tkPhase(){   // 0..1 position within one loop, so a rebuild resumes exactly where it was
+  if(!_tkAnim || !_tkDur) return 0;
+  let t=_tkAnim.currentTime; if(typeof t!=="number" || !isFinite(t)) t=0;
+  return (((t % _tkDur)+_tkDur)%_tkDur)/_tkDur;
 }
-function _tkStartLoop(){ if(_tkRAF==null){ _tkLastTs=0; _tkRAF=requestAnimationFrame(tickerFrame); } }
 
 /* Build the physical track from an array of item-HTML strings. Repeats the unit enough times to
-   exceed the viewport by a full copy so the wrap is invisible. Offset is preserved across rebuilds
-   (no jump); on the very first build it starts off the right edge so content scrolls IN from the right. */
+   exceed the viewport by a full copy so the wrap is invisible. Phase is preserved across rebuilds
+   (no jump); the very first build scrolls in from off the right edge, then hands off seamlessly to
+   the infinite loop (intro ends and loop starts at the same translateX(0), so there's no seam). */
 function tkBuildTrack(itemsHTML, firstScrollIn){
   const el=document.getElementById("t-ticker"); if(!el) return;
+  const resumePhase = _tkEverBuilt ? _tkPhase() : 0;
   el.style.animation="none";
   const unit='<span class="tkcopy">'+itemsHTML.join("")+'</span>';
   el.innerHTML=unit;                                   // measure one copy
@@ -1262,11 +1256,23 @@ function tkBuildTrack(itemsHTML, firstScrollIn){
   let all=""; for(let i=0;i<copies;i++) all+=unit;
   el.innerHTML=all;
   _tkUnitW=(el.firstElementChild ? el.firstElementChild.getBoundingClientRect().width : oneW) || oneW;
+  _tkDur=Math.max(1000, (_tkUnitW/TICKER_PXPS)*1000);
+  if(_tkAnim){ try{ _tkAnim.cancel(); }catch(e){} _tkAnim=null; }
+  if(typeof el.animate!=="function"){ el.style.transform="translateX(0)"; _tkEverBuilt=true; return; }   // ancient-engine fallback
+  const loopFrames=[{transform:"translateX(0px)"},{transform:"translateX("+(-_tkUnitW)+"px)"}];
+  const loopOpts={duration:_tkDur, iterations:Infinity, easing:"linear"};
+  const first = firstScrollIn && !_tkEverBuilt;
   _tkEverBuilt=true;
-  if(firstScrollIn) _tkOffset=-contW;                  // empty -> flows in from the right (once)
-  else while(_tkOffset >= _tkUnitW) _tkOffset -= _tkUnitW;
-  el.style.transform="translate3d("+(-_tkOffset).toFixed(1)+"px,0,0)";
-  _tkStartLoop();
+  if(first){
+    /* intro: slide in from off the right edge, then seamlessly continue into the loop */
+    const introDur=Math.max(1,(contW/TICKER_PXPS))*1000;
+    const intro=el.animate([{transform:"translateX("+contW+"px)"},{transform:"translateX(0px)"}],{duration:introDur, easing:"linear", fill:"forwards"});
+    _tkAnim=intro;
+    intro.onfinish=function(){ if(_tkAnim!==intro) return; const loop=el.animate(loopFrames, loopOpts); _tkAnim=loop; try{ intro.cancel(); }catch(e){} };
+  } else {
+    _tkAnim=el.animate(loopFrames, loopOpts);
+    try{ _tkAnim.currentTime = resumePhase*_tkDur; }catch(e){}   // resume at the same phase — no snap
+  }
 }
 
 /* setTicker — pool (array of game objects) OR (legacy TD path) array of HTML strings.
@@ -1307,8 +1313,7 @@ function setTicker(poolOrArr, structSig, contentSig){
       const gid = span.getAttribute("data-gid");
       if(lookup[gid] !== undefined && span.innerHTML !== lookup[gid]) span.innerHTML = lookup[gid];
     });
-    /* re-measure one copy in case a score/clock changed its width, keeping the wrap seamless */
-    _tkUnitW = (el.firstElementChild ? el.firstElementChild.getBoundingClientRect().width : _tkUnitW) || _tkUnitW;
+    /* the compositor loop keeps running on its own thread — an in-place text swap can't jank it */
   }
   /* else: nothing changed — no-op */
 }
