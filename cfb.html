@@ -929,7 +929,13 @@ function renderScheduleScene(){
     if(_nrm(g.hAbbr)===nf||_nrm(g.hLoc)===nf){ tid=g.hId; tname=g.hLoc||team; break; }
   }
   document.body.classList.add("schedule"); document.body.classList.remove("cards","stacked");
-  if(_schTeam!==team){ _schTeam=team; mountSchedule(document.getElementById("schedule"), tname, { teamId:tid, onEmpty:function(){ exitSchedule(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
+  /* Only mount once we have the ESPN id from the week's scoreboard — mounting without it falls back
+     to the 1000-team lookup, which is slow and CORS-blocked in the webview (hangs on "LOADING").
+     If games hasn't loaded yet, just retry on the next render cycle. */
+  if(!tid) return;
+  if(_schTeam!==team){ _schTeam=team; mountSchedule(document.getElementById("schedule"), tname, { teamId:tid,
+    onEmpty:function(){ exitSchedule(); SCENE="all"; showAll=true; FEATURE=[]; render(); },
+    onError:function(){ exitSchedule(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
 }
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
   if(d>0) return d+"d "+h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
