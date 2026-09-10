@@ -391,13 +391,26 @@
         display: "flex", alignItems: "center", justifyContent: "center",
         animation: "td-logo-in 0.55s 0.12s cubic-bezier(0.22,0.61,0.36,1) both",
       });
+      const stroke = "drop-shadow(1.3px 0 0 #fff) drop-shadow(-1.3px 0 0 #fff) drop-shadow(0 1.3px 0 #fff) drop-shadow(0 -1.3px 0 #fff) drop-shadow(0 0.7vh 1.2vh rgba(0,0,0,0.55))";
       const limg = document.createElement("img");
       limg.src = p.logo; limg.alt = "";
-      // fixed HEIGHT so every team logo is the same size; a very small white stroke keeps same-colour
-      // logos visible (e.g. Rams blue on blue)
-      limg.style.cssText = "height:78%;width:auto;max-width:96%;object-fit:contain;display:block;filter:drop-shadow(1.3px 0 0 #fff) drop-shadow(-1.3px 0 0 #fff) drop-shadow(0 1.3px 0 #fff) drop-shadow(0 -1.3px 0 #fff) drop-shadow(0 0.7vh 1.2vh rgba(0,0,0,0.55));";
       limg.onerror = function () { logoWrap.style.display = "none"; };
-      logoWrap.appendChild(limg);
+      if (p.logoBox && p.logoBox.length === 2) {
+        // crop the transparent padding to the opaque box (+ small margin) and render at a uniform height
+        const mc = 0.05, TARGET = 30, MAXW = 50;   // target opaque height + max width, in vh
+        const bw = Math.min(1, p.logoBox[0] + 2 * mc), bh = Math.min(1, p.logoBox[1] + 2 * mc);
+        const bxL = Math.max(0, (1 - bw) / 2), byT = Math.max(0, (1 - bh) / 2), A = bw / bh;
+        let hVh = TARGET, wVh = hVh * A;
+        if (wVh > MAXW) { wVh = MAXW; hVh = wVh / A; }
+        const side = hVh / bh;   // the square logo's side length in vh
+        const crop = _el("div", { position: "relative", flexShrink: "0", overflow: "hidden", width: wVh + "vh", height: hVh + "vh" });
+        limg.style.cssText = "position:absolute;display:block;width:" + side + "vh;height:" + side + "vh;left:" + (-bxL * side) + "vh;top:" + (-byT * side) + "vh;filter:" + stroke + ";";
+        crop.appendChild(limg);
+        logoWrap.appendChild(crop);
+      } else {
+        limg.style.cssText = "height:78%;width:auto;max-width:96%;object-fit:contain;display:block;filter:" + stroke + ";";
+        logoWrap.appendChild(limg);
+      }
       wrap.appendChild(logoWrap);
     }
 
@@ -561,6 +574,7 @@
       tdType:     tdType,
       logo:       opts.logo || "",
       colors:     opts.colors || null,
+      logoBox:    opts.logoBox || null,
     });
 
     _wrapEl = wrap;

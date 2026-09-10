@@ -304,6 +304,17 @@
     NYJ: ["#125740", "#000000", "#FFFFFF"], PHI: ["#004C54", "#A5ACAF", "#000000"], PIT: ["#101820", "#FFB612", "#C60C30"], SF: ["#AA0000", "#B3995D", "#FFFFFF"],
     SEA: ["#002244", "#69BE28", "#A5ACAF"], TB: ["#D50A0A", "#34302B", "#FF7900"], TEN: ["#0C2340", "#4B92DB", "#C8102E"], WAS: ["#5A1414", "#FFB612", "#FFFFFF"],
   };
+  // opaque [width,height] fraction of each 500x500 ESPN logo canvas (measured) — lets the celebration
+  // crop the transparent padding so every team logo renders at the same visible height
+  const LOGO_BOX = {
+    ARI: [0.922, 0.872], ATL: [0.92, 0.872], BAL: [0.922, 0.444], BUF: [0.922, 0.616], CAR: [0.924, 0.496],
+    CHI: [0.92, 0.904], CIN: [0.92, 0.648], CLE: [0.92, 0.712], DAL: [0.92, 0.872], DEN: [0.92, 0.548],
+    DET: [0.922, 0.7], GB: [0.922, 0.6], HOU: [0.922, 0.836], IND: [0.872, 0.924], JAX: [0.924, 0.684],
+    KC: [0.922, 0.6], LV: [0.88, 0.932], LAC: [0.924, 0.412], LAR: [0.92, 0.666], MIA: [0.924, 0.736],
+    MIN: [0.732, 0.908], NE: [0.924, 0.444], NO: [0.752, 0.92], NYG: [0.92, 0.716], NYJ: [0.92, 0.29],
+    PHI: [0.922, 0.632], PIT: [0.924, 0.924], SF: [0.924, 0.548], SEA: [0.924, 0.412], TB: [0.924, 0.82],
+    TEN: [0.92, 0.92], WAS: [0.924, 0.512],
+  };
   const _DIST = [4, 9, 15, 22, 31, 44, 55, 7, 18, 63];
   function _tdType(pos) { return pos === "QB" ? "PASS TD" : (pos === "WR" || pos === "TE") ? "REC TD" : "RUSH TD"; }
   let _preview = false, _previewTimer = null;
@@ -322,7 +333,7 @@
         return {
           skipFetch: true, teamName: pl.team || "", primary: col[0], secondary: col[1], colors: col,
           playerName: pl.name, position: pl.pos || "", headshot: "https://sleepercdn.com/content/nfl/players/" + pid + ".jpg",
-          logo: "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(pl.team) + ".png",
+          logo: "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(pl.team) + ".png", logoBox: LOGO_BOX[pl.team] || null,
           yards: _DIST[i % _DIST.length], tdType: _tdType(pl.pos || ""),
         };
       }).filter(function (it) { return it.playerName; });
