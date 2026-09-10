@@ -552,6 +552,12 @@
     let yards      = 0;
     let tdType     = "TD";
 
+    // Direct-data mode (fantasy preview / known player): skip the ESPN fetch, render opts as-is.
+    if (opts.skipFetch) {
+      playerName = opts.playerName || ""; jersey = opts.jersey || "";
+      position = opts.position || ""; headshot = opts.headshot || "";
+      yards = opts.yards || 0; tdType = opts.tdType || "TD";
+    } else
     try {
       const url  = _summaryUrl() + encodeURIComponent(opts.eventId);
       const resp = await fetch(url);

@@ -292,6 +292,52 @@
 
   function stopFantasy() { _active = false; if (_timer) { clearInterval(_timer); _timer = null; } _container = null; }
 
+  // ── TD-celebration preview: loop through the user's starters with real headshots + team colours ──
+  const NFL_COLORS = {
+    ARI: ["#97233F", "#FFB612"], ATL: ["#A71930", "#000000"], BAL: ["#241773", "#9E7C0C"], BUF: ["#00338D", "#C60C30"],
+    CAR: ["#0085CA", "#101820"], CHI: ["#0B162A", "#C83803"], CIN: ["#FB4F14", "#000000"], CLE: ["#311D00", "#FF3C00"],
+    DAL: ["#003594", "#869397"], DEN: ["#FB4F14", "#002244"], DET: ["#0076B6", "#B0B7BC"], GB: ["#203731", "#FFB612"],
+    HOU: ["#03202F", "#A71930"], IND: ["#002C5F", "#A2AAAD"], JAX: ["#006778", "#D7A22A"], KC: ["#E31837", "#FFB81C"],
+    LV: ["#101820", "#A5ACAF"], LAC: ["#0080C6", "#FFC20E"], LAR: ["#003594", "#FFA300"], MIA: ["#008E97", "#FC4C02"],
+    MIN: ["#4F2683", "#FFC62F"], NE: ["#002244", "#C60C30"], NO: ["#101820", "#D3BC8D"], NYG: ["#0B2265", "#A71930"],
+    NYJ: ["#125740", "#FFFFFF"], PHI: ["#004C54", "#A5ACAF"], PIT: ["#101820", "#FFB612"], SF: ["#AA0000", "#B3995D"],
+    SEA: ["#002244", "#69BE28"], TB: ["#D50A0A", "#34302B"], TEN: ["#0C2340", "#4B92DB"], WAS: ["#5A1414", "#FFB612"],
+  };
+  const _DIST = [4, 9, 15, 22, 31, 44, 55, 7, 18, 63];
+  function _tdType(pos) { return pos === "QB" ? "PASS TD" : (pos === "WR" || pos === "TE") ? "REC TD" : "RUSH TD"; }
+  let _preview = false, _previewTimer = null;
+
+  async function previewFantasyTD(container, opts) {
+    opts = opts || {}; stopPreviewTD();
+    const lid = opts.leagueId, uid = opts.userId;
+    try {
+      await _fetchPlayers();
+      const [state, rosters] = await Promise.all([_json(S + "/state/nfl"), _json(S + "/league/" + lid + "/rosters")]);
+      const myR = rosters.find(function (r) { return String(r.owner_id) === String(uid); });
+      const starters = ((myR && myR.starters) || []).filter(function (pid) { return pid && pid !== "0" && !/^[A-Z]{2,3}$/.test(pid); });
+      const items = starters.map(function (pid, i) {
+        const pl = _resolve(pid);
+        const col = NFL_COLORS[pl.team] || ["#1a1a2e", "#ffffff"];
+        return {
+          skipFetch: true, teamName: pl.team || "", primary: col[0], secondary: col[1],
+          playerName: pl.name, position: pl.pos || "", headshot: "https://sleepercdn.com/content/nfl/players/" + pid + ".jpg",
+          yards: _DIST[i % _DIST.length], tdType: _tdType(pl.pos || ""),
+        };
+      }).filter(function (it) { return it.playerName; });
+      if (!items.length || typeof root.mountTDCelebration !== "function") { if (opts.onError) opts.onError(new Error("no starters or no TD module")); return; }
+      _preview = true;
+      let i = 0;
+      (function next() {
+        if (!_preview) return;
+        const it = items[i % items.length]; i++;
+        root.mountTDCelebration(container, Object.assign({ dismissMs: 6000, onDone: function () { if (_preview) _previewTimer = setTimeout(next, 250); } }, it));
+      })();
+    } catch (err) { if (opts.onError) opts.onError(err); }
+  }
+  function stopPreviewTD() { _preview = false; if (_previewTimer) { clearTimeout(_previewTimer); _previewTimer = null; } if (typeof root.stopTDCelebration === "function") root.stopTDCelebration(); }
+
   root.mountFantasy = mountFantasy;
   root.stopFantasy = stopFantasy;
+  root.previewFantasyTD = previewFantasyTD;
+  root.stopPreviewTD = stopPreviewTD;
 }(typeof window !== "undefined" ? window : this));

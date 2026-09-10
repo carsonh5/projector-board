@@ -954,6 +954,14 @@ const FANTASY_LEAGUE_ID = "1367723640828760064";   // Bluff City Football League
 const FANTASY_USER_ID   = "1237974224442757120";   // carsonh17
 var _faMounted=false;
 function exitFantasy(){ if(_faMounted){ try{stopFantasy();}catch(e){} _faMounted=false; } document.body.classList.remove("fantasy"); var _e=document.getElementById("fantasy"); if(_e) _e.style.display=""; }
+var _tdDemoOn=false;
+function exitTDDemo(){ if(_tdDemoOn){ try{stopPreviewTD();}catch(e){} _tdDemoOn=false; document.body.classList.remove("fantasy"); } }
+function renderTDDemo(){
+  if(typeof previewFantasyTD!=="function"){ noGames("TD demo module not loaded"); return; }
+  document.body.classList.add("fantasy"); document.body.classList.remove("cards","stacked");
+  if(!_tdDemoOn){ _tdDemoOn=true; previewFantasyTD(document.getElementById("fantasy"), { leagueId:FANTASY_LEAGUE_ID, userId:FANTASY_USER_ID,
+    onError:function(){ exitTDDemo(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
+}
 function renderFantasyScene(){
   if(typeof mountFantasy!=="function"){ exitFantasy(); document.body.classList.remove("cards","stacked"); noGames("Fantasy module not loaded"); return; }
   document.body.classList.add("fantasy"); document.body.classList.remove("cards","stacked");
@@ -1227,7 +1235,9 @@ function renderTicker(){
 
 function render(){
   if(SCENE!=="fantasy") exitFantasy();   /* tear down the fantasy panel whenever we leave that scene */
+  if(SCENE!=="tddemo") exitTDDemo();
   if(SCENE==="fantasy"){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FANTASY"; renderFantasyScene(); renderTicker(); return; }
+  if(SCENE==="tddemo"){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.getElementById("count").textContent="TD DEMO"; renderTDDemo(); renderTicker(); return; }
   if(DEMO){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   if(SCENE==="playerstats" && FEATURE.length){ exitStandings(); exitSchedule(); document.getElementById("count").textContent="PLAYER STATS · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderPlayerStatsScene(); renderTicker(); return; }
   if(SCENE==="standings" && FEATURE.length){ exitPS(); exitSchedule(); document.getElementById("count").textContent="STANDINGS · "+FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" "); renderStandingsScene(); renderTicker(); return; }
