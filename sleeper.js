@@ -129,7 +129,7 @@
     else if (pos === "RB") { if (s.rush_yd != null) p.push(r(s.rush_yd || 0) + " YD"); if (s.rush_td) p.push(r(s.rush_td) + " TD"); if (s.rec) p.push(r(s.rec) + " REC"); }
     else if (pos === "WR" || pos === "TE") { if (s.rec) p.push(r(s.rec) + " REC"); if (s.rec_yd != null) p.push(r(s.rec_yd || 0) + " YD"); if (s.rec_td) p.push(r(s.rec_td) + " TD"); }
     else if (pos === "K") { if (s.fgm != null && s.fga != null) p.push(r(s.fgm) + "/" + r(s.fga) + " FG"); if (s.xpm) p.push(r(s.xpm) + " XP"); }
-    else if (pos === "DEF") { if (s.sack) p.push(r(s.sack) + " SK"); if (s.def_int) p.push(r(s.def_int) + " INT"); if (s.def_td) p.push(r(s.def_td) + " TD"); if (s.pts_allow != null) p.push(r(s.pts_allow) + " PA"); }
+    else if (pos === "DEF") { if (s.sack) p.push(r(s.sack) + " SK"); if (s.int) p.push(r(s.int) + " INT"); if (s.fum_rec) p.push(r(s.fum_rec) + " FR"); if (s.def_td) p.push(r(s.def_td) + " TD"); if (s.pts_allow != null) p.push(r(s.pts_allow) + " PA"); }
     return p.slice(0, 3).join(" · ");
   }
   function _resolve(pid) {
@@ -168,9 +168,9 @@
   // far-corner unit: big record with the team name in a fixed-width slot on the inside (ellipsis if long)
   function _cornerEl(rec, name, right) {
     const w = _el("div", "display:flex;align-items:baseline;gap:0.9vw;flex-shrink:0;min-width:0;" + (right ? "flex-direction:row-reverse;" : ""));
-    const r = _el("div", "font-family:'Oswald',sans-serif;font-size:3.4vh;font-weight:700;letter-spacing:0.02em;color:" + P.text + ";white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums;");
+    const r = _el("div", "font-family:'Oswald',sans-serif;font-size:4.4vh;font-weight:700;letter-spacing:0.02em;color:" + P.text + ";white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums;");
     r.textContent = rec || "0-0"; w.appendChild(r);
-    const n = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.5vh;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;color:" + P.dim + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:19vw;" + (right ? "text-align:right;" : ""));
+    const n = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.6vh;font-weight:600;text-transform:uppercase;letter-spacing:0.02em;color:" + P.dim + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:21vw;" + (right ? "text-align:right;" : ""));
     n.textContent = name || ""; w.appendChild(n);
     return w;
   }
