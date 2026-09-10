@@ -191,7 +191,8 @@
      panel), and grow the panel up into that reclaimed space so it's big and nothing covers it. */
   body.schedule #head, body.standings #head, body.fantasy #head { display: none; }
   body.schedule #tk-label, body.standings #tk-label, body.ps #tk-label, body.fantasy #tk-label { display: none; }
-  body.schedule #zone-main, body.standings #zone-main, body.fantasy #zone-main { top: 6vh; bottom: 24.5vh; }
+  /* Hiding #head already lets the panel use the full mapped main zone — do NOT move the zone top,
+     or the header lands above the projector's safe area (out of bounds). */
   #flag { line-height: 1; }
   #flag .fchip { display: inline-block; font-family: "Oswald", sans-serif; font-size: 2.8vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
     line-height: 1.25; padding: 0.7vh 1.6vw 0.6vh; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }

@@ -96,14 +96,17 @@
 
   // ── Rendering ──────────────────────────────────────────────────────────────
 
-  function _teamHead(name, record, total, isWin, proj) {
-    const w = _el("div", "display:flex;flex-direction:column;align-items:center;gap:0.1vh;min-width:0;flex:1;");
-    const n = _el("div", "font-family:'Oswald',sans-serif;font-size:3.4vh;font-weight:700;text-transform:uppercase;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:" + (isWin ? P.text : P.dim) + ";");
-    n.textContent = name; w.appendChild(n);
-    const s = _el("div", "font-family:'Oswald',sans-serif;font-size:5.6vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + (isWin ? P.win : P.text) + ";");
-    s.textContent = (total || 0).toFixed(1); w.appendChild(s);
-    const r = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.6vh;font-weight:600;color:" + P.dim + ";letter-spacing:0.04em;");
-    r.textContent = (record || "") + (proj != null ? "  ·  PROJ " + proj.toFixed(0) : ""); w.appendChild(r);
+  // compact horizontal unit: [score]  [name / record·proj]  (mirrored for the opponent)
+  function _teamHead(name, record, total, isWin, proj, right) {
+    const w = _el("div", "display:flex;align-items:center;gap:0.8vw;flex:1;min-width:0;justify-content:" + (right ? "flex-start" : "flex-end") + ";");
+    const sc = _el("div", "font-family:'Oswald',sans-serif;font-size:4.6vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;flex-shrink:0;color:" + (isWin ? P.win : P.text) + ";");
+    sc.textContent = (total || 0).toFixed(1);
+    const info = _el("div", "display:flex;flex-direction:column;min-width:0;" + (right ? "" : "align-items:flex-end;"));
+    const n = _el("div", "font-family:'Oswald',sans-serif;font-size:2.9vh;font-weight:700;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:24vw;color:" + (isWin ? P.text : P.dim) + ";");
+    n.textContent = name; info.appendChild(n);
+    const r = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.1vh;font-weight:600;color:" + P.dim + ";white-space:nowrap;");
+    r.textContent = (record || "") + (proj != null ? " · PROJ " + proj.toFixed(0) : ""); info.appendChild(r);
+    if (right) { w.appendChild(sc); w.appendChild(info); } else { w.appendChild(info); w.appendChild(sc); }
     return w;
   }
 
@@ -136,14 +139,14 @@
   }
 
   function _winBar(myPct) {
-    const wrap = _el("div", "display:flex;align-items:center;gap:0.8vw;padding:0.7vh 3vw;background:" + P.header + ";border-bottom:1px solid " + P.border + ";flex-shrink:0;");
-    const l = _el("div", "font-family:'Oswald',sans-serif;font-size:3.2vh;font-weight:700;color:" + (myPct >= 50 ? P.win : P.dim) + ";flex-shrink:0;min-width:4vw;font-variant-numeric:tabular-nums;");
+    const wrap = _el("div", "display:flex;align-items:center;gap:0.8vw;padding:0.35vh 3vw 0.5vh;background:" + P.header + ";border-bottom:2px solid " + P.border + ";flex-shrink:0;");
+    const l = _el("div", "font-family:'Oswald',sans-serif;font-size:2.9vh;font-weight:700;color:" + (myPct >= 50 ? P.win : P.dim) + ";flex-shrink:0;min-width:4vw;font-variant-numeric:tabular-nums;");
     l.textContent = myPct + "%"; wrap.appendChild(l);
-    const bar = _el("div", "flex:1;height:1.8vh;border-radius:1vh;overflow:hidden;background:" + P.track + ";display:flex;");
+    const bar = _el("div", "flex:1;height:1.4vh;border-radius:0.8vh;overflow:hidden;background:" + P.track + ";display:flex;");
     const fill = _el("div", "height:100%;width:" + myPct + "%;background:" + P.win + ";");
     const rest = _el("div", "height:100%;flex:1;background:" + P.live + ";");
     bar.appendChild(fill); bar.appendChild(rest); wrap.appendChild(bar);
-    const rt = _el("div", "font-family:'Oswald',sans-serif;font-size:3.2vh;font-weight:700;color:" + (myPct < 50 ? P.live : P.dim) + ";flex-shrink:0;min-width:4vw;text-align:right;font-variant-numeric:tabular-nums;");
+    const rt = _el("div", "font-family:'Oswald',sans-serif;font-size:2.9vh;font-weight:700;color:" + (myPct < 50 ? P.live : P.dim) + ";flex-shrink:0;min-width:4vw;text-align:right;font-variant-numeric:tabular-nums;");
     rt.textContent = (100 - myPct) + "%"; wrap.appendChild(rt);
     return wrap;
   }
@@ -156,14 +159,11 @@
     const myPct = oppM ? _winPct(effMe, effOpp) : 100;
     const iWin = myTot >= oppTot;
 
-    const bar = _el("div", "display:flex;align-items:center;justify-content:center;gap:2vw;padding:0.7vh 2vw;background:" + P.header + ";border-bottom:2px solid " + P.border + ";flex-shrink:0;");
-    bar.appendChild(_teamHead(_ctx.teamName(myM.roster_id), _ctx.record(myM.roster_id), myTot, iWin, effMe));
-    const mid = _el("div", "display:flex;flex-direction:column;align-items:center;flex-shrink:0;");
-    const wk = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.8vh;font-weight:700;color:" + P.gold + ";letter-spacing:0.1em;");
-    wk.textContent = "WEEK " + (_ctx.week || ""); mid.appendChild(wk);
-    const vs = _el("div", "font-family:'Oswald',sans-serif;font-size:3vh;font-weight:700;color:" + P.dim + ";"); vs.textContent = "VS"; mid.appendChild(vs);
-    bar.appendChild(mid);
-    bar.appendChild(_teamHead(oppM ? _ctx.teamName(oppM.roster_id) : "No opponent", oppM ? _ctx.record(oppM.roster_id) : "", oppTot, !iWin, oppM ? effOpp : null));
+    const bar = _el("div", "display:flex;align-items:center;justify-content:center;gap:1.4vw;padding:0.4vh 2vw 0.3vh;background:" + P.header + ";flex-shrink:0;");
+    bar.appendChild(_teamHead(_ctx.teamName(myM.roster_id), _ctx.record(myM.roster_id), myTot, iWin, effMe, false));
+    const wk = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.6vh;font-weight:700;color:" + P.gold + ";letter-spacing:0.08em;flex-shrink:0;");
+    wk.textContent = "WK " + (_ctx.week || ""); bar.appendChild(wk);
+    bar.appendChild(_teamHead(oppM ? _ctx.teamName(oppM.roster_id) : "No opponent", oppM ? _ctx.record(oppM.roster_id) : "", oppTot, !iWin, oppM ? effOpp : null, true));
     c.appendChild(bar);
 
     // Win-probability bar
