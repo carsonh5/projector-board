@@ -170,33 +170,34 @@
     return w;
   }
 
-  // horizontal win-probability meter: the favoured team's share is green, the underdog's is red; they
-  // meet at the split and a white needle marks it — split past centre = that side is favoured.
+  // projection-based edge meter: the favoured team's share is green, the underdog's is red; a white
+  // needle marks the split. (Not a claimed win %, which Sleeper does not expose via API.)
   function _meter(myPct, week, myColor, oppColor) {
     const wrap = _el("div", "flex:0 0 24vw;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.9vh;padding:0 0.5vw;");
-    const rail = _el("div", "position:relative;width:100%;height:1.7vh;");
-    const track = _el("div", "position:absolute;inset:0;border-radius:0.85vh;overflow:hidden;background:" + P.track + ";display:flex;");
+    const rail = _el("div", "position:relative;width:100%;height:1.9vh;");
+    const track = _el("div", "position:absolute;inset:0;border-radius:0.95vh;overflow:hidden;background:" + P.track + ";display:flex;");
     track.appendChild(_el("div", "height:100%;width:" + myPct + "%;background:" + myColor + ";"));
     track.appendChild(_el("div", "height:100%;flex:1;background:" + oppColor + ";"));
     rail.appendChild(track);
-    rail.appendChild(_el("div", "position:absolute;left:50%;top:-0.35vh;bottom:-0.35vh;width:2px;transform:translateX(-50%);background:rgba(255,255,255,0.4);"));
-    rail.appendChild(_el("div", "position:absolute;top:-1.5vh;left:" + myPct + "%;transform:translateX(-50%);width:0;height:0;border-left:0.95vh solid transparent;border-right:0.95vh solid transparent;border-top:1.25vh solid #ffffff;"));
+    rail.appendChild(_el("div", "position:absolute;left:50%;top:-0.3vh;bottom:-0.3vh;width:2px;transform:translateX(-50%);background:rgba(255,255,255,0.35);"));
+    rail.appendChild(_el("div", "position:absolute;top:-0.5vh;bottom:-0.5vh;left:" + myPct + "%;transform:translateX(-50%);width:0.5vh;border-radius:0.3vh;background:#ffffff;box-shadow:0 0 0.4vh rgba(0,0,0,0.6);"));
     wrap.appendChild(rail);
     const cap = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:700;letter-spacing:0.1em;color:#e8ebf0;white-space:nowrap;");
-    cap.textContent = "WK " + (week || "") + " · WIN %"; wrap.appendChild(cap);
+    cap.textContent = "WEEK " + (week || ""); wrap.appendChild(cap);
     return wrap;
   }
 
-  // teams whose logos are near-black and vanish on the dark board — give them a thin white outline
+  // teams whose logos are near-black and vanish on the dark board — sit them on a light disc behind
   const DARK_LOGOS = { LAR: 1, BAL: 1, WAS: 1, JAX: 1, TB: 1, NYG: 1 };
   function _logo(team) {
     if (!team) return _el("div", "width:3.3vh;height:3.3vh;flex-shrink:0;");
-    const wrap = _el("div", "width:3.3vh;height:3.3vh;flex-shrink:0;display:flex;align-items:center;justify-content:center;");
+    const dark = DARK_LOGOS[team];
+    const wrap = _el("div", "width:3.3vh;height:3.3vh;flex-shrink:0;display:flex;align-items:center;justify-content:center;" + (dark ? "background:#eef1f5;border-radius:50%;" : ""));
     const img = document.createElement("img");
     img.src = "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(team) + ".png";
     img.alt = "";
-    const stroke = DARK_LOGOS[team] ? "filter:drop-shadow(0.7px 0.7px 0 #fff) drop-shadow(-0.7px -0.7px 0 #fff) drop-shadow(0.7px -0.7px 0 #fff) drop-shadow(-0.7px 0.7px 0 #fff);" : "";
-    img.style.cssText = "width:100%;height:100%;object-fit:contain;display:block;" + stroke;
+    const sz = dark ? "82%" : "100%";
+    img.style.cssText = "width:" + sz + ";height:" + sz + ";object-fit:contain;display:block;";
     img.onerror = function () { wrap.style.visibility = "hidden"; };
     wrap.appendChild(img); return wrap;
   }

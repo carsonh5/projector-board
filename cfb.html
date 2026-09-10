@@ -585,7 +585,7 @@ let LOGO_MAP = {};   // curated dark-bg team logos (white-outlined); fall back t
 fetch("logos/logo-map.json",{cache:"force-cache"}).then(r=>r.json()).then(m=>{ LOGO_MAP=m||{}; remapLogos(); }).catch(()=>{});
 /* the map loads async AFTER games are first fetched (which bake ESPN URLs). Re-resolve every game's
    logos from the now-loaded map and force a full ticker rebuild so curated logos actually appear. */
-function curatedLogo(abbr,loc){ const f=LOGO_MAP[(abbr||"").toUpperCase()]||LOGO_MAP[(loc||"").toLowerCase()]; return f?("logos/"+f):null; }
+function curatedLogo(abbr,loc){ if(LEAGUE==="nfl") return null; /* curated map is college-only; NFL abbrs collide (BUF/HOU/MIN/ARI/CIN/TEN) → keep ESPN NFL logos */ const f=LOGO_MAP[(abbr||"").toUpperCase()]||LOGO_MAP[(loc||"").toLowerCase()]; return f?("logos/"+f):null; }
 function remapLogos(){
   if(!Object.keys(LOGO_MAP).length || !games.length) return;
   games.forEach(function(g){ const a=curatedLogo(g.aAbbr,g.aLoc), h=curatedLogo(g.hAbbr,g.hLoc); if(a) g.aLogo=a; if(h) g.hLogo=h; });
