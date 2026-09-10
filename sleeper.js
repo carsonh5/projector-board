@@ -293,15 +293,16 @@
   function stopFantasy() { _active = false; if (_timer) { clearInterval(_timer); _timer = null; } _container = null; }
 
   // ── TD-celebration preview: loop through the user's starters with real headshots + team colours ──
+  // [primary, secondary, tertiary] — primary is the bg, secondary the accent, all three feed the side stripe
   const NFL_COLORS = {
-    ARI: ["#97233F", "#FFB612"], ATL: ["#A71930", "#000000"], BAL: ["#241773", "#9E7C0C"], BUF: ["#00338D", "#C60C30"],
-    CAR: ["#0085CA", "#101820"], CHI: ["#0B162A", "#C83803"], CIN: ["#FB4F14", "#000000"], CLE: ["#311D00", "#FF3C00"],
-    DAL: ["#003594", "#869397"], DEN: ["#FB4F14", "#002244"], DET: ["#0076B6", "#B0B7BC"], GB: ["#203731", "#FFB612"],
-    HOU: ["#03202F", "#A71930"], IND: ["#002C5F", "#A2AAAD"], JAX: ["#006778", "#D7A22A"], KC: ["#E31837", "#FFB81C"],
-    LV: ["#101820", "#A5ACAF"], LAC: ["#0080C6", "#FFC20E"], LAR: ["#003594", "#FFA300"], MIA: ["#008E97", "#FC4C02"],
-    MIN: ["#4F2683", "#FFC62F"], NE: ["#002244", "#C60C30"], NO: ["#101820", "#D3BC8D"], NYG: ["#0B2265", "#A71930"],
-    NYJ: ["#125740", "#FFFFFF"], PHI: ["#004C54", "#A5ACAF"], PIT: ["#101820", "#FFB612"], SF: ["#AA0000", "#B3995D"],
-    SEA: ["#002244", "#69BE28"], TB: ["#D50A0A", "#34302B"], TEN: ["#0C2340", "#4B92DB"], WAS: ["#5A1414", "#FFB612"],
+    ARI: ["#97233F", "#000000", "#FFB612"], ATL: ["#A71930", "#000000", "#A5ACAF"], BAL: ["#241773", "#000000", "#9E7C0C"], BUF: ["#00338D", "#C60C30", "#FFFFFF"],
+    CAR: ["#0085CA", "#101820", "#BFC0BF"], CHI: ["#0B162A", "#C83803", "#FFFFFF"], CIN: ["#FB4F14", "#000000", "#FFFFFF"], CLE: ["#311D00", "#FF3C00", "#FFFFFF"],
+    DAL: ["#003594", "#869397", "#041E42"], DEN: ["#FB4F14", "#002244", "#FFFFFF"], DET: ["#0076B6", "#B0B7BC", "#000000"], GB: ["#203731", "#FFB612", "#FFFFFF"],
+    HOU: ["#03202F", "#A71930", "#FFFFFF"], IND: ["#002C5F", "#A2AAAD", "#FFFFFF"], JAX: ["#006778", "#D7A22A", "#101820"], KC: ["#E31837", "#FFB81C", "#FFFFFF"],
+    LV: ["#101820", "#A5ACAF", "#FFFFFF"], LAC: ["#0080C6", "#FFC20E", "#002A5E"], LAR: ["#003594", "#FFA300", "#FFFFFF"], MIA: ["#008E97", "#FC4C02", "#005778"],
+    MIN: ["#4F2683", "#FFC62F", "#FFFFFF"], NE: ["#002244", "#C60C30", "#B0B7BC"], NO: ["#101820", "#D3BC8D", "#FFFFFF"], NYG: ["#0B2265", "#A71930", "#FFFFFF"],
+    NYJ: ["#125740", "#000000", "#FFFFFF"], PHI: ["#004C54", "#A5ACAF", "#000000"], PIT: ["#101820", "#FFB612", "#C60C30"], SF: ["#AA0000", "#B3995D", "#FFFFFF"],
+    SEA: ["#002244", "#69BE28", "#A5ACAF"], TB: ["#D50A0A", "#34302B", "#FF7900"], TEN: ["#0C2340", "#4B92DB", "#C8102E"], WAS: ["#5A1414", "#FFB612", "#FFFFFF"],
   };
   const _DIST = [4, 9, 15, 22, 31, 44, 55, 7, 18, 63];
   function _tdType(pos) { return pos === "QB" ? "PASS TD" : (pos === "WR" || pos === "TE") ? "REC TD" : "RUSH TD"; }
@@ -317,9 +318,9 @@
       const starters = ((myR && myR.starters) || []).filter(function (pid) { return pid && pid !== "0" && !/^[A-Z]{2,3}$/.test(pid); });
       const items = starters.map(function (pid, i) {
         const pl = _resolve(pid);
-        const col = NFL_COLORS[pl.team] || ["#1a1a2e", "#ffffff"];
+        const col = NFL_COLORS[pl.team] || ["#1a1a2e", "#ffffff", "#8a94a3"];
         return {
-          skipFetch: true, teamName: pl.team || "", primary: col[0], secondary: col[1],
+          skipFetch: true, teamName: pl.team || "", primary: col[0], secondary: col[1], colors: col,
           playerName: pl.name, position: pl.pos || "", headshot: "https://sleepercdn.com/content/nfl/players/" + pid + ".jpg",
           logo: "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(pl.team) + ".png",
           yards: _DIST[i % _DIST.length], tdType: _tdType(pl.pos || ""),

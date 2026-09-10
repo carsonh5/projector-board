@@ -118,6 +118,10 @@
         70%  { opacity: 1; transform: translateX(1%)  scale(1.04); }
         100% { opacity: 1; transform: translateX(0)   scale(1); }
       }
+      @keyframes td-stripe-in {
+        0%   { opacity: 0; transform: translateX(70%); }
+        100% { opacity: 1; transform: translateX(0); }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -383,7 +387,7 @@
     // ── Big team logo, left side ──────────────────────────────────────────────
     if (p.logo) {
       const logoWrap = _el("div", {
-        position: "relative", zIndex: "2", flex: "0 0 25vw", height: "100%",
+        position: "relative", zIndex: "2", flex: "0 0 30vw", height: "100%",
         display: "flex", alignItems: "center", justifyContent: "center",
         animation: "td-logo-in 0.55s 0.12s cubic-bezier(0.22,0.61,0.36,1) both",
       });
@@ -391,10 +395,22 @@
       limg.src = p.logo; limg.alt = "";
       // fixed HEIGHT so every team logo is the same size; a very small white stroke keeps same-colour
       // logos visible (e.g. Rams blue on blue)
-      limg.style.cssText = "height:60%;width:auto;max-width:94%;object-fit:contain;display:block;filter:drop-shadow(1.3px 0 0 #fff) drop-shadow(-1.3px 0 0 #fff) drop-shadow(0 1.3px 0 #fff) drop-shadow(0 -1.3px 0 #fff) drop-shadow(0 0.7vh 1.2vh rgba(0,0,0,0.55));";
+      limg.style.cssText = "height:78%;width:auto;max-width:96%;object-fit:contain;display:block;filter:drop-shadow(1.3px 0 0 #fff) drop-shadow(-1.3px 0 0 #fff) drop-shadow(0 1.3px 0 #fff) drop-shadow(0 -1.3px 0 #fff) drop-shadow(0 0.7vh 1.2vh rgba(0,0,0,0.55));";
       limg.onerror = function () { logoWrap.style.display = "none"; };
       logoWrap.appendChild(limg);
       wrap.appendChild(logoWrap);
+    }
+
+    // ── Team-colour stripe down the right edge (three colours) ─────────────────
+    if (p.colors && p.colors.length) {
+      const stripe = _el("div", {
+        position: "absolute", top: "0", right: "0", bottom: "0", width: "4.5vw",
+        display: "flex", zIndex: "3", animation: "td-stripe-in 0.5s 0.2s cubic-bezier(0.22,0.61,0.36,1) both",
+      });
+      p.colors.slice(0, 3).forEach(function (cl) {
+        stripe.appendChild(_el("div", { flex: "1", height: "100%", background: cl }));
+      });
+      wrap.appendChild(stripe);
     }
 
     // ── Content column (shifted a little left via asymmetric padding) ──────────
@@ -544,6 +560,7 @@
       yards:      yards,
       tdType:     tdType,
       logo:       opts.logo || "",
+      colors:     opts.colors || null,
     });
 
     _wrapEl = wrap;
