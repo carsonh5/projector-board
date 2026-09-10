@@ -389,7 +389,8 @@
       });
       const limg = document.createElement("img");
       limg.src = p.logo; limg.alt = "";
-      limg.style.cssText = "width:86%;height:82%;object-fit:contain;display:block;filter:drop-shadow(0 0.8vh 1.4vh rgba(0,0,0,0.5));";
+      // white outline glow keeps the logo readable even when it matches the team-colour background (e.g. Rams blue on blue)
+      limg.style.cssText = "width:86%;height:82%;object-fit:contain;display:block;filter:drop-shadow(0 0 0.8vh rgba(255,255,255,0.75)) drop-shadow(0 0 0.3vh rgba(255,255,255,0.9)) drop-shadow(0 0.7vh 1.2vh rgba(0,0,0,0.55));";
       limg.onerror = function () { logoWrap.style.display = "none"; };
       logoWrap.appendChild(limg);
       wrap.appendChild(logoWrap);
