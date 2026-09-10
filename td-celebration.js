@@ -342,6 +342,18 @@
     return Math.abs(_luminance(accent) - _luminance(bgHex)) < 0.22 ? _contrastText(bgHex) : accent;
   }
 
+  /**
+   * PPR fantasy points scored on this touchdown play.
+   *   rushing/receiving TD = 6 + 0.1/yd (receiving also +1 for the reception)
+   *   passing TD           = 4 + 0.04/yd
+   */
+  function _pprPoints(yards, tdType) {
+    const yd = yards || 0, t = tdType || "";
+    if (/PASS/.test(t)) return 4 + yd * 0.04;
+    if (/REC/.test(t))  return 6 + yd * 0.1 + 1;
+    return 6 + yd * 0.1;
+  }
+
   // ── DOM builders ───────────────────────────────────────────────────────────
 
   function _el(tag, styles, attrs) {
@@ -487,18 +499,25 @@
       col.appendChild(playerRow);
     }
 
-    // Play line: big "18 YD RUSH TD"
+    // Play line: big "18 YD RUSH TD  +6.9 PTS" (PPR points scored on the play, in gold)
     if (p.yards || p.tdType) {
       const parts = [];
       if (p.yards) parts.push(p.yards + " YD");
       if (p.tdType) parts.push(p.tdType);
       const playEl = _el("div", { animation: "td-slide-up 0.4s 0.68s cubic-bezier(0.22,0.61,0.36,1) both" });
-      const pill = _el("div", { display: "inline-block", background: "rgba(0,0,0,0.42)", borderRadius: "0.7vh", padding: "1.1vh 3vw" });
+      const pill = _el("div", { display: "inline-flex", alignItems: "baseline", gap: "1.4vw", background: "rgba(0,0,0,0.42)", borderRadius: "0.7vh", padding: "1.1vh 3vw" });
       pill.appendChild(_txt("span", parts.join(" "), {
         fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontWeight: "700",
         fontSize: "clamp(1.9rem, 5.6vh, 4.2rem)", letterSpacing: "0.14em",
         color: textOnBg, textTransform: "uppercase",
       }));
+      if (p.tdType) {
+        pill.appendChild(_txt("span", "+" + _pprPoints(p.yards, p.tdType).toFixed(1) + " PTS", {
+          fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontWeight: "800",
+          fontSize: "clamp(1.9rem, 5.6vh, 4.2rem)", letterSpacing: "0.1em",
+          color: "#FFD84D", textTransform: "uppercase",
+        }));
+      }
       playEl.appendChild(pill);
       col.appendChild(playEl);
     }
