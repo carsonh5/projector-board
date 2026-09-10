@@ -106,14 +106,33 @@
 
   // ── Rendering ──────────────────────────────────────────────────────────────
 
-  // header name unit: TEAM NAME over record·PROJ, aligned to its outer edge (mirrored for the opponent)
-  function _nameHead(name, record, proj, accent, right) {
-    const w = _el("div", "display:flex;flex-direction:column;flex:1;min-width:0;" + (right ? "align-items:flex-end;" : "align-items:flex-start;"));
-    const n = _el("div", "font-family:'Oswald',sans-serif;font-size:3vh;font-weight:700;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36vw;letter-spacing:0.01em;color:" + accent + ";");
-    n.textContent = name; w.appendChild(n);
-    const r = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:1.9vh;font-weight:600;color:" + P.dim + ";white-space:nowrap;");
-    r.textContent = (record || "") + (proj != null ? " · PROJ " + proj.toFixed(0) : ""); w.appendChild(r);
+  // scoreboard block: record (above) · big total · win% (below), stacked and aligned toward the meter
+  function _scoreBlock(record, total, pct, color, right) {
+    const w = _el("div", "display:flex;flex-direction:column;justify-content:center;flex-shrink:0;min-width:0;line-height:1;gap:0.3vh;" + (right ? "align-items:flex-start;" : "align-items:flex-end;"));
+    const rec = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:1.7vh;font-weight:600;letter-spacing:0.04em;color:" + P.dim + ";white-space:nowrap;");
+    rec.textContent = record || "0-0"; w.appendChild(rec);
+    const sc = _el("div", "font-family:'Oswald',sans-serif;font-size:4.1vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + color + ";");
+    sc.textContent = (total || 0).toFixed(1); w.appendChild(sc);
+    const pc = _el("div", "font-family:'Oswald',sans-serif;font-size:2vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + color + ";");
+    pc.textContent = pct + "%"; w.appendChild(pc);
     return w;
+  }
+
+  // horizontal win-probability meter: green (my share) meets orange (opponent) at the split; a needle
+  // over the split points toward whoever is ahead, past the centre = favoured.
+  function _meter(myPct, week) {
+    const wrap = _el("div", "flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.9vh;padding:0 1.4vw;");
+    const rail = _el("div", "position:relative;width:100%;height:1.7vh;");
+    const track = _el("div", "position:absolute;inset:0;border-radius:0.85vh;overflow:hidden;background:" + P.track + ";display:flex;");
+    track.appendChild(_el("div", "height:100%;width:" + myPct + "%;background:" + P.win + ";"));
+    track.appendChild(_el("div", "height:100%;flex:1;background:" + P.live + ";"));
+    rail.appendChild(track);
+    rail.appendChild(_el("div", "position:absolute;left:50%;top:-0.35vh;bottom:-0.35vh;width:2px;transform:translateX(-50%);background:rgba(255,255,255,0.4);"));
+    rail.appendChild(_el("div", "position:absolute;top:-1.5vh;left:" + myPct + "%;transform:translateX(-50%);width:0;height:0;border-left:0.95vh solid transparent;border-right:0.95vh solid transparent;border-top:1.25vh solid " + (myPct >= 50 ? P.win : P.live) + ";"));
+    wrap.appendChild(rail);
+    const cap = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:1.8vh;font-weight:700;letter-spacing:0.12em;color:" + P.gold + ";white-space:nowrap;");
+    cap.textContent = "WK " + (week || "") + " · WIN %"; wrap.appendChild(cap);
+    return wrap;
   }
 
   function _logo(team) {
@@ -127,40 +146,23 @@
     wrap.appendChild(img); return wrap;
   }
 
-  // single line: [POS][logo] B. Name  (stat)  score ← grouped tight to the outer edge; a flex spacer
-  // opens the gap toward the center column. stat sits between the name and the player's score.
+  // single line: [POS][logo] B. Name ……… (stat) SCORE — the score is pinned to the inner edge so every
+  // player's score lines up in a fixed column beside the centre; the stat rides just left of the score.
   function _row(slot, pid, pts, right) {
-    const r = _el("div", "display:flex;align-items:center;line-height:1;gap:0.6vw;flex:1 1 0;min-height:0;min-width:0;padding:0 0.8vw;border-bottom:1px solid " + P.border + ";" + (right ? "flex-direction:row-reverse;" : ""));
+    const r = _el("div", "display:flex;align-items:center;line-height:1;gap:0.6vw;flex:1 1 0;min-height:0;min-width:0;padding:0 1vw;border-bottom:1px solid " + P.border + ";" + (right ? "flex-direction:row-reverse;" : ""));
     const pl = _resolve(pid);
     const posLabel = slot || pl.pos || "";
-    const chip = _el("div", "font-family:'Oswald',sans-serif;font-size:2.6vh;font-weight:700;flex-shrink:0;width:4.2vw;text-align:center;color:#0b0d10;background:" + (P.posColors[posLabel] || P.posColors.FLEX) + ";border-radius:0.4vh;padding:0.2vh 0;");
+    const chip = _el("div", "font-family:'Oswald',sans-serif;font-size:2.7vh;font-weight:700;flex-shrink:0;width:4vw;text-align:center;color:#0b0d10;background:" + (P.posColors[posLabel] || P.posColors.FLEX) + ";border-radius:0.4vh;padding:0.2vh 0;");
     chip.textContent = posLabel; r.appendChild(chip);
     r.appendChild(_logo(pl.team));
-    const nm = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.6vh;font-weight:700;color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:16vw;letter-spacing:0.01em;flex-shrink:1;");
+    const nm = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.7vh;font-weight:700;color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;letter-spacing:0.01em;flex-shrink:1;");
     nm.textContent = _shortName(pl.name, pl.pos || posLabel); r.appendChild(nm);
+    r.appendChild(_el("div", "flex:1 1 auto;min-width:0;"));   // spacer → pushes stat+score to the inner edge
     const stat = _statLine(pid, pl.pos || posLabel);
     if (stat) { const sl = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.4vh;font-weight:600;color:" + P.dim + ";flex-shrink:0;white-space:nowrap;"); sl.textContent = stat; r.appendChild(sl); }
-    const pt = _el("div", "font-family:'Oswald',sans-serif;font-size:3.6vh;font-weight:700;flex-shrink:0;font-variant-numeric:tabular-nums;color:" + (pts > 0 ? P.win : P.dim) + ";");
+    const pt = _el("div", "font-family:'Oswald',sans-serif;font-size:3.7vh;font-weight:700;flex-shrink:0;min-width:4.6vw;font-variant-numeric:tabular-nums;color:" + (pts > 0 ? P.win : P.dim) + ";text-align:" + (right ? "left" : "right") + ";");
     pt.textContent = (pts != null ? pts : 0).toFixed(1); r.appendChild(pt);
-    r.appendChild(_el("div", "flex:1 1 auto;min-width:0;"));   // spacer → gap opens toward center
     return r;
-  }
-
-  // center column: my total on top, opponent total on bottom, a vertical win-probability bar between
-  // them (green = my share from the top, orange = opponent's from the bottom).
-  function _centerCol(myTot, oppTot, myPct) {
-    const c = _el("div", "display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-width:0;min-height:0;overflow:hidden;padding:0.6vh 0.3vw;background:" + P.header + ";border-left:1px solid " + P.border + ";border-right:1px solid " + P.border + ";");
-    function total(v, color) { const e = _el("div", "font-family:'Oswald',sans-serif;font-size:4.2vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + color + ";"); e.textContent = (v || 0).toFixed(1); return e; }
-    function pct(v, color) { const e = _el("div", "font-family:'Oswald',sans-serif;font-size:2.4vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + color + ";"); e.textContent = v + "%"; return e; }
-    c.appendChild(total(myTot, P.win));
-    c.appendChild(pct(myPct, P.win));
-    const bar = _el("div", "flex:1;width:2.6vw;min-height:0;margin:0.4vh 0;border-radius:1.3vw;overflow:hidden;background:" + P.track + ";display:flex;flex-direction:column;");
-    bar.appendChild(_el("div", "width:100%;height:" + myPct + "%;background:" + P.win + ";"));
-    bar.appendChild(_el("div", "width:100%;flex:1;background:" + P.live + ";"));
-    c.appendChild(bar);
-    c.appendChild(pct(100 - myPct, P.live));
-    c.appendChild(total(oppTot, P.live));
-    return c;
   }
 
   function _render(myM, oppM) {
@@ -170,25 +172,23 @@
     const effMe = _projTotal(myM), effOpp = oppM ? _projTotal(oppM) : 0;
     const myPct = oppM ? _winPct(effMe, effOpp) : 100;
 
-    // header: team names + record/PROJ, WK in the middle
-    const head = _el("div", "display:flex;align-items:center;gap:1.4vw;padding:0.3vh 2vw;background:" + P.header + ";border-bottom:1px solid " + P.border + ";flex-shrink:0;");
-    head.appendChild(_nameHead(_ctx.teamName(myM.roster_id), _ctx.record(myM.roster_id), effMe, P.win, false));
-    const wk = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.6vh;font-weight:700;color:" + P.gold + ";letter-spacing:0.08em;flex-shrink:0;");
-    wk.textContent = "WK " + (_ctx.week || ""); head.appendChild(wk);
-    head.appendChild(_nameHead(oppM ? _ctx.teamName(oppM.roster_id) : "No opponent", oppM ? _ctx.record(oppM.roster_id) : "", oppM ? effOpp : null, P.live, true));
-    c.appendChild(head);
+    // scoreboard band: [ my record/score/win% ]  [ win% meter ]  [ opp record/score/win% ]
+    const band = _el("div", "display:flex;align-items:center;gap:1vw;padding:0.4vh 2.4vw;background:" + P.header + ";border-bottom:1px solid " + P.border + ";flex-shrink:0;");
+    band.appendChild(_scoreBlock(_ctx.record(myM.roster_id), myTot, myPct, P.win, false));
+    band.appendChild(_meter(myPct, _ctx.week));
+    band.appendChild(_scoreBlock(oppM ? _ctx.record(oppM.roster_id) : "0-0", oppTot, 100 - myPct, P.live, true));
+    c.appendChild(band);
 
-    // body: [my lineup | center totals + win% bar | opponent lineup]
-    const body = _el("div", "flex:1;display:grid;grid-template-columns:1fr 11vw 1fr;grid-template-rows:minmax(0,1fr);min-height:0;");
+    // body: two full-width lineups, scores pinned to the shared centre divider
+    const body = _el("div", "flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr);min-height:0;");
     const slots = _ctx.rosterPos || [];
     function col(m, right) {
-      const cl = _el("div", "display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;");
+      const cl = _el("div", "display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;" + (right ? "border-left:2px solid " + P.border + ";" : ""));
       const st = (m && m.starters) || [], pts = (m && m.starters_points) || [];
       st.forEach(function (pid, i) { cl.appendChild(_row(slots[i] || "", pid, pts[i], right)); });
       return cl;
     }
     body.appendChild(col(myM, false));
-    body.appendChild(_centerCol(myTot, oppTot, myPct));
     body.appendChild(col(oppM, true));
     c.appendChild(body);
   }
