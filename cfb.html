@@ -690,9 +690,11 @@ function onScore(g, side, delta){
     var secondary=altRaw?("#"+String(altRaw).replace(/^#/,"")):null;
     var teamName=side==="away"?(g.aLoc||g.aAbbr):(g.hLoc||g.hAbbr);
     var teamId=side==="away"?g.aId:g.hId;
+    var logo=side==="away"?g.aLogo:g.hLogo;                 // scoring team's logo → big left build
+    var colors=[primary, secondary||"#ffffff", "#ffffff"];  // team-colour side stripe (3 bands)
     tdTickerOn(primary, secondary);
     mountTDCelebration(document.getElementById("zone-main"), { eventId:g.id, teamId:teamId, teamName:teamName,
-      primary:primary, secondary:secondary, onDone:function(){ _tdActive=false; tdTickerOff(); } });
+      primary:primary, secondary:secondary, logo:logo, colors:colors, onDone:function(){ _tdActive=false; tdTickerOff(); } });
     return;
   }
   celebrate(abbr, col, delta);

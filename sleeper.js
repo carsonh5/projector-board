@@ -320,6 +320,7 @@
     TEN: [0.92, 0.92], WAS: [0.924, 0.512],
   };
   const _DIST = [4, 9, 15, 22, 31, 44, 55, 7, 18, 63];
+  const _FGD = [45, 52, 38, 29, 47, 33, 55];
   function _tdType(pos) { return pos === "QB" ? "PASS TD" : (pos === "WR" || pos === "TE") ? "REC TD" : "RUSH TD"; }
   let _preview = false, _previewTimer = null;
 
@@ -330,15 +331,20 @@
       await _fetchPlayers();
       const [state, rosters] = await Promise.all([_json(S + "/state/nfl"), _json(S + "/league/" + lid + "/rosters")]);
       const myR = rosters.find(function (r) { return String(r.owner_id) === String(uid); });
-      const starters = ((myR && myR.starters) || []).filter(function (pid) { return pid && pid !== "0" && !/^[A-Z]{2,3}$/.test(pid); });
+      const starters = ((myR && myR.starters) || []).filter(function (pid) { return pid && pid !== "0"; });
       const items = starters.map(function (pid, i) {
         const pl = _resolve(pid);
+        const pos = pl.pos || "";
+        const isDef = pos === "DEF", isK = pos === "K";
         const col = NFL_COLORS[pl.team] || ["#1a1a2e", "#ffffff", "#8a94a3"];
         return {
-          skipFetch: true, teamName: pl.team || "", primary: col[0], secondary: col[1], colors: col,
-          playerName: pl.name, position: pl.pos || "", headshot: "https://sleepercdn.com/content/nfl/players/" + pid + ".jpg",
+          skipFetch: true, event: isK ? "FG" : isDef ? "INT" : "TD", showPoints: true,
+          teamName: pl.team || "", primary: col[0], secondary: col[1], colors: col,
+          playerName: pl.name, position: isDef ? "" : pos,
+          headshot: isDef ? "" : "https://sleepercdn.com/content/nfl/players/" + pid + ".jpg",
           logo: "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(pl.team) + ".png", logoBox: LOGO_BOX[pl.team] || null,
-          yards: _DIST[i % _DIST.length], tdType: _tdType(pl.pos || ""),
+          yards: isK ? _FGD[i % _FGD.length] : isDef ? 0 : _DIST[i % _DIST.length],
+          tdType: (isK || isDef) ? "" : _tdType(pos),
         };
       }).filter(function (it) { return it.playerName; });
       if (!items.length || typeof root.mountTDCelebration !== "function") { if (opts.onError) opts.onError(new Error("no starters or no TD module")); return; }

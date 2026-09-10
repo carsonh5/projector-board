@@ -353,6 +353,15 @@
     if (/REC/.test(t))  return 6 + yd * 0.1 + 1;
     return 6 + yd * 0.1;
   }
+  // Field-goal fantasy points by distance (Sleeper default: 3 base, +1 for 40-49, +2 for 50+)
+  function _fgPoints(yards) { const y = yards || 0; return y >= 50 ? 5 : y >= 40 ? 4 : 3; }
+  // Headline word + play line + points for each celebration type
+  function _eventInfo(p) {
+    if (p.event === "FG")  return { word: "FIELD GOAL",   play: (p.yards ? p.yards + " YD " : "") + "FIELD GOAL", pts: _fgPoints(p.yards) };
+    if (p.event === "INT") { const six = p.tdType && /TD/.test(p.tdType); return { word: "INTERCEPTION", play: six ? "PICK SIX" : "", pts: six ? 8 : 2 }; }
+    const parts = []; if (p.yards) parts.push(p.yards + " YD"); if (p.tdType) parts.push(p.tdType);
+    return { word: "TOUCHDOWN", play: parts.join(" "), pts: _pprPoints(p.yards, p.tdType) };
+  }
 
   // ── DOM builders ───────────────────────────────────────────────────────────
 
@@ -446,16 +455,18 @@
     });
     wrap.appendChild(col);
 
-    // "TOUCHDOWN" headline — staggered letter pop, then a shake
-    const word = "TOUCHDOWN";
+    // Headline (TOUCHDOWN / FIELD GOAL / INTERCEPTION) — staggered letter pop, then a shake
+    const ev = _eventInfo(p);
+    const word = ev.word;
+    const hFont = word.replace(/\s/g, "").length > 10 ? "clamp(2.2rem, 8vh, 6.4rem)" : "clamp(3rem, 10.5vh, 8.5rem)";
     const tdRow = _el("div", {
       display: "flex", justifyContent: "center", gap: "0.03em", lineHeight: "1",
       animation: "td-shake 0.42s 0.92s ease-in-out 3 both",
     });
     for (let i = 0; i < word.length; i++) {
-      tdRow.appendChild(_txt("span", word[i], {
+      tdRow.appendChild(_txt("span", word[i] === " " ? " " : word[i], {
         fontFamily: "'Oswald', 'Barlow Condensed', sans-serif", fontWeight: "900",
-        fontSize: "clamp(3rem, 10.5vh, 8.5rem)", color: headAcc, display: "inline-block",
+        fontSize: hFont, color: headAcc, display: "inline-block",
         lineHeight: "0.9", textShadow: "0 0 40px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.45)",
         animation: "td-letter-pop 0.52s cubic-bezier(0.22,0.61,0.36,1) both",
         animationDelay: (0.04 + i * 0.04) + "s",
@@ -499,20 +510,19 @@
       col.appendChild(playerRow);
     }
 
-    // Play line: big "18 YD RUSH TD  +6.9 PTS" (PPR points scored on the play, in gold)
-    if (p.yards || p.tdType) {
-      const parts = [];
-      if (p.yards) parts.push(p.yards + " YD");
-      if (p.tdType) parts.push(p.tdType);
+    // Play line: e.g. "18 YD RUSH TD  +6.9 PTS" (fantasy points scored on the play, in gold)
+    if (ev.play || (ev.pts && p.showPoints)) {
       const playEl = _el("div", { animation: "td-slide-up 0.4s 0.68s cubic-bezier(0.22,0.61,0.36,1) both" });
       const pill = _el("div", { display: "inline-flex", alignItems: "baseline", gap: "1.4vw", background: "rgba(0,0,0,0.42)", borderRadius: "0.7vh", padding: "1.1vh 3vw" });
-      pill.appendChild(_txt("span", parts.join(" "), {
-        fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontWeight: "700",
-        fontSize: "clamp(1.9rem, 5.6vh, 4.2rem)", letterSpacing: "0.14em",
-        color: textOnBg, textTransform: "uppercase",
-      }));
-      if (p.tdType) {
-        pill.appendChild(_txt("span", "+" + _pprPoints(p.yards, p.tdType).toFixed(1) + " PTS", {
+      if (ev.play) {
+        pill.appendChild(_txt("span", ev.play, {
+          fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontWeight: "700",
+          fontSize: "clamp(1.9rem, 5.6vh, 4.2rem)", letterSpacing: "0.14em",
+          color: textOnBg, textTransform: "uppercase",
+        }));
+      }
+      if (ev.pts && p.showPoints) {
+        pill.appendChild(_txt("span", "+" + (Number.isInteger(ev.pts) ? ev.pts : ev.pts.toFixed(1)) + " PTS", {
           fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontWeight: "800",
           fontSize: "clamp(1.9rem, 5.6vh, 4.2rem)", letterSpacing: "0.1em",
           color: "#FFD84D", textTransform: "uppercase",
@@ -594,6 +604,8 @@
       logo:       opts.logo || "",
       colors:     opts.colors || null,
       logoBox:    opts.logoBox || null,
+      event:      opts.event || "TD",
+      showPoints: !!opts.showPoints,
     });
 
     _wrapEl = wrap;
