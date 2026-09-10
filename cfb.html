@@ -17,7 +17,7 @@
 (function(){ var v=new URLSearchParams(location.search).get("v");
   if(!v){ try{ var x=new XMLHttpRequest(); x.open("GET","version.txt?t="+Date.now(),false); x.send(); v=(x.responseText||"").trim(); }catch(e){} }
   v=v||"0";
-  ["highlights","playerstats","standings","schedule","td-celebration"].forEach(function(m){
+  ["highlights","playerstats","standings","schedule","td-celebration","sleeper"].forEach(function(m){
     document.write('<scr'+'ipt src="'+m+'.js?v='+encodeURIComponent(v)+'"></scr'+'ipt>'); }); })();
 </script>
 <style>
@@ -182,15 +182,16 @@
   #ps { display: none; position: absolute; inset: 0; z-index: 1; }
   body.ps #ps { display: block; }
   body.ps #flag, body.ps #bug, body.ps #infostrip, body.ps #field, body.ps #stack, body.ps #cards, body.ps #hl { display: none; }
-  #standings, #schedule { display: none; position: absolute; inset: 0; z-index: 1; }
-  body.standings #standings, body.schedule #schedule { display: block; }
+  #standings, #schedule, #fantasy { display: none; position: absolute; inset: 0; z-index: 1; }
+  body.standings #standings, body.schedule #schedule, body.fantasy #fantasy { display: block; }
+  body.fantasy #flag, body.fantasy #bug, body.fantasy #infostrip, body.fantasy #field, body.fantasy #stack, body.fantasy #cards, body.fantasy #hl, body.fantasy #ps, body.fantasy #standings, body.fantasy #schedule, body.fantasy #venue { display: none; }
   body.standings #flag, body.standings #bug, body.standings #infostrip, body.standings #field, body.standings #stack, body.standings #cards, body.standings #hl, body.standings #ps { display: none; }
   body.schedule #flag, body.schedule #bug, body.schedule #infostrip, body.schedule #field, body.schedule #stack, body.schedule #cards, body.schedule #hl, body.schedule #ps { display: none; }
   /* Full-panel scenes: drop the top clock/date and the ticker category label (which overlaps the
      panel), and grow the panel up into that reclaimed space so it's big and nothing covers it. */
-  body.schedule #head, body.standings #head { display: none; }
-  body.schedule #tk-label, body.standings #tk-label, body.ps #tk-label { display: none; }
-  body.schedule #zone-main, body.standings #zone-main { top: 6vh; bottom: 24.5vh; }
+  body.schedule #head, body.standings #head, body.fantasy #head { display: none; }
+  body.schedule #tk-label, body.standings #tk-label, body.ps #tk-label, body.fantasy #tk-label { display: none; }
+  body.schedule #zone-main, body.standings #zone-main, body.fantasy #zone-main { top: 6vh; bottom: 24.5vh; }
   #flag { line-height: 1; }
   #flag .fchip { display: inline-block; font-family: "Oswald", sans-serif; font-size: 2.8vh; font-weight: 700; letter-spacing: 0.12em; color: #111;
     line-height: 1.25; padding: 0.7vh 1.6vw 0.6vh; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
@@ -534,6 +535,7 @@
       <div id="ps"></div>
       <div id="standings"></div>
       <div id="schedule"></div>
+      <div id="fantasy"></div>
     </div>
   </div>
   <div id="tk-label"></div>
@@ -946,6 +948,18 @@ function renderScheduleScene(){
     onEmpty:function(){ exitSchedule(); SCENE="all"; showAll=true; FEATURE=[]; render(); },
     onError:function(){ exitSchedule(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
 }
+/* ===== FANTASY (Sleeper) — Carson's Bluff City Football League matchup, live scoring ===== */
+const FANTASY_LEAGUE_ID = "1367723640828760064";   // Bluff City Football League, 2026
+const FANTASY_USER_ID   = "1237974224442757120";   // carsonh17
+var _faMounted=false;
+function exitFantasy(){ if(_faMounted){ try{stopFantasy();}catch(e){} _faMounted=false; } document.body.classList.remove("fantasy"); var _e=document.getElementById("fantasy"); if(_e) _e.style.display=""; }
+function renderFantasyScene(){
+  if(typeof mountFantasy!=="function"){ exitFantasy(); document.body.classList.remove("cards","stacked"); noGames("Fantasy module not loaded"); return; }
+  document.body.classList.add("fantasy"); document.body.classList.remove("cards","stacked");
+  if(!_faMounted){ _faMounted=true; mountFantasy(document.getElementById("fantasy"), { leagueId:FANTASY_LEAGUE_ID, userId:FANTASY_USER_ID,
+    onEmpty:function(){ exitFantasy(); SCENE="all"; showAll=true; FEATURE=[]; render(); },
+    onError:function(){ exitFantasy(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
+}
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
   if(d>0) return d+"d "+h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
   return (h>0? h+":"+String(m).padStart(2,"0") : ""+m)+":"+String(ss).padStart(2,"0"); }
@@ -1211,6 +1225,8 @@ function renderTicker(){
 }
 
 function render(){
+  if(SCENE!=="fantasy") exitFantasy();   /* tear down the fantasy panel whenever we leave that scene */
+  if(SCENE==="fantasy"){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FANTASY"; renderFantasyScene(); renderTicker(); return; }
   if(DEMO){ exitHL(); exitPS(); exitStandings(); exitSchedule(); document.body.classList.remove("cards","stacked"); document.getElementById("count").textContent="FIELD DEMO "+demoIx+"/"+DEMOS.length+" — press G"; renderSpotlight(DEMO); renderTicker(); return; }
   if(SCENE==="playerstats" && FEATURE.length){ exitStandings(); exitSchedule(); document.getElementById("count").textContent="PLAYER STATS · "+FEATURE.map(f=>f.toUpperCase()).join(" "); renderPlayerStatsScene(); renderTicker(); return; }
   if(SCENE==="standings" && FEATURE.length){ exitPS(); exitSchedule(); document.getElementById("count").textContent="STANDINGS · "+FEATURE.map(f=>f.toUpperCase().replace(/_/g," ")).join(" "); renderStandingsScene(); renderTicker(); return; }
