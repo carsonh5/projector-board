@@ -86,7 +86,7 @@
           const other = cs.find(function (o) { return o !== c; }) || {};
           const ot = other.team || {};
           m[(t.abbreviation || "").toLowerCase()] = {
-            state: state, period: period, clock: clock,
+            state: state, period: period, clock: clock, date: e.date || "",
             score: parseInt(c.score || 0, 10), oppScore: parseInt(other.score || 0, 10),
             oppAbbr: (ot.abbreviation || "").toUpperCase(), home: c.homeAway === "home",
             hasPoss: possId !== "" && String(t.id) === possId,
@@ -98,20 +98,28 @@
     } catch (_) { if (!_gameState) _gameState = {}; }
     return _gameState;
   }
-  // Per-player live context: is the player's unit on the field / in the red zone, plus a yellow
-  // "Q4 2:59 · 13-10 @SEA" status chip while the game is in progress.
+  const _DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  function _kick(iso) {
+    if (!iso) return "";
+    const d = new Date(iso); if (isNaN(d)) return "";
+    let h = d.getHours(); const ap = h >= 12 ? "P" : "A"; h = h % 12 || 12;
+    const m = d.getMinutes(); const mm = m < 10 ? "0" + m : "" + m;
+    return _DOW[d.getDay()] + " " + h + ":" + mm + ap;
+  }
+  // Per-player game context: unit on the field / in the red zone, and a status chip coloured by state —
+  // green while live, yellow for an upcoming (not yet played) game, white when final.
   function _liveFor(team, pos) {
     const gs = _gameState && _gameState[_espnAbbr(team)];
     if (!gs) return null;
-    const live = gs.state === "in";
+    const live = gs.state === "in", pre = gs.state === "pre", post = gs.state === "post";
     const isDef = pos === "DEF";
     const unitUp = isDef ? !gs.hasPoss : gs.hasPoss;         // offense up when we have the ball; DST up when we don't
-    const onField = live && unitUp;
-    const redZone = live && unitUp && gs.isRZ;
-    let chip = "";
-    if (live) chip = "Q" + gs.period + " " + gs.clock + " · " + gs.score + "-" + gs.oppScore + " " + (gs.home ? "vs " : "@ ") + gs.oppAbbr;
-    else if (gs.state === "post") chip = "FINAL " + gs.score + "-" + gs.oppScore + " " + (gs.home ? "vs " : "@ ") + gs.oppAbbr;
-    return { live: live, onField: onField, redZone: redZone, chip: chip };
+    const vs = (gs.home ? "vs " : "@ ") + gs.oppAbbr;
+    let chip = "", color = P.dim;
+    if (live) { chip = "Q" + gs.period + " " + gs.clock + " · " + gs.score + "-" + gs.oppScore + " " + vs; color = P.win; }
+    else if (pre) { chip = _kick(gs.date) + " " + vs; color = P.gold; }
+    else if (post) { chip = "FINAL " + gs.score + "-" + gs.oppScore + " " + vs; color = P.text; }
+    return { live: live, onField: live && unitUp, redZone: live && unitUp && gs.isRZ, chip: chip, color: color };
   }
   function _statLine(pid, pos) {
     const s = _stats && _stats[pid];
@@ -157,47 +165,27 @@
 
   // ── Rendering ──────────────────────────────────────────────────────────────
 
-  // scoreboard block: record (above) · white total · win% (below, coloured by favoured/underdog),
-  // stacked and aligned toward the meter
-  function _scoreBlock(record, total, pct, pctColor, right) {
-    const w = _el("div", "display:flex;flex-direction:column;justify-content:center;flex-shrink:0;min-width:0;line-height:1;gap:0.25vh;" + (right ? "align-items:flex-start;" : "align-items:flex-end;"));
-    const rec = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:1.6vh;font-weight:600;letter-spacing:0.04em;color:" + P.dim + ";white-space:nowrap;");
-    rec.textContent = record || "0-0"; w.appendChild(rec);
-    const sc = _el("div", "font-family:'Oswald',sans-serif;font-size:3.7vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + P.text + ";");
-    sc.textContent = (total || 0).toFixed(1); w.appendChild(sc);
-    const pc = _el("div", "font-family:'Oswald',sans-serif;font-size:2.9vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + pctColor + ";");
-    pc.textContent = pct + "%"; w.appendChild(pc);
-    return w;
+  // team record for a far corner of the scoreboard band
+  function _recordEl(rec) {
+    const e = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.4vh;font-weight:600;letter-spacing:0.04em;color:" + P.dim + ";white-space:nowrap;flex-shrink:0;");
+    e.textContent = rec || "0-0"; return e;
+  }
+  // big centred team total (above its score column); right=true → left-align for the opponent side
+  function _totalEl(v, right) {
+    const e = _el("div", "font-family:'Oswald',sans-serif;font-size:5.4vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + P.text + ";flex-shrink:0;min-width:8vw;text-align:" + (right ? "left" : "right") + ";");
+    e.textContent = (v || 0).toFixed(1); return e;
   }
 
-  // projection-based edge meter: the favoured team's share is green, the underdog's is red; a white
-  // needle marks the split. (Not a claimed win %, which Sleeper does not expose via API.)
-  function _meter(myPct, week, myColor, oppColor) {
-    const wrap = _el("div", "flex:0 0 24vw;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.9vh;padding:0 0.5vw;");
-    const rail = _el("div", "position:relative;width:100%;height:1.9vh;");
-    const track = _el("div", "position:absolute;inset:0;border-radius:0.95vh;overflow:hidden;background:" + P.track + ";display:flex;");
-    track.appendChild(_el("div", "height:100%;width:" + myPct + "%;background:" + myColor + ";"));
-    track.appendChild(_el("div", "height:100%;flex:1;background:" + oppColor + ";"));
-    rail.appendChild(track);
-    rail.appendChild(_el("div", "position:absolute;left:50%;top:-0.3vh;bottom:-0.3vh;width:2px;transform:translateX(-50%);background:rgba(255,255,255,0.35);"));
-    rail.appendChild(_el("div", "position:absolute;top:-0.5vh;bottom:-0.5vh;left:" + myPct + "%;transform:translateX(-50%);width:0.5vh;border-radius:0.3vh;background:#ffffff;box-shadow:0 0 0.4vh rgba(0,0,0,0.6);"));
-    wrap.appendChild(rail);
-    const cap = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:700;letter-spacing:0.1em;color:#e8ebf0;white-space:nowrap;");
-    cap.textContent = "WEEK " + (week || ""); wrap.appendChild(cap);
-    return wrap;
-  }
-
-  // teams whose logos are near-black and vanish on the dark board — sit them on a light disc behind
+  // teams whose logos are near-black and vanish on the dark board — give them a thin white outline stroke
   const DARK_LOGOS = { LAR: 1, BAL: 1, WAS: 1, JAX: 1, TB: 1, NYG: 1 };
   function _logo(team) {
-    if (!team) return _el("div", "width:3.3vh;height:3.3vh;flex-shrink:0;");
-    const dark = DARK_LOGOS[team];
-    const wrap = _el("div", "width:3.3vh;height:3.3vh;flex-shrink:0;display:flex;align-items:center;justify-content:center;" + (dark ? "background:#eef1f5;border-radius:50%;" : ""));
+    if (!team) return _el("div", "width:3.6vh;height:3.6vh;flex-shrink:0;");
+    const wrap = _el("div", "width:3.6vh;height:3.6vh;flex-shrink:0;display:flex;align-items:center;justify-content:center;");
     const img = document.createElement("img");
     img.src = "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(team) + ".png";
     img.alt = "";
-    const sz = dark ? "82%" : "100%";
-    img.style.cssText = "width:" + sz + ";height:" + sz + ";object-fit:contain;display:block;";
+    const stroke = DARK_LOGOS[team] ? "filter:drop-shadow(0.9px 0 0 #fff) drop-shadow(-0.9px 0 0 #fff) drop-shadow(0 0.9px 0 #fff) drop-shadow(0 -0.9px 0 #fff);" : "";
+    img.style.cssText = "width:100%;height:100%;object-fit:contain;display:block;" + stroke;
     img.onerror = function () { wrap.style.visibility = "hidden"; };
     wrap.appendChild(img); return wrap;
   }
@@ -214,16 +202,16 @@
     const chip = _el("div", "font-family:'Oswald',sans-serif;font-size:2.7vh;font-weight:700;flex-shrink:0;width:4vw;text-align:center;color:#0b0d10;background:" + (P.posColors[posLabel] || P.posColors.FLEX) + ";border-radius:0.4vh;padding:0.2vh 0;");
     chip.textContent = posLabel; r.appendChild(chip);
     r.appendChild(_logo(pl.team));
-    const nm = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.6vh;font-weight:700;color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;letter-spacing:0.01em;flex-shrink:1;");
+    const nm = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.8vh;font-weight:700;color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;letter-spacing:0.01em;flex-shrink:1;");
     nm.textContent = _shortName(pl.name, pl.pos || posLabel); r.appendChild(nm);
     if (live && live.chip) {
-      const gc = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.3vh;font-weight:700;flex-shrink:0;white-space:nowrap;color:" + (live.live ? P.gold : P.dim) + ";");
+      const gc = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.2vh;font-weight:700;flex-shrink:0;white-space:nowrap;color:" + live.color + ";");
       gc.textContent = live.chip; r.appendChild(gc);
     }
     r.appendChild(_el("div", "flex:1 1 auto;min-width:0;"));   // spacer → pushes stat+score to the inner edge
     const stat = _statLine(pid, pl.pos || posLabel);
-    if (stat) { const sl = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.9vh;font-weight:600;color:" + P.dim + ";flex-shrink:0;white-space:nowrap;"); sl.textContent = stat; r.appendChild(sl); }
-    const pt = _el("div", "font-family:'Oswald',sans-serif;font-size:3.6vh;font-weight:700;flex-shrink:0;min-width:4.6vw;font-variant-numeric:tabular-nums;color:" + (pts > 0 ? P.win : P.dim) + ";text-align:" + (right ? "left" : "right") + ";");
+    if (stat) { const sl = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.2vh;font-weight:600;color:" + P.dim + ";flex-shrink:0;white-space:nowrap;"); sl.textContent = stat; r.appendChild(sl); }
+    const pt = _el("div", "font-family:'Oswald',sans-serif;font-size:3.2vh;font-weight:700;flex-shrink:0;min-width:4.6vw;font-variant-numeric:tabular-nums;color:" + (pts > 0 ? P.win : P.dim) + ";text-align:" + (right ? "left" : "right") + ";");
     pt.textContent = (pts != null ? pts : 0).toFixed(1); r.appendChild(pt);
     return r;
   }
@@ -232,18 +220,17 @@
     const c = _container; c.replaceChildren();
     c.style.cssText = "display:flex;flex-direction:column;width:100%;height:100%;background:" + P.bg + ";overflow:hidden;box-sizing:border-box;";
     const myTot = (myM && myM.points) || 0, oppTot = (oppM && oppM.points) || 0;
-    const effMe = _projTotal(myM), effOpp = oppM ? _projTotal(oppM) : 0;
-    const myPct = oppM ? _winPct(effMe, effOpp) : 100;
 
-    // favoured team's colour is green, underdog's is red (applies to the win% figures + meter fills)
-    const iFav = myPct >= 50;
-    const myColor = iFav ? P.win : P.red, oppColor = iFav ? P.red : P.win;
-
-    // scoreboard band: [ my record/score/win% ]  [ narrow win% meter ]  [ opp record/score/win% ]
-    const band = _el("div", "display:flex;align-items:center;justify-content:space-between;gap:1.5vw;padding:0.4vh 6vw;background:" + P.header + ";border-bottom:1px solid " + P.border + ";flex-shrink:0;");
-    band.appendChild(_scoreBlock(_ctx.record(myM.roster_id), myTot, myPct, myColor, false));
-    band.appendChild(_meter(myPct, _ctx.week, myColor, oppColor));
-    band.appendChild(_scoreBlock(oppM ? _ctx.record(oppM.roster_id) : "0-0", oppTot, 100 - myPct, oppColor, true));
+    // scoreboard band: records in the far corners, both team totals centred at the top (above the
+    // player-score columns), no win% / meter
+    const band = _el("div", "display:flex;align-items:center;padding:0.6vh 3vw;background:" + P.header + ";border-bottom:1px solid " + P.border + ";flex-shrink:0;");
+    band.appendChild(_recordEl(_ctx.record(myM.roster_id)));
+    band.appendChild(_el("div", "flex:1 1 0;min-width:0;"));
+    band.appendChild(_totalEl(myTot, false));
+    band.appendChild(_el("div", "width:3vw;flex-shrink:0;"));
+    band.appendChild(_totalEl(oppTot, true));
+    band.appendChild(_el("div", "flex:1 1 0;min-width:0;"));
+    band.appendChild(_recordEl(oppM ? _ctx.record(oppM.roster_id) : "0-0"));
     c.appendChild(band);
 
     // body: two full-width lineups, scores pinned to the shared centre divider
