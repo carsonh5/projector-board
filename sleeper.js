@@ -165,10 +165,14 @@
 
   // ── Rendering ──────────────────────────────────────────────────────────────
 
-  // team record for a far corner of the scoreboard band
-  function _recordEl(rec) {
-    const e = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.4vh;font-weight:600;letter-spacing:0.04em;color:" + P.dim + ";white-space:nowrap;flex-shrink:0;");
-    e.textContent = rec || "0-0"; return e;
+  // far-corner unit: big record with the team name in a fixed-width slot on the inside (ellipsis if long)
+  function _cornerEl(rec, name, right) {
+    const w = _el("div", "display:flex;align-items:baseline;gap:0.9vw;flex-shrink:0;min-width:0;" + (right ? "flex-direction:row-reverse;" : ""));
+    const r = _el("div", "font-family:'Oswald',sans-serif;font-size:3.4vh;font-weight:700;letter-spacing:0.02em;color:" + P.text + ";white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums;");
+    r.textContent = rec || "0-0"; w.appendChild(r);
+    const n = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:2.5vh;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;color:" + P.dim + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:19vw;" + (right ? "text-align:right;" : ""));
+    n.textContent = name || ""; w.appendChild(n);
+    return w;
   }
   // big centred team total (above its score column); right=true → left-align for the opponent side
   function _totalEl(v, right) {
@@ -221,16 +225,16 @@
     c.style.cssText = "display:flex;flex-direction:column;width:100%;height:100%;background:" + P.bg + ";overflow:hidden;box-sizing:border-box;";
     const myTot = (myM && myM.points) || 0, oppTot = (oppM && oppM.points) || 0;
 
-    // scoreboard band: records in the far corners, both team totals centred at the top (above the
-    // player-score columns), no win% / meter
-    const band = _el("div", "display:flex;align-items:center;padding:0.6vh 3vw;background:" + P.header + ";border-bottom:1px solid " + P.border + ";flex-shrink:0;");
-    band.appendChild(_recordEl(_ctx.record(myM.roster_id)));
+    // scoreboard band: record + team name in each far corner, both team totals centred at the top
+    // (above the player-score columns), no win% / meter
+    const band = _el("div", "display:flex;align-items:center;padding:0.6vh 2.4vw;background:" + P.header + ";border-bottom:1px solid " + P.border + ";flex-shrink:0;");
+    band.appendChild(_cornerEl(_ctx.record(myM.roster_id), _ctx.teamName(myM.roster_id), false));
     band.appendChild(_el("div", "flex:1 1 0;min-width:0;"));
     band.appendChild(_totalEl(myTot, false));
     band.appendChild(_el("div", "width:3vw;flex-shrink:0;"));
     band.appendChild(_totalEl(oppTot, true));
     band.appendChild(_el("div", "flex:1 1 0;min-width:0;"));
-    band.appendChild(_recordEl(oppM ? _ctx.record(oppM.roster_id) : "0-0"));
+    band.appendChild(_cornerEl(oppM ? _ctx.record(oppM.roster_id) : "0-0", oppM ? _ctx.teamName(oppM.roster_id) : "No opponent", true));
     c.appendChild(band);
 
     // body: two full-width lineups, scores pinned to the shared centre divider
