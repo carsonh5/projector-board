@@ -383,24 +383,25 @@
     // ── Big team logo, left side ──────────────────────────────────────────────
     if (p.logo) {
       const logoWrap = _el("div", {
-        position: "relative", zIndex: "2", flex: "0 0 32vw", height: "100%",
+        position: "relative", zIndex: "2", flex: "0 0 25vw", height: "100%",
         display: "flex", alignItems: "center", justifyContent: "center",
         animation: "td-logo-in 0.55s 0.12s cubic-bezier(0.22,0.61,0.36,1) both",
       });
       const limg = document.createElement("img");
       limg.src = p.logo; limg.alt = "";
-      // white outline glow keeps the logo readable even when it matches the team-colour background (e.g. Rams blue on blue)
-      limg.style.cssText = "width:86%;height:82%;object-fit:contain;display:block;filter:drop-shadow(0 0 0.8vh rgba(255,255,255,0.75)) drop-shadow(0 0 0.3vh rgba(255,255,255,0.9)) drop-shadow(0 0.7vh 1.2vh rgba(0,0,0,0.55));";
+      // fixed HEIGHT so every team logo is the same size; a very small white stroke keeps same-colour
+      // logos visible (e.g. Rams blue on blue)
+      limg.style.cssText = "height:60%;width:auto;max-width:94%;object-fit:contain;display:block;filter:drop-shadow(1.3px 0 0 #fff) drop-shadow(-1.3px 0 0 #fff) drop-shadow(0 1.3px 0 #fff) drop-shadow(0 -1.3px 0 #fff) drop-shadow(0 0.7vh 1.2vh rgba(0,0,0,0.55));";
       limg.onerror = function () { logoWrap.style.display = "none"; };
       logoWrap.appendChild(limg);
       wrap.appendChild(logoWrap);
     }
 
-    // ── Content column, right side ────────────────────────────────────────────
+    // ── Content column (shifted a little left via asymmetric padding) ──────────
     const col = _el("div", {
       position: "relative", zIndex: "2", flex: "1 1 0", minWidth: "0",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      gap: "2.4vh", padding: "3vh 3vw", textAlign: "center", boxSizing: "border-box",
+      gap: "2.4vh", padding: "3vh 10vw 3vh 2vw", textAlign: "center", boxSizing: "border-box",
     });
     wrap.appendChild(col);
 

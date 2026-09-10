@@ -650,6 +650,7 @@ async function load(){
     _snaps.push({t:Date.now(), games:fresh});
     const _keep=Date.now()-180000; while(_snaps.length>2 && _snaps[0].t<_keep) _snaps.shift();   // keep ~3 min of history
     promoteGames(true);
+    remapLogos();   // re-resolve logos every load: curated for CFB, ESPN kept for NFL (fixes stale ticker after a league flip)
   }catch(e){
     document.getElementById("bug").innerHTML=`<span class="err" style="font-family:Oswald;font-size:4vh">scores failed: ${e.message}</span>`;
     document.getElementById("t-ticker").innerHTML=`<span class="item err">${LEAGUE==="nfl"?"NFL":"CFB"} feed failed: ${e.message} — likely needs the backend</span>`;
