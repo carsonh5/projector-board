@@ -970,7 +970,8 @@ function exitTDDemo(){ if(_tdDemoOn){ try{stopPreviewTD();}catch(e){} _tdDemoOn=
 function renderTDDemo(){
   if(typeof previewFantasyTD!=="function"){ noGames("TD demo module not loaded"); return; }
   document.body.classList.add("fantasy"); document.body.classList.remove("cards","stacked");
-  if(!_tdDemoOn){ _tdDemoOn=true; previewFantasyTD(document.getElementById("fantasy"), { leagueId:FANTASY_LEAGUE_ID, userId:FANTASY_USER_ID,
+  if(!_tdDemoOn){ _tdDemoOn=true; var _fc=document.getElementById("fantasy"); if(_fc) _fc.replaceChildren();   /* drop any leftover scoreboard DOM so it can't peek between celebrations */
+    previewFantasyTD(document.getElementById("fantasy"), { leagueId:FANTASY_LEAGUE_ID, userId:FANTASY_USER_ID,
     onError:function(){ exitTDDemo(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
 }
 function renderFantasyScene(){
