@@ -35,8 +35,11 @@
 
   // ── Constants ──────────────────────────────────────────────────────────────
 
-  const STANDINGS_BASE =
-    "https://site.api.espn.com/apis/v2/sports/football/college-football/standings?season=";
+  // League-aware: window.BOARD_LEAGUE is the ESPN path segment ("college-football" | "nfl").
+  // NOTE: NFL standings are shaped differently (AFC/NFC -> divisions); NFL standings rendering is a
+  // follow-up — the board guards the standings scene for NFL so this isn't hit with the CFB parser yet.
+  function _lg(){ return (typeof window !== "undefined" && window.BOARD_LEAGUE) || "college-football"; }
+  function _standingsBase(){ return "https://site.api.espn.com/apis/v2/sports/football/" + _lg() + "/standings?season="; }
 
   // Dynamically detect current CFB season: season flips to new year after July 1
   function _currentSeason() {
@@ -126,7 +129,7 @@
   // ── Fetch + parse ──────────────────────────────────────────────────────────
 
   async function _fetchStandings(season) {
-    var url = STANDINGS_BASE + encodeURIComponent(season);
+    var url = _standingsBase() + encodeURIComponent(season);
     var res = await fetch(url, {
       headers: {
         "Accept": "application/json, text/plain, */*",

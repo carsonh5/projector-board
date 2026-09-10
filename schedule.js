@@ -40,8 +40,10 @@
   "use strict";
 
   // ── Constants ──────────────────────────────────────────────────────────────
-  const TEAMS_URL    = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams?limit=1000";
-  const SCHEDULE_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/";
+  // League-aware: window.BOARD_LEAGUE is the ESPN path segment ("college-football" | "nfl").
+  function _lg(){ return (typeof window !== "undefined" && window.BOARD_LEAGUE) || "college-football"; }
+  function _teamsUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/" + _lg() + "/teams?limit=1000"; }
+  function _scheduleBase(){ return "https://site.api.espn.com/apis/site/v2/sports/football/" + _lg() + "/teams/"; }
   const LOGO_BASE    = "https://a.espncdn.com/i/teamlogos/ncaa/500/";
 
   // Projector palette — matches highlights.js / playerstats.js
@@ -88,7 +90,7 @@
   // ── Team resolution ────────────────────────────────────────────────────────
 
   async function _resolveTeam(teamName) {
-    const res = await fetch(TEAMS_URL);
+    const res = await fetch(_teamsUrl());
     if (!res.ok) throw new Error("ESPN teams HTTP " + res.status);
     const data = await res.json();
 
@@ -141,7 +143,7 @@
   // ── Schedule fetch ─────────────────────────────────────────────────────────
 
   async function _fetchSchedule(teamId) {
-    const url = SCHEDULE_URL + encodeURIComponent(teamId) + "/schedule";
+    const url = _scheduleBase() + encodeURIComponent(teamId) + "/schedule";
     const res = await fetch(url);
     if (!res.ok) throw new Error("ESPN schedule HTTP " + res.status);
     return res.json();

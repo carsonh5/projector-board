@@ -18,7 +18,9 @@
   "use strict";
 
   // ── Constants ──────────────────────────────────────────────────────────────
-  const SUMMARY_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=";
+  // League-aware: the board sets window.BOARD_LEAGUE to the ESPN path segment ("college-football" | "nfl").
+  function _lg(){ return (typeof window !== "undefined" && window.BOARD_LEAGUE) || "college-football"; }
+  function _summaryUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/" + _lg() + "/summary?event="; }
 
   // Full browser UA — Akamai 403s bare curl but passes real browsers.
   // The summary endpoint does NOT require this for CORS, but keep it anyway
@@ -204,7 +206,7 @@
   // ── Fetch clips ────────────────────────────────────────────────────────────
 
   async function _fetchClips(eventId) {
-    const url = SUMMARY_URL + encodeURIComponent(eventId);
+    const url = _summaryUrl() + encodeURIComponent(eventId);
     // NOTE: do NOT set a User-Agent header — it's a forbidden fetch header. Chrome/WebView silently
     // ignores it, but GeckoView (Firefox) REJECTS the whole fetch, so clips never load on Fire TV.
     var _ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;

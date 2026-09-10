@@ -24,8 +24,9 @@
   "use strict";
 
   // ── Constants ──────────────────────────────────────────────────────────────
-  const SUMMARY_URL =
-    "https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=";
+  // League-aware: window.BOARD_LEAGUE is the ESPN path segment ("college-football" | "nfl").
+  function _lg(){ return (typeof window !== "undefined" && window.BOARD_LEAGUE) || "college-football"; }
+  function _summaryUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/" + _lg() + "/summary?event="; }
 
   const UA =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
@@ -80,7 +81,7 @@
   // ── Fetch + parse ──────────────────────────────────────────────────────────
 
   async function _fetchSummary(eventId) {
-    const url = SUMMARY_URL + encodeURIComponent(eventId);
+    const url = _summaryUrl() + encodeURIComponent(eventId);
     const res = await fetch(url, {
       headers: {
         "User-Agent": UA,

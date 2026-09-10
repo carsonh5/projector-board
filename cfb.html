@@ -547,10 +547,17 @@
 function _ymd(x){ return ""+x.getFullYear()+String(x.getMonth()+1).padStart(2,"0")+String(x.getDate()).padStart(2,"0"); }
 function _fbDate(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1); return _ymd(d); }
 function _dayKey(dt){ const x=new Date(dt); if(x.getHours()<6) x.setDate(x.getDate()-1); return _ymd(x); }
-/* pull the whole CFB week (range works in one call) so featuring ANY team finds its game — last final or next upcoming */
+/* ===== LEAGUE: the board renders either college football or the NFL — same code, different ESPN
+   endpoint. LEAGUE is driven by board_sync.league (voice/remote). The NFL scoreboard accepts the
+   same ?dates= range, so only the path segment changes. */
+let LEAGUE = "cfb";                                   // "cfb" | "nfl"
+function leaguePath(){ return LEAGUE==="nfl" ? "nfl" : "college-football"; }   // ESPN api path segment
+function logoLeaguePath(){ return LEAGUE==="nfl" ? "nfl" : "ncaa"; }           // ESPN team-logo CDN path segment
+if(typeof window!=="undefined") window.BOARD_LEAGUE = leaguePath();            // shared with the sub-modules (schedule/highlights/etc.)
+/* pull the whole week (range works in one call) so featuring ANY team finds its game — last final or next upcoming */
 function weekRange(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1);
   const s=new Date(d); s.setDate(s.getDate()-7); const e=new Date(d); e.setDate(e.getDate()+8); return _ymd(s)+"-"+_ymd(e); }
-function sbUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates="+weekRange()+"&limit=300"; }
+function sbUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/"+leaguePath()+"/scoreboard?dates="+weekRange()+"&limit=300"; }
 
 function tick(){ const n=new Date(); let h=n.getHours(); const m=String(n.getMinutes()).padStart(2,"0");
   const ap=h>=12?"PM":"AM"; h=h%12||12; document.getElementById("clock").textContent=`${h}:${m} ${ap}`;
@@ -585,7 +592,7 @@ function remapLogos(){
 const logoOf = t => {
   const f = LOGO_MAP[(t.abbreviation||"").toUpperCase()] || LOGO_MAP[(t.location||"").toLowerCase()];
   if(f) return "logos/"+f;
-  return t.logo || t.logos?.[0]?.href || `https://a.espncdn.com/i/teamlogos/ncaa/500/${t.id}.png`;
+  return t.logo || t.logos?.[0]?.href || `https://a.espncdn.com/i/teamlogos/${logoLeaguePath()}/500/${t.id}.png`;
 };
 function channelOf(c){ const b=c.broadcasts?.[0]; if(b?.names?.length) return b.names.join("/");
   const g=c.geoBroadcasts?.[0]; return g?.media?.shortName||""; }
@@ -641,7 +648,7 @@ async function load(){
     promoteGames(true);
   }catch(e){
     document.getElementById("bug").innerHTML=`<span class="err" style="font-family:Oswald;font-size:4vh">scores failed: ${e.message}</span>`;
-    document.getElementById("t-ticker").innerHTML=`<span class="item err">CFB feed failed: ${e.message} — likely needs the backend</span>`;
+    document.getElementById("t-ticker").innerHTML=`<span class="item err">${LEAGUE==="nfl"?"NFL":"CFB"} feed failed: ${e.message} — likely needs the backend</span>`;
   }
 }
 
@@ -855,7 +862,7 @@ function renderRecap(g){
         else { dbg.textContent="no media el\nUA="+ua; }
       }, 500);
     }
-    fetch("https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event="+g.id).then(function(r){return r.json();}).then(function(d){ renderRecapStats(d); }).catch(function(){});
+    fetch("https://site.api.espn.com/apis/site/v2/sports/football/"+leaguePath()+"/summary?event="+g.id).then(function(r){return r.json();}).then(function(d){ renderRecapStats(d); }).catch(function(){});
   }
 }
 function renderRecapStats(d){
@@ -913,6 +920,7 @@ var _stConf=null;
 function exitStandings(){ if(_stConf){ try{stopStandings();}catch(e){} _stConf=null; } document.body.classList.remove("standings"); var _e=document.getElementById("standings"); if(_e) _e.style.display=""; }
 function renderStandingsScene(){
   var conf=FEATURE[0]||"";
+  if(LEAGUE==="nfl"){ exitStandings(); document.body.classList.remove("cards","stacked"); noGames("NFL standings coming soon — say 'show all games'"); return; }   /* NFL standings (AFC/NFC divisions) is a follow-up */
   if(!conf || typeof mountStandings!=="function"){ exitStandings(); document.body.classList.remove("cards","stacked"); noGames("No standings"); return; }
   document.body.classList.add("standings"); document.body.classList.remove("cards","stacked");
   if(_stConf!==conf){ _stConf=conf; mountStandings(document.getElementById("standings"), conf, { onEmpty:function(){ exitStandings(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
@@ -1163,13 +1171,14 @@ let _tkPool = [];
 /* Honest category label: derived from what's ACTUALLY in the pool, never the requested mode.
    (Fixes "says LIVE but showing a scheduled/final game" when a mode falls back to other games.) */
 function tickerLabelFor(pool, mode){
-  if(!pool.length) return "COLLEGE FOOTBALL";
-  if(mode==="rankings" || mode==="top25") return "AP TOP 25";
+  const lg = LEAGUE==="nfl" ? "NFL" : "COLLEGE FOOTBALL";
+  if(!pool.length) return lg;
+  if((mode==="rankings" || mode==="top25") && LEAGUE!=="nfl") return "AP TOP 25";   // NFL has no AP poll
   if(pool.every(g=>g.state==="in"))   return "LIVE";
   if(pool.some(g=>g.state==="in"))    return "SCORES";
   if(pool.every(g=>g.state==="post")) return "FINAL";
   if(pool.every(g=>g.state==="pre"))  return "UPCOMING";
-  return "COLLEGE FOOTBALL";
+  return lg;
 }
 function renderTicker(){
   const mode=TICKER_MODE||"all";
@@ -1380,9 +1389,21 @@ const SB_URL="https://gnfnvsarnregwunhtnak.supabase.co";
 const SB_KEY="sb_publishable_8064CO-O7GTH8ApC55U7Ng_RQesuKSp";
 const SB_HEAD={apikey:SB_KEY, Authorization:"Bearer "+SB_KEY};
 let _lastSceneKey="";
+function setLeague(lg){
+  lg = (lg==="nfl") ? "nfl" : "cfb";
+  if(lg===LEAGUE) return;
+  LEAGUE = lg;
+  if(typeof window!=="undefined") window.BOARD_LEAGUE = leaguePath();
+  document.title = (LEAGUE==="nfl") ? "NFL Surf" : "CFB Saturday Surf";
+  /* drop the other league's data and re-fetch immediately for the new one */
+  games=[]; _snaps=[]; lastScores={}; firstLoad=true; _lastPickT=null;
+  _tkStructSig=""; _lastTicker="";   // force a ticker rebuild with the new slate
+  if(typeof load==="function") load();
+}
 async function pullZones(){ try{
-  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list,feat_when,feat_matchup,ticker,delay_sec",{headers:SB_HEAD,cache:"no-store"});
+  const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list,feat_when,feat_matchup,ticker,delay_sec,league",{headers:SB_HEAD,cache:"no-store"});
   const j=await r.json(); const row=j&&j[0]; if(!row) return;
+  setLeague(row.league);   // swap ESPN endpoints if the league changed (clears + reloads)
   const z=row.zones;
   if(z&&z.m){ for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); } applyZones(); }
   const ms=row.map;

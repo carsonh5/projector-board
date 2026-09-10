@@ -50,8 +50,9 @@
   "use strict";
 
   // ── Constants ──────────────────────────────────────────────────────────────
-  const SUMMARY_URL =
-    "https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=";
+  // League-aware: window.BOARD_LEAGUE is the ESPN path segment ("college-football" | "nfl").
+  function _lg(){ return (typeof window !== "undefined" && window.BOARD_LEAGUE) || "college-football"; }
+  function _summaryUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/" + _lg() + "/summary?event="; }
 
   const STYLE_ID = "td-celebration-keyframes";
   const AUTO_DISMISS_MS = 7000;
@@ -273,7 +274,7 @@
    */
   function _headshotUrl(athleteId) {
     if (!athleteId) return "";
-    return "https://a.espncdn.com/i/headshots/college-football/players/full/" + athleteId + ".png";
+    return "https://a.espncdn.com/i/headshots/" + _lg() + "/players/full/" + athleteId + ".png";
   }
 
   // ── Color helpers ──────────────────────────────────────────────────────────
@@ -552,7 +553,7 @@
     let tdType     = "TD";
 
     try {
-      const url  = SUMMARY_URL + encodeURIComponent(opts.eventId);
+      const url  = _summaryUrl() + encodeURIComponent(opts.eventId);
       const resp = await fetch(url);
       if (!resp.ok) throw new Error("ESPN fetch " + resp.status);
       const data = await resp.json();
