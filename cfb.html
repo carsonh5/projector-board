@@ -1421,7 +1421,7 @@ function setLeague(lg){
 async function pullZones(){ try{
   const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list,feat_when,feat_matchup,ticker,delay_sec,league",{headers:SB_HEAD,cache:"no-store"});
   const j=await r.json(); const row=j&&j[0]; if(!row) return;
-  setLeague(row.league);   // swap ESPN endpoints if the league changed (clears + reloads)
+  setLeague(row.scene==="fantasy" ? "nfl" : row.league);   // fantasy is NFL → force NFL ticker/slate; else follow board_sync (clears + reloads on change)
   const z=row.zones;
   if(z&&z.m){ for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); } applyZones(); }
   const ms=row.map;
