@@ -629,6 +629,7 @@ async function load(){
         if(clk && ord) detail=clk+" · "+ord; }
       return { id:ev.id, date:ev.date, aAbbr:away.team.abbreviation, hAbbr:home.team.abbreviation,
         aLoc:away.team.location||"", hLoc:home.team.location||"",
+        aMascot:away.team.name||"", hMascot:home.team.name||"",   /* mascot (e.g. NFL "Chiefs") so voice can match by nickname, not just city/abbr */
         aName:rk(away)+away.team.abbreviation, hName:rk(home)+home.team.abbreviation,
         aLogo:logoOf(away.team), hLogo:logoOf(home.team), aTC:teamColors(away.team.color), hTC:teamColors(home.team.color),
         aColUnder:teamColors(away.team.color).bg, hColUnder:teamColors(home.team.color).bg,
@@ -741,7 +742,7 @@ let FEATURE=["baylor","oregon"], showAll=true;   // regular full CFB by default;
 let SCENE="all", FEAT_WHEN="auto", FEAT_MATCHUP=false, TICKER_MODE="all";   // set by the NLU brain via board_sync
 function _nrm(s){ return (s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
 function inFeature(g){ if(showAll||!FEATURE.length) return true;
-  const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm);
+  const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc,g.aMascot,g.hMascot].map(_nrm);
   return FEATURE.some(f=>{ const nf=_nrm(f); return nf && keys.indexOf(nf)>=0; }); }
 function centerHTML(g){
   if(g.state==="in") return `<div id="status" class="live">${g.detail}</div>`
@@ -909,7 +910,7 @@ function renderPlayerStatsScene(){
   exitHL();
   var team=FEATURE[0]||"";
   var nf=_nrm(team);
-  var ms=games.filter(function(g){return [g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm).indexOf(nf)>=0;});
+  var ms=games.filter(function(g){return [g.aAbbr,g.hAbbr,g.aLoc,g.hLoc,g.aMascot,g.hMascot].map(_nrm).indexOf(nf)>=0;});
   var played=ms.filter(function(g){return g.state!=="pre";}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
   var g=played[0]||ms[0];
   if(!g || typeof mountPlayerStats!=="function"){ exitPS(); document.body.classList.remove("cards","stacked"); noGames("No stats for "+(team||"that team")); return; }
@@ -1024,7 +1025,7 @@ function gameCard(g, single){
 /* best game this week for a featured team: live > soonest upcoming > most-recent final */
 function bestGameFor(f){
   const nf=_nrm(f);
-  const ms=games.filter(g=>[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm).indexOf(nf)>=0);
+  const ms=games.filter(g=>[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc,g.aMascot,g.hMascot].map(_nrm).indexOf(nf)>=0);
   if(!ms.length) return null;
   const live=ms.filter(g=>g.state==="in");
   const pre=ms.filter(g=>g.state==="pre").sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -1048,7 +1049,7 @@ function bestGameFor(f){
   return r0||p0||ms[0];
 }
 function matchupGame(){   // the single game where every featured team appears (a real matchup)
-  return games.find(function(g){ const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc].map(_nrm);
+  return games.find(function(g){ const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc,g.aMascot,g.hMascot].map(_nrm);
     return FEATURE.every(function(f){ return keys.indexOf(_nrm(f))>=0; }); }) || null;
 }
 function noGames(msg){ document.body.classList.remove("cards"); document.body.classList.remove("stacked");
