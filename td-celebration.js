@@ -103,6 +103,21 @@
         10%, 30% { opacity: 0.18; }
         20%      { opacity: 0.32; }
       }
+      @keyframes td-shake {
+        0%, 100% { transform: translate3d(0,0,0) rotate(0deg); }
+        12% { transform: translate3d(-1.6%,0,0) rotate(-1.4deg); }
+        24% { transform: translate3d(1.6%,0,0)  rotate(1.4deg); }
+        36% { transform: translate3d(-1.3%,0,0) rotate(-1deg); }
+        48% { transform: translate3d(1.3%,0,0)  rotate(1deg); }
+        62% { transform: translate3d(-0.8%,0,0) rotate(-0.5deg); }
+        76% { transform: translate3d(0.8%,0,0)  rotate(0.5deg); }
+        88% { transform: translate3d(-0.3%,0,0) rotate(0deg); }
+      }
+      @keyframes td-logo-in {
+        0%   { opacity: 0; transform: translateX(-8%) scale(0.86); }
+        70%  { opacity: 1; transform: translateX(1%)  scale(1.04); }
+        100% { opacity: 1; transform: translateX(0)   scale(1); }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -315,6 +330,14 @@
     return _luminance(bgHex) > 0.35 ? "#000000" : "#ffffff";
   }
 
+  /**
+   * Accent colour for headline text, unless it barely contrasts with the background — then fall back
+   * to readable black/white (e.g. Falcons black-on-red becomes white-on-red).
+   */
+  function _readableAccent(accent, bgHex) {
+    return Math.abs(_luminance(accent) - _luminance(bgHex)) < 0.22 ? _contrastText(bgHex) : accent;
+  }
+
   // ── DOM builders ───────────────────────────────────────────────────────────
 
   function _el(tag, styles, attrs) {
@@ -338,196 +361,112 @@
    *   headshot, yards, tdType
    */
   function _buildOverlay(container, p) {
-    const bg         = p.primary   || FALLBACK_PRIMARY;
-    const accent     = p.secondary || FALLBACK_SECONDARY;
-    const textOnBg   = _contrastText(bg);    // white or black over primary
-    const textOnAcc  = _contrastText(accent);
+    const bg        = p.primary   || FALLBACK_PRIMARY;
+    const accent    = p.secondary || FALLBACK_SECONDARY;
+    const textOnBg  = _contrastText(bg);              // white or black over primary
+    const headAcc   = _readableAccent(accent, bg);    // headline colour, forced readable
 
-    // Outer wrapper
+    // Outer wrapper: big team logo on the left, celebration content on the right
     const wrap = _el("div", {
-      position:   "absolute",
-      inset:      "0",
-      overflow:   "hidden",
-      fontFamily: "'Oswald', 'Barlow Condensed', sans-serif",
-      background: bg,
-      display:    "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex:     "9999",
-      animation:  "td-bg-pop 0.32s cubic-bezier(0.22,0.61,0.36,1) both",
+      position: "absolute", inset: "0", overflow: "hidden",
+      fontFamily: "'Oswald', 'Barlow Condensed', sans-serif", background: bg,
+      display: "flex", flexDirection: "row", alignItems: "center",
+      zIndex: "9999", animation: "td-bg-pop 0.32s cubic-bezier(0.22,0.61,0.36,1) both",
     });
 
     // Flash overlay (brief white burst on entry)
-    const flash = _el("div", {
-      position:   "absolute",
-      inset:      "0",
-      background: "#ffffff",
-      pointerEvents: "none",
-      animation:  "td-flash 0.7s ease-out both",
-      zIndex:     "1",
-    });
-    wrap.appendChild(flash);
+    wrap.appendChild(_el("div", {
+      position: "absolute", inset: "0", background: "#ffffff",
+      pointerEvents: "none", animation: "td-flash 0.7s ease-out both", zIndex: "1",
+    }));
 
-    // ── Content column ───────────────────────────────────────────────────────
+    // ── Big team logo, left side ──────────────────────────────────────────────
+    if (p.logo) {
+      const logoWrap = _el("div", {
+        position: "relative", zIndex: "2", flex: "0 0 32vw", height: "100%",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        animation: "td-logo-in 0.55s 0.12s cubic-bezier(0.22,0.61,0.36,1) both",
+      });
+      const limg = document.createElement("img");
+      limg.src = p.logo; limg.alt = "";
+      limg.style.cssText = "width:86%;height:82%;object-fit:contain;display:block;filter:drop-shadow(0 0.8vh 1.4vh rgba(0,0,0,0.5));";
+      limg.onerror = function () { logoWrap.style.display = "none"; };
+      logoWrap.appendChild(limg);
+      wrap.appendChild(logoWrap);
+    }
+
+    // ── Content column, right side ────────────────────────────────────────────
     const col = _el("div", {
-      position:       "relative",
-      zIndex:         "2",
-      display:        "flex",
-      flexDirection:  "column",
-      alignItems:     "center",
-      gap:            "2.6vh",
-      padding:        "4vh 5vw",
-      textAlign:      "center",
-      width:          "100%",
-      boxSizing:      "border-box",
+      position: "relative", zIndex: "2", flex: "1 1 0", minWidth: "0",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      gap: "2.4vh", padding: "3vh 3vw", textAlign: "center", boxSizing: "border-box",
     });
     wrap.appendChild(col);
 
-    // ── "TOUCHDOWN" headline with staggered letters ──────────────────────────
+    // "TOUCHDOWN" headline — staggered letter pop, then a shake
     const word = "TOUCHDOWN";
     const tdRow = _el("div", {
-      display:        "flex",
-      justifyContent: "center",
-      gap:            "0.04em",
-      lineHeight:     "1",
+      display: "flex", justifyContent: "center", gap: "0.03em", lineHeight: "1",
+      animation: "td-shake 0.42s 0.92s ease-in-out 3 both",
     });
-
     for (let i = 0; i < word.length; i++) {
-      const letter = _txt("span", word[i], {
-        fontFamily:   "'Oswald', 'Barlow Condensed', sans-serif",
-        fontWeight:   "900",
-        fontSize:     "clamp(4.5rem, 13vh, 11rem)",
-        color:        accent,
-        display:      "inline-block",
-        lineHeight:   "0.9",
-        textShadow:   "0 0 40px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.45)",
-        animation:    "td-letter-pop 0.52s cubic-bezier(0.22,0.61,0.36,1) both",
+      tdRow.appendChild(_txt("span", word[i], {
+        fontFamily: "'Oswald', 'Barlow Condensed', sans-serif", fontWeight: "900",
+        fontSize: "clamp(3rem, 10.5vh, 8.5rem)", color: headAcc, display: "inline-block",
+        lineHeight: "0.9", textShadow: "0 0 40px rgba(0,0,0,0.55), 0 4px 8px rgba(0,0,0,0.45)",
+        animation: "td-letter-pop 0.52s cubic-bezier(0.22,0.61,0.36,1) both",
         animationDelay: (0.04 + i * 0.04) + "s",
-      });
-      tdRow.appendChild(letter);
+      }));
     }
     col.appendChild(tdRow);
 
-    // ── Team name bar ────────────────────────────────────────────────────────
-    const teamBar = _el("div", {
-      background:   accent,
-      color:        textOnAcc,
-      padding:      "0.6vh 3.5vw",
-      borderRadius: "0.4vh",
-      animation:    "td-slide-up 0.4s 0.46s cubic-bezier(0.22,0.61,0.36,1) both",
-    });
-    const teamTxt = _txt("span", p.teamName || "", {
-      fontFamily:   "'Oswald', 'Barlow Condensed', sans-serif",
-      fontWeight:   "700",
-      fontSize:     "clamp(1.4rem, 4vh, 3.2rem)",
-      letterSpacing: "0.14em",
-      textTransform: "uppercase",
-      display:      "block",
-    });
-    teamBar.appendChild(teamTxt);
-    col.appendChild(teamBar);
-
-    // ── Player row (headshot + info) ─────────────────────────────────────────
+    // Player row: circular headshot (no stroke) + position over name
     if (p.playerName) {
       const playerRow = _el("div", {
-        display:        "flex",
-        alignItems:     "center",
-        gap:            "2.5vw",
-        animation:      "td-slide-up 0.4s 0.60s cubic-bezier(0.22,0.61,0.36,1) both",
+        display: "flex", alignItems: "center", gap: "1.8vw",
+        animation: "td-slide-up 0.4s 0.55s cubic-bezier(0.22,0.61,0.36,1) both",
       });
-
-      // Circular headshot
       if (p.headshot) {
         const imgWrap = _el("div", {
-          width:        "clamp(70px, 13vh, 120px)",
-          height:       "clamp(70px, 13vh, 120px)",
-          borderRadius: "50%",
-          overflow:     "hidden",
-          border:       "0.35vh solid " + accent,
-          flexShrink:   "0",
-          background:   "rgba(0,0,0,0.25)",
-          animation:    "td-headshot-pop 0.5s 0.55s cubic-bezier(0.22,0.61,0.36,1) both",
+          width: "clamp(80px, 15vh, 150px)", height: "clamp(80px, 15vh, 150px)",
+          borderRadius: "50%", overflow: "hidden", flexShrink: "0", background: "rgba(0,0,0,0.22)",
+          animation: "td-headshot-pop 0.5s 0.5s cubic-bezier(0.22,0.61,0.36,1) both",
         });
         const img = document.createElement("img");
-        img.src    = p.headshot;
-        img.alt    = p.playerName;
-        img.style.cssText =
-          "width:100%;height:100%;object-fit:cover;object-position:top center;display:block;";
-        img.onerror = function () {
-          // Hide broken image; the imgWrap stays as a color circle placeholder
-          this.style.display = "none";
-        };
+        img.src = p.headshot; img.alt = p.playerName;
+        img.style.cssText = "width:100%;height:100%;object-fit:cover;object-position:top center;display:block;";
+        img.onerror = function () { this.style.display = "none"; };
         imgWrap.appendChild(img);
         playerRow.appendChild(imgWrap);
       }
-
-      // Player info column
-      const infoCol = _el("div", {
-        display:       "flex",
-        flexDirection: "column",
-        alignItems:    "flex-start",
-        gap:           "0.5vh",
-        textAlign:     "left",
-      });
-
-      // Meta line: POSITION · #JERSEY
-      const meta = [];
-      if (p.position) meta.push(p.position);
-      if (p.jersey)   meta.push("#" + p.jersey);
-      if (meta.length) {
-        infoCol.appendChild(_txt("div", meta.join("  ·  "), {
-          fontFamily:   "'Barlow Condensed', 'Oswald', sans-serif",
-          fontWeight:   "600",
-          fontSize:     "clamp(0.85rem, 2.2vh, 1.5rem)",
-          letterSpacing: "0.1em",
-          color:        accent,
-          textTransform: "uppercase",
-          opacity:      "0.92",
+      const infoCol = _el("div", { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "0.4vh", textAlign: "left" });
+      if (p.position) {
+        infoCol.appendChild(_txt("div", p.position, {
+          fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontWeight: "600",
+          fontSize: "clamp(1rem, 2.6vh, 1.8rem)", letterSpacing: "0.1em",
+          color: headAcc, textTransform: "uppercase", opacity: "0.95",
         }));
       }
-
-      // Player name
       infoCol.appendChild(_txt("div", p.playerName, {
-        fontFamily:   "'Oswald', sans-serif",
-        fontWeight:   "700",
-        fontSize:     "clamp(1.5rem, 4.5vh, 3.5rem)",
-        color:        textOnBg,
-        lineHeight:   "1.05",
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
+        fontFamily: "'Oswald', sans-serif", fontWeight: "700",
+        fontSize: "clamp(1.7rem, 5vh, 4rem)", color: textOnBg,
+        lineHeight: "1.02", letterSpacing: "0.03em", textTransform: "uppercase",
       }));
-
       playerRow.appendChild(infoCol);
       col.appendChild(playerRow);
     }
 
-    // ── Play line: "15 YD REC TD" ────────────────────────────────────────────
+    // Play line: big "18 YD RUSH TD"
     if (p.yards || p.tdType) {
-      const playParts = [];
-      if (p.yards) playParts.push(p.yards + " YD");
-      if (p.tdType) playParts.push(p.tdType);
-      const playLine = playParts.join(" ");
-
-      const playEl = _el("div", {
-        animation: "td-slide-up 0.4s 0.72s cubic-bezier(0.22,0.61,0.36,1) both",
-      });
-
-      // Pill-style background strip
-      const pill = _el("div", {
-        display:      "inline-block",
-        background:   "rgba(0,0,0,0.38)",
-        borderRadius: "0.5vh",
-        padding:      "0.6vh 2.4vw",
-        border:       "0.2vh solid " + accent + "55",
-      });
-      pill.appendChild(_txt("span", playLine, {
-        fontFamily:   "'Barlow Condensed', 'Oswald', sans-serif",
-        fontWeight:   "700",
-        fontSize:     "clamp(1rem, 3.2vh, 2.4rem)",
-        letterSpacing: "0.16em",
-        color:        textOnBg,
-        textTransform: "uppercase",
+      const parts = [];
+      if (p.yards) parts.push(p.yards + " YD");
+      if (p.tdType) parts.push(p.tdType);
+      const playEl = _el("div", { animation: "td-slide-up 0.4s 0.68s cubic-bezier(0.22,0.61,0.36,1) both" });
+      const pill = _el("div", { display: "inline-block", background: "rgba(0,0,0,0.42)", borderRadius: "0.7vh", padding: "1.1vh 3vw" });
+      pill.appendChild(_txt("span", parts.join(" "), {
+        fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontWeight: "700",
+        fontSize: "clamp(1.9rem, 5.6vh, 4.2rem)", letterSpacing: "0.14em",
+        color: textOnBg, textTransform: "uppercase",
       }));
       playEl.appendChild(pill);
       col.appendChild(playEl);
@@ -602,6 +541,7 @@
       headshot:   headshot,
       yards:      yards,
       tdType:     tdType,
+      logo:       opts.logo || "",
     });
 
     _wrapEl = wrap;

@@ -321,6 +321,7 @@
         return {
           skipFetch: true, teamName: pl.team || "", primary: col[0], secondary: col[1],
           playerName: pl.name, position: pl.pos || "", headshot: "https://sleepercdn.com/content/nfl/players/" + pid + ".jpg",
+          logo: "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(pl.team) + ".png",
           yards: _DIST[i % _DIST.length], tdType: _tdType(pl.pos || ""),
         };
       }).filter(function (it) { return it.playerName; });
