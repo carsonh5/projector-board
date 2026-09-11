@@ -223,9 +223,13 @@
   #field.on { display: flex; }
   .fp-field { position: relative; width: 100%; height: 4vh; }
   .fp-line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: #fff; transform: translateY(-50%); }
-  .fp-first { position: absolute; top: 8%; bottom: 8%; width: 0.35vw; background: #FFE84D; }
+  .fp-first { position: absolute; top: 8%; bottom: 8%; width: 0.35vw; background: #FFE84D; transition: left 0.55s cubic-bezier(0.34,0.85,0.3,1); }
   .fp-tick { position: absolute; top: 30%; bottom: 30%; width: 2.5px; background: rgba(255,255,255,.6); transform: translateX(-50%); }
-  .fp-ball { position: absolute; top: 50%; left: 0; width: 2.4vw; height: 2.6vh; transform: translate(-50%,-50%); }
+  /* green gain trail: from the previous spot to the new spot on a forward play */
+  .fp-gain { position: absolute; top: 50%; height: 0.7vh; transform: translateY(-50%); background: #35c759; border-radius: 0.35vh; box-shadow: 0 0 1vh rgba(53,199,89,0.75); opacity: 0; pointer-events: none; }
+  .fp-gain.show { animation: fp-gain 1.7s ease-out both; }
+  @keyframes fp-gain { 0% { opacity: 0; } 12% { opacity: 1; } 65% { opacity: 0.9; } 100% { opacity: 0; } }
+  .fp-ball { position: absolute; top: 50%; left: 0; width: 2.4vw; height: 2.6vh; transform: translate(-50%,-50%); transition: left 0.55s cubic-bezier(0.34,0.85,0.3,1); }
   .fp-ball .ball { position: absolute; inset: 0; background: #8a4b1f; border: 0.3vh solid #e8cfa8; border-radius: 50%; }
   .fp-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 0; height: 0;
     border-top: 1.3vh solid transparent; border-bottom: 1.3vh solid transparent; }
@@ -799,12 +803,34 @@ function holdSituation(g){   // restore poss/possText/down-distance from last pl
 }
 function fieldLineOnly(){ let ticks=""; for(let x=10;x<100;x+=10) ticks+=`<div class="fp-tick" style="left:${x}%"></div>`;
   return `<div class="fp-field"><div class="fp-line"></div>${ticks}</div>`; }
+var _fpBallX={}, _fpPoss={};   // last rendered ball spot + possession per game (for the slide + gain trail)
 function setField(g){ const el=document.getElementById("field");
-  if(!g || g.state!=="in"){ el.className=""; el.innerHTML=""; return; }   // line only exists for live games
+  if(!g || g.state!=="in"){ el.className=""; el.innerHTML=""; el._fgid=null; return; }   // line only exists for live games
   let fp=fieldPos(g);
   if(fp) _lastFP[g.id]=fp; else if(_lastFP[g.id]) fp=_lastFP[g.id];        // hold last spot through the gap
   el.className="on";
-  el.innerHTML = fp ? fieldHTML(fp) : fieldLineOnly();                     // always show the line while live
+  // build the static field once per game (line + ticks + gain trail + first-down + ball) so the ball element
+  // persists and its `left` change animates instead of flashing
+  if(el._fgid!==g.id || !el.querySelector(".fp-ball")){
+    el._fgid=g.id;
+    let ticks=""; for(let x=10;x<100;x+=10) ticks+=`<div class="fp-tick" style="left:${x}%"></div>`;
+    const x0=fp?fp.ballX:50;
+    el.innerHTML=`<div class="fp-field"><div class="fp-line"></div>${ticks}<div class="fp-gain"></div><div class="fp-first" style="display:none"></div><div class="fp-ball" style="left:${x0}%"><span class="ball"></span><span class="fp-arrow"></span></div></div>`;
+    _fpBallX[g.id]=x0; _fpPoss[g.id]=fp?fp.possIsHome:null;
+  }
+  if(!fp) return;   // keep just the line; nothing to move
+  const field=el.querySelector(".fp-field"), ball=field.querySelector(".fp-ball"),
+        arrow=field.querySelector(".fp-arrow"), first=field.querySelector(".fp-first"), gain=field.querySelector(".fp-gain");
+  const prevX=(_fpBallX[g.id]!=null)?_fpBallX[g.id]:fp.ballX, newX=fp.ballX;
+  arrow.className="fp-arrow "+fp.dir;
+  if(fp.firstX!=null){ first.style.display=""; first.style.left=fp.firstX+"%"; } else first.style.display="none";
+  const samePoss=_fpPoss[g.id]===fp.possIsHome; _fpPoss[g.id]=fp.possIsHome;
+  const fwd = samePoss && (fp.dir==="right" ? (newX>prevX+0.4) : (newX<prevX-0.4));   // gained yards toward the D's end zone
+  if(fwd){ const a=Math.min(prevX,newX), b=Math.max(prevX,newX);
+    gain.style.left=a+"%"; gain.style.width=(b-a)+"%";
+    gain.classList.remove("show"); void gain.offsetWidth; gain.classList.add("show"); }   // replay the grow/fade
+  ball.style.left=newX+"%";                                                               // CSS transition slides it
+  _fpBallX[g.id]=newX;
 }
 /* white possession football (SVG silhouette) + which side has the ball */
 const FBALL='<svg class="fbico" viewBox="0 0 60 40"><path d="M6 20 C18 4 42 4 54 20 C42 36 18 36 6 20 Z" fill="#fff" stroke="#111" stroke-width="2.2"/></svg>';
