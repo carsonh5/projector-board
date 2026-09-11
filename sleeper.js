@@ -73,6 +73,7 @@
   async function _fetchGameState() {
     try {
       const d = await _json("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?_=" + Date.now());
+      const old = _gameState || {};
       const m = {};
       (d.events || []).forEach(function (e) {
         const comp = (e.competitions || [])[0] || {};
@@ -85,14 +86,19 @@
         const cs = comp.competitors || [];
         cs.forEach(function (c) {
           const t = c.team || {};
+          const abbr = (t.abbreviation || "").toLowerCase();
           const other = cs.find(function (o) { return o !== c; }) || {};
           const ot = other.team || {};
-          m[(t.abbreviation || "").toLowerCase()] = {
+          let hasPoss = possId !== "" && String(t.id) === possId;
+          let isRZ = !!sit.isRedZone;
+          // ESPN blanks possession/red zone between plays, timeouts, reviews — hold the last known
+          // state so the on-field / red-zone row tint doesn't flicker off
+          if (state === "in" && possId === "" && old[abbr]) { hasPoss = old[abbr].hasPoss; if (sit.isRedZone == null) isRZ = old[abbr].isRZ; }
+          m[abbr] = {
             state: state, period: period, clock: clock, date: e.date || "",
             score: parseInt(c.score || 0, 10), oppScore: parseInt(other.score || 0, 10),
             oppAbbr: (ot.abbreviation || "").toUpperCase(), home: c.homeAway === "home",
-            hasPoss: possId !== "" && String(t.id) === possId,
-            isRZ: !!sit.isRedZone,
+            hasPoss: hasPoss, isRZ: isRZ,
           };
         });
       });
