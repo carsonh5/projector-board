@@ -198,7 +198,7 @@
   }
   // big centred team total (above its score column); right=true → left-align for the opponent side
   function _totalEl(v, right) {
-    const e = _el("div", "font-family:'Oswald',sans-serif;font-size:5.4vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + P.text + ";flex-shrink:0;min-width:8vw;text-align:" + (right ? "left" : "right") + ";");
+    const e = _el("div", "font-family:'Oswald',sans-serif;font-size:5.4vh;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:" + P.text + ";flex-shrink:0;min-width:6vw;text-align:" + (right ? "left" : "right") + ";");
     e.textContent = (v || 0).toFixed(1); return e;
   }
 
@@ -224,7 +224,7 @@
     const live = _liveFor(pl.team, pl.pos || posLabel);
     const bg = live && live.redZone ? "background:rgba(255,64,64,0.42);box-shadow:inset 0 0 2vh rgba(255,64,64,0.35);"
              : live && live.onField ? "background:rgba(74,150,255,0.34);box-shadow:inset 0 0 2vh rgba(74,150,255,0.22);" : "";
-    const r = _el("div", "display:flex;align-items:center;line-height:1;gap:0.6vw;flex:1 1 0;min-height:0;min-width:0;padding:0 1vw;border-bottom:1px solid " + P.border + ";" + bg + (right ? "flex-direction:row-reverse;" : ""));
+    const r = _el("div", "display:flex;align-items:center;line-height:1;gap:0.6vw;flex:1 1 0;min-height:0;min-width:0;padding:0 0.3vw;border-bottom:1px solid " + P.border + ";" + bg + (right ? "flex-direction:row-reverse;" : ""));
     const chip = _el("div", "font-family:'Oswald',sans-serif;font-size:2.6vh;font-weight:700;flex-shrink:0;width:3.4vw;text-align:center;color:#0b0d10;background:" + (P.posColors[posLabel] || P.posColors.FLX) + ";border-radius:0.4vh;padding:0.2vh 0;");
     chip.textContent = posLabel; r.appendChild(chip);
     r.appendChild(_logo(pl.team));
@@ -253,7 +253,7 @@
     band.appendChild(_cornerEl(_ctx.record(myM.roster_id), _ctx.teamName(myM.roster_id), false));
     band.appendChild(_el("div", "flex:1 1 0;min-width:0;"));
     band.appendChild(_totalEl(myTot, false));
-    band.appendChild(_el("div", "width:3vw;flex-shrink:0;"));
+    band.appendChild(_el("div", "width:1.2vw;flex-shrink:0;"));
     band.appendChild(_totalEl(oppTot, true));
     band.appendChild(_el("div", "flex:1 1 0;min-width:0;"));
     band.appendChild(_cornerEl(oppM ? _ctx.record(oppM.roster_id) : "0-0", oppM ? _ctx.teamName(oppM.roster_id) : "No opponent", true));
