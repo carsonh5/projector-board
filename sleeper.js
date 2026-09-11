@@ -130,21 +130,20 @@
     // "3-28 REC" = 3 catches for 28 yards, combined into one token to free room for both yard types
     const rec = function () { return s.rec ? (r(s.rec) + "-" + r(s.rec_yd || 0) + " REC") : (s.rec_yd ? r(s.rec_yd) + " REC" : ""); };
     if (pos === "QB") {
+      // only QB distinguishes rush from pass: RTD = rushing TD (6), RYD = rushing yards
       if (s.pass_yd) p.push(r(s.pass_yd) + " YD");
       if (s.pass_td) p.push(r(s.pass_td) + " TD");
-      if (s.rush_td) p.push(r(s.rush_td) + " RTD");          // rushing TD
-      else if (s.rush_yd >= 12) p.push(r(s.rush_yd) + " RU");
+      if (s.rush_td) p.push(r(s.rush_td) + " RTD");
+      else if (s.rush_yd >= 12) p.push(r(s.rush_yd) + " RYD");
       if (s.pass_int) p.push(r(s.pass_int) + " INT");
     } else if (pos === "RB") {
-      if (s.rush_yd != null) p.push(r(s.rush_yd || 0) + " RU");   // rush yards
-      const rc = rec(); if (rc) p.push(rc);                       // rec catches + yards
-      if (s.rush_td) p.push(r(s.rush_td) + " RTD");
-      else if (s.rec_td) p.push(r(s.rec_td) + " TD");
+      if (s.rush_yd != null) p.push(r(s.rush_yd || 0) + " YDS");   // rush yards
+      const rc = rec(); if (rc) p.push(rc);                        // rec catches + yards
+      const td = (s.rush_td || 0) + (s.rec_td || 0); if (td) p.push(td + " TD");   // all TDs are the same
     } else if (pos === "WR" || pos === "TE") {
       const rc = rec(); if (rc) p.push(rc);
-      if (s.rec_td) p.push(r(s.rec_td) + " TD");
-      if (s.rush_td) p.push(r(s.rush_td) + " RTD");
-      else if (s.rush_yd >= 12) p.push(r(s.rush_yd) + " RU");
+      const td = (s.rec_td || 0) + (s.rush_td || 0); if (td) p.push(td + " TD");
+      if (s.rush_yd >= 20) p.push(r(s.rush_yd) + " YDS");
     } else if (pos === "K") { if (s.fgm != null && s.fga != null) p.push(r(s.fgm) + "/" + r(s.fga) + " FG"); if (s.xpm) p.push(r(s.xpm) + " XP"); }
     else if (pos === "DEF") { if (s.sack) p.push(r(s.sack) + " SK"); if (s.int) p.push(r(s.int) + " INT"); if (s.fum_rec) p.push(r(s.fum_rec) + " FR"); if (s.def_td) p.push(r(s.def_td) + " TD"); if (s.pts_allow != null) p.push(r(s.pts_allow) + " PA"); }
     return p.slice(0, 3).join(" · ");
