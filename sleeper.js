@@ -26,7 +26,7 @@
     bg: "#08090b", header: "#13181f", border: "#1e242c",
     text: "#ffffff", dim: "#8a94a3", gold: "#FFE84D",
     win: "#3ddc84", lose: "#8a94a3", live: "#FF6A00", red: "#ff4b4b", track: "#232a33",
-    posColors: { QB: "#e0517d", RB: "#3fbf9f", WR: "#4aa8ff", TE: "#f0a83c", K: "#b07cff", DEF: "#8a94a3", FLEX: "#FF6A00", SFLX: "#FF6A00" },
+    posColors: { QB: "#e0517d", RB: "#3fbf9f", WR: "#4aa8ff", TE: "#f0a83c", K: "#b07cff", DEF: "#8a94a3", FLX: "#FF6A00", SFX: "#FF6A00" },
   };
   const SIGMA = 27;   // std dev of a fantasy matchup margin — for the win-probability curve
 
@@ -127,10 +127,25 @@
     const s = _stats && _stats[pid];
     if (!s) return "";
     const r = Math.round, p = [];
-    if (pos === "QB") { if (s.pass_yd) p.push(r(s.pass_yd) + " YD"); if (s.pass_td) p.push(r(s.pass_td) + " TD"); if (s.pass_int) p.push(r(s.pass_int) + " INT"); if (s.rush_yd >= 10) p.push(r(s.rush_yd) + " RUSH"); }
-    else if (pos === "RB") { if (s.rush_yd != null) p.push(r(s.rush_yd || 0) + " YD"); if (s.rush_td) p.push(r(s.rush_td) + " TD"); if (s.rec) p.push(r(s.rec) + " REC"); }
-    else if (pos === "WR" || pos === "TE") { if (s.rec) p.push(r(s.rec) + " REC"); if (s.rec_yd != null) p.push(r(s.rec_yd || 0) + " YD"); if (s.rec_td) p.push(r(s.rec_td) + " TD"); }
-    else if (pos === "K") { if (s.fgm != null && s.fga != null) p.push(r(s.fgm) + "/" + r(s.fga) + " FG"); if (s.xpm) p.push(r(s.xpm) + " XP"); }
+    // "3-28 REC" = 3 catches for 28 yards, combined into one token to free room for both yard types
+    const rec = function () { return s.rec ? (r(s.rec) + "-" + r(s.rec_yd || 0) + " REC") : (s.rec_yd ? r(s.rec_yd) + " REC" : ""); };
+    if (pos === "QB") {
+      if (s.pass_yd) p.push(r(s.pass_yd) + " YD");
+      if (s.pass_td) p.push(r(s.pass_td) + " TD");
+      if (s.rush_td) p.push(r(s.rush_td) + " RTD");          // rushing TD
+      else if (s.rush_yd >= 12) p.push(r(s.rush_yd) + " RU");
+      if (s.pass_int) p.push(r(s.pass_int) + " INT");
+    } else if (pos === "RB") {
+      if (s.rush_yd != null) p.push(r(s.rush_yd || 0) + " RU");   // rush yards
+      const rc = rec(); if (rc) p.push(rc);                       // rec catches + yards
+      if (s.rush_td) p.push(r(s.rush_td) + " RTD");
+      else if (s.rec_td) p.push(r(s.rec_td) + " TD");
+    } else if (pos === "WR" || pos === "TE") {
+      const rc = rec(); if (rc) p.push(rc);
+      if (s.rec_td) p.push(r(s.rec_td) + " TD");
+      if (s.rush_td) p.push(r(s.rush_td) + " RTD");
+      else if (s.rush_yd >= 12) p.push(r(s.rush_yd) + " RU");
+    } else if (pos === "K") { if (s.fgm != null && s.fga != null) p.push(r(s.fgm) + "/" + r(s.fga) + " FG"); if (s.xpm) p.push(r(s.xpm) + " XP"); }
     else if (pos === "DEF") { if (s.sack) p.push(r(s.sack) + " SK"); if (s.int) p.push(r(s.int) + " INT"); if (s.fum_rec) p.push(r(s.fum_rec) + " FR"); if (s.def_td) p.push(r(s.def_td) + " TD"); if (s.pts_allow != null) p.push(r(s.pts_allow) + " PA"); }
     return p.slice(0, 3).join(" · ");
   }
@@ -205,7 +220,7 @@
     const bg = live && live.redZone ? "background:rgba(255,75,75,0.20);"
              : live && live.onField ? "background:rgba(74,168,255,0.16);" : "";
     const r = _el("div", "display:flex;align-items:center;line-height:1;gap:0.6vw;flex:1 1 0;min-height:0;min-width:0;padding:0 1vw;border-bottom:1px solid " + P.border + ";" + bg + (right ? "flex-direction:row-reverse;" : ""));
-    const chip = _el("div", "font-family:'Oswald',sans-serif;font-size:2.7vh;font-weight:700;flex-shrink:0;width:4vw;text-align:center;color:#0b0d10;background:" + (P.posColors[posLabel] || P.posColors.FLEX) + ";border-radius:0.4vh;padding:0.2vh 0;");
+    const chip = _el("div", "font-family:'Oswald',sans-serif;font-size:2.6vh;font-weight:700;flex-shrink:0;width:3.4vw;text-align:center;color:#0b0d10;background:" + (P.posColors[posLabel] || P.posColors.FLX) + ";border-radius:0.4vh;padding:0.2vh 0;");
     chip.textContent = posLabel; r.appendChild(chip);
     r.appendChild(_logo(pl.team));
     const nm = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.8vh;font-weight:700;color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;letter-spacing:0.01em;flex-shrink:1;");
@@ -272,7 +287,7 @@
       await Promise.all([_fetchPlayers(), _fetchProjections(week), _fetchStats(week), _fetchGameState()]);
       if (!_active) return;
       const rosterPos = (league.roster_positions || []).filter(function (p) { return p !== "BN" && p !== "IR" && p !== "TAXI"; })
-        .map(function (p) { return (p === "SUPER_FLEX") ? "SFLX" : (p === "REC_FLEX" || p === "WRRB_FLEX") ? "FLEX" : p; });
+        .map(function (p) { return (p === "SUPER_FLEX") ? "SFX" : (p === "REC_FLEX" || p === "WRRB_FLEX" || p === "FLEX") ? "FLX" : p; });
       const myR = rosters.find(function (r) { return String(r.owner_id) === String(uid); });
       if (!myR) { _active = false; if (opts.onError) opts.onError(new Error("roster not found")); return; }
       const userById = {}; users.forEach(function (u) { userById[u.user_id] = u; });
