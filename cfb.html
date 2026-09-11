@@ -682,6 +682,7 @@ function promoteGames(force){
 /* score change: feature-game touchdown => full takeover; otherwise the flash */
 var _tdActive=false, _tickerSaved="", _spotlightId=null;
 function onScore(g, side, delta){
+  if(SCENE==="fantasy"||SCENE==="tddemo") return;   // fantasy has its own player-specific celebration; no generic team confetti here
   var col=side==="away"?g.aTC.bg:g.hTC.bg, abbr=side==="away"?g.aAbbr:g.hAbbr;
   if(delta>=6 && (SCENE==="feature"||SCENE==="live") && g.id===_spotlightId && !_tdActive && typeof mountTDCelebration==="function"){
     _tdActive=true;

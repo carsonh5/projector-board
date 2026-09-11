@@ -32,6 +32,7 @@
 
   let _active = false, _container = null, _timer = null;
   let _players = null, _proj = null, _stats = null, _ctx = null, _gameState = null;
+  let _prevScore = {}, _celebrating = false, _lastM = null;   // live-scoring watch → fire the player celebration
 
   // Sleeper team abbreviations that differ from ESPN's (used for logos + game-state lookup)
   const _ESPN_ABBR = { WAS: "wsh", LAR: "lar", LAC: "lac", LV: "lv", JAX: "jax" };
@@ -60,7 +61,7 @@
   // Live per-player stat lines (yards/TDs/etc.) — refreshed alongside the matchup scores.
   async function _fetchStats(week) {
     try {
-      const list = await _json("https://api.sleeper.com/stats/nfl/2026/" + week + "?season_type=regular");
+      const list = await _json("https://api.sleeper.com/stats/nfl/2026/" + week + "?season_type=regular&_=" + Date.now());
       const m = {}; (list || []).forEach(function (x) { if (x && x.player_id) m[x.player_id] = x.stats || {}; });
       _stats = m;
     } catch (_) { if (!_stats) _stats = {}; }
@@ -70,7 +71,7 @@
   // possession, red zone). Keyed by ESPN abbreviation (lowercase).
   async function _fetchGameState() {
     try {
-      const d = await _json("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard");
+      const d = await _json("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?_=" + Date.now());
       const m = {};
       (d.events || []).forEach(function (e) {
         const comp = (e.competitions || [])[0] || {};
@@ -281,20 +282,23 @@
       async function refresh() {
         if (!_active) return;
         try {
-          const [ms] = await Promise.all([ _json(S + "/league/" + lid + "/matchups/" + _ctx.week), _fetchStats(_ctx.week), _fetchGameState() ]);
+          const [ms] = await Promise.all([ _json(S + "/league/" + lid + "/matchups/" + _ctx.week + "?_=" + Date.now()), _fetchStats(_ctx.week), _fetchGameState() ]);
           if (!_active) return;
           const myM = ms.find(function (m) { return m.roster_id === _ctx.myRid; });
           const oppM = myM ? ms.find(function (m) { return m.matchup_id === myM.matchup_id && m.roster_id !== _ctx.myRid; }) : null;
           if (!myM) { if (opts.onEmpty) opts.onEmpty(); return; }
+          _lastM = [myM, oppM];
+          _checkLiveScores(myM);              // fire a player celebration if one of my starters just scored
+          if (_celebrating) return;           // don't wipe the celebration overlay with a re-render
           _render(myM, oppM);
         } catch (_) { /* keep the last render on a transient error */ }
       }
       await refresh();
-      _timer = setInterval(refresh, 45000);
+      _timer = setInterval(refresh, 20000);   // 20s: keep the projector close to Sleeper for live scoring
     } catch (err) { _active = false; if (opts.onError) opts.onError(err); }
   }
 
-  function stopFantasy() { _active = false; if (_timer) { clearInterval(_timer); _timer = null; } _container = null; }
+  function stopFantasy() { _active = false; _celebrating = false; _prevScore = {}; _lastM = null; if (_timer) { clearInterval(_timer); _timer = null; } _container = null; }
 
   // ── TD-celebration preview: loop through the user's starters with real headshots + team colours ──
   // [primary, secondary, tertiary] — primary is the bg, secondary the accent, all three feed the side stripe
@@ -322,6 +326,52 @@
   const _DIST = [4, 9, 15, 22, 31, 44, 55, 7, 18, 63];
   const _FGD = [45, 52, 38, 29, 47, 33, 55];
   function _tdType(pos) { return pos === "QB" ? "PASS TD" : (pos === "WR" || pos === "TE") ? "REC TD" : "RUSH TD"; }
+
+  // Build the celebration payload for one of my players (shared by the preview loop + the live trigger)
+  function _playerCelebData(pid, event, ptsOverride) {
+    const pl = _resolve(pid), pos = pl.pos || "", isDef = pos === "DEF";
+    const col = NFL_COLORS[pl.team] || ["#1a1a2e", "#ffffff", "#8a94a3"];
+    return {
+      skipFetch: true, event: event, showPoints: true, ptsOverride: ptsOverride,
+      teamName: pl.team || "", primary: col[0], secondary: col[1], colors: col,
+      playerName: pl.name, position: isDef ? "" : pos,
+      headshot: isDef ? "" : "https://sleepercdn.com/content/nfl/players/" + pid + ".jpg",
+      logo: "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(pl.team) + ".png", logoBox: LOGO_BOX[pl.team] || null,
+      tdType: (event === "TD") ? _tdType(pos) : "", yards: 0,
+    };
+  }
+  function _fireCeleb(pid, event, ptsOverride) {
+    if (!_active || !_container || typeof root.mountTDCelebration !== "function") return;
+    _celebrating = true;
+    root.mountTDCelebration(_container, Object.assign({ dismissMs: 7500, onDone: function () {
+      _celebrating = false;
+      if (_active && _lastM) _render(_lastM[0], _lastM[1]);   // restore the scoreboard once the takeover ends
+    } }, _playerCelebData(pid, event, ptsOverride)));
+  }
+  // Watch my starters' stats each refresh; when a TD / FG / INT increments, fire the player celebration once.
+  function _checkLiveScores(myM) {
+    if (!myM || _celebrating) return;
+    const st = myM.starters || [], sp = myM.starters_points || [];
+    let fire = null;
+    for (let i = 0; i < st.length; i++) {
+      const pid = st[i]; if (!pid || pid === "0") continue;
+      const pos = _resolve(pid).pos || "", s = (_stats && _stats[pid]) || {};
+      const cur = {
+        td: (s.rush_td || 0) + (s.rec_td || 0) + (s.pass_td || 0),
+        fgm: s.fgm || 0, int: pos === "DEF" ? (s.int || 0) : 0, pts: sp[i] || 0,
+      };
+      const prev = _prevScore[pid];
+      if (prev && !fire) {
+        const dp = Math.round((cur.pts - prev.pts) * 10) / 10;
+        if (pos !== "DEF" && pos !== "K" && cur.td > prev.td) fire = { pid: pid, event: "TD", pts: dp > 0 ? dp : null };
+        else if (pos === "K" && cur.fgm > prev.fgm) fire = { pid: pid, event: "FG", pts: dp > 0 ? dp : null };
+        else if (pos === "DEF" && cur.int > prev.int) fire = { pid: pid, event: "INT", pts: dp > 0 ? dp : null };
+      }
+      _prevScore[pid] = cur;
+    }
+    if (fire) _fireCeleb(fire.pid, fire.event, fire.pts);
+  }
+
   let _preview = false, _previewTimer = null;
 
   async function previewFantasyTD(container, opts) {

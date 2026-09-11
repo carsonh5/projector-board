@@ -357,10 +357,12 @@
   function _fgPoints(yards) { const y = yards || 0; return y >= 50 ? 5 : y >= 40 ? 4 : 3; }
   // Headline word + play line + points for each celebration type
   function _eventInfo(p) {
-    if (p.event === "FG")  return { word: "FIELD GOAL",   play: (p.yards ? p.yards + " YD " : "") + "FIELD GOAL", pts: _fgPoints(p.yards) };
-    if (p.event === "INT") { const six = p.tdType && /TD/.test(p.tdType); return { word: "INTERCEPTION", play: six ? "PICK SIX" : "", pts: six ? 8 : 2 }; }
-    const parts = []; if (p.yards) parts.push(p.yards + " YD"); if (p.tdType) parts.push(p.tdType);
-    return { word: "TOUCHDOWN", play: parts.join(" "), pts: _pprPoints(p.yards, p.tdType) };
+    let r;
+    if (p.event === "FG")  r = { word: "FIELD GOAL", play: (p.yards ? p.yards + " YD " : "") + "FIELD GOAL", pts: _fgPoints(p.yards) };
+    else if (p.event === "INT") { const six = p.tdType && /TD/.test(p.tdType); r = { word: "INTERCEPTION", play: six ? "PICK SIX" : "", pts: six ? 8 : 2 }; }
+    else { const parts = []; if (p.yards) parts.push(p.yards + " YD"); if (p.tdType) parts.push(p.tdType); r = { word: "TOUCHDOWN", play: parts.join(" "), pts: _pprPoints(p.yards, p.tdType) }; }
+    if (typeof p.ptsOverride === "number") r.pts = p.ptsOverride;   // live: show the actual fantasy points gained
+    return r;
   }
 
   // ── DOM builders ───────────────────────────────────────────────────────────
@@ -606,6 +608,7 @@
       logoBox:    opts.logoBox || null,
       event:      opts.event || "TD",
       showPoints: !!opts.showPoints,
+      ptsOverride: (typeof opts.ptsOverride === "number") ? opts.ptsOverride : undefined,
     });
 
     _wrapEl = wrap;
