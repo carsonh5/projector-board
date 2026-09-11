@@ -216,8 +216,8 @@
     const pl = _resolve(pid);
     const posLabel = slot || pl.pos || "";
     const live = _liveFor(pl.team, pl.pos || posLabel);
-    const bg = live && live.redZone ? "background:rgba(255,75,75,0.20);"
-             : live && live.onField ? "background:rgba(74,168,255,0.16);" : "";
+    const bg = live && live.redZone ? "background:rgba(255,64,64,0.42);box-shadow:inset 0 0 2vh rgba(255,64,64,0.35);"
+             : live && live.onField ? "background:rgba(74,150,255,0.34);box-shadow:inset 0 0 2vh rgba(74,150,255,0.22);" : "";
     const r = _el("div", "display:flex;align-items:center;line-height:1;gap:0.6vw;flex:1 1 0;min-height:0;min-width:0;padding:0 1vw;border-bottom:1px solid " + P.border + ";" + bg + (right ? "flex-direction:row-reverse;" : ""));
     const chip = _el("div", "font-family:'Oswald',sans-serif;font-size:2.6vh;font-weight:700;flex-shrink:0;width:3.4vw;text-align:center;color:#0b0d10;background:" + (P.posColors[posLabel] || P.posColors.FLX) + ";border-radius:0.4vh;padding:0.2vh 0;");
     chip.textContent = posLabel; r.appendChild(chip);
@@ -225,13 +225,13 @@
     const nm = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.8vh;font-weight:700;color:" + P.text + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;letter-spacing:0.01em;flex-shrink:1;");
     nm.textContent = _shortName(pl.name, pl.pos || posLabel); r.appendChild(nm);
     if (live && live.chip) {
-      const gc = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.2vh;font-weight:700;flex-shrink:0;white-space:nowrap;color:" + live.color + ";");
+      const gc = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.4vh;font-weight:700;flex-shrink:0;white-space:nowrap;color:" + live.color + ";");
       gc.textContent = live.chip; r.appendChild(gc);
     }
     r.appendChild(_el("div", "flex:1 1 auto;min-width:0;"));   // spacer → pushes stat+score to the inner edge
     const stat = _statLine(pid, pl.pos || posLabel);
-    if (stat) { const sl = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.2vh;font-weight:600;color:" + P.dim + ";flex-shrink:0;white-space:nowrap;"); sl.textContent = stat; r.appendChild(sl); }
-    const pt = _el("div", "font-family:'Oswald',sans-serif;font-size:3.2vh;font-weight:700;flex-shrink:0;min-width:4.6vw;font-variant-numeric:tabular-nums;color:" + (pts > 0 ? P.win : P.dim) + ";text-align:" + (right ? "left" : "right") + ";");
+    if (stat) { const sl = _el("div", "font-family:'Barlow Condensed',sans-serif;font-size:3.4vh;font-weight:600;color:" + P.dim + ";flex-shrink:0;white-space:nowrap;"); sl.textContent = stat; r.appendChild(sl); }
+    const pt = _el("div", "font-family:'Oswald',sans-serif;font-size:3.4vh;font-weight:700;flex-shrink:0;min-width:4.6vw;font-variant-numeric:tabular-nums;color:" + (pts > 0 ? P.win : P.dim) + ";text-align:" + (right ? "left" : "right") + ";");
     pt.textContent = (pts != null ? pts : 0).toFixed(1); r.appendChild(pt);
     return r;
   }
