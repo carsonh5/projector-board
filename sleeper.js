@@ -32,7 +32,8 @@
 
   let _active = false, _container = null, _timer = null;
   let _players = null, _proj = null, _stats = null, _ctx = null, _gameState = null;
-  let _prevScore = {}, _celebrating = false, _lastM = null;   // live-scoring watch → fire the player celebration
+  let _celebrating = false, _lastM = null;                    // scoreboard <-> celebration coordination
+  let _seenPlays = {}, _tdBaseline = false, _lastGameScore = {}, _tdTimer = null, _myOff = [];   // ESPN live-scoring watch
 
   // Sleeper team abbreviations that differ from ESPN's (used for logos + game-state lookup)
   const _ESPN_ABBR = { WAS: "wsh", LAR: "lar", LAC: "lac", LV: "lv", JAX: "jax" };
@@ -279,6 +280,12 @@
       const teamName = function (rid) { const r = rosterById[rid]; const u = r && userById[r.owner_id]; return (u && u.metadata && u.metadata.team_name) || (u && u.display_name) || ("Team " + rid); };
       const record = function (rid) { const s = (rosterById[rid] || {}).settings || {}; return (s.wins || 0) + "-" + (s.losses || 0) + (s.ties ? "-" + s.ties : ""); };
       _ctx = { week: week, rosterPos: rosterPos, myRid: myR.roster_id, teamName: teamName, record: record };
+      // my offensive/kicker starters (name+team+pos) for matching ESPN scoring plays
+      _myOff = ((myR.starters) || []).filter(function (pid) { return pid && pid !== "0" && !/^[A-Z]{2,3}$/.test(pid); })
+        .map(function (pid) { const p = _resolve(pid); return { pid: pid, name: p.name, team: p.team, pos: p.pos }; });
+      _seenPlays = {}; _tdBaseline = false; _lastGameScore = {};
+      _tdTimer = setInterval(_watchTDs, 10000);   // quick, accurate live TD/FG watch off ESPN
+      _watchTDs();                                 // establish the baseline of already-scored plays
       async function refresh() {
         if (!_active) return;
         try {
@@ -288,8 +295,7 @@
           const oppM = myM ? ms.find(function (m) { return m.matchup_id === myM.matchup_id && m.roster_id !== _ctx.myRid; }) : null;
           if (!myM) { if (opts.onEmpty) opts.onEmpty(); return; }
           _lastM = [myM, oppM];
-          _checkLiveScores(myM);              // fire a player celebration if one of my starters just scored
-          if (_celebrating) return;           // don't wipe the celebration overlay with a re-render
+          if (_celebrating) return;           // a live TD takeover is up — don't wipe it with a re-render
           _render(myM, oppM);
         } catch (_) { /* keep the last render on a transient error */ }
       }
@@ -298,7 +304,7 @@
     } catch (err) { _active = false; if (opts.onError) opts.onError(err); }
   }
 
-  function stopFantasy() { _active = false; _celebrating = false; _prevScore = {}; _lastM = null; if (_timer) { clearInterval(_timer); _timer = null; } _container = null; }
+  function stopFantasy() { _active = false; _celebrating = false; _lastM = null; _myOff = []; _seenPlays = {}; _tdBaseline = false; _lastGameScore = {}; if (_timer) { clearInterval(_timer); _timer = null; } if (_tdTimer) { clearInterval(_tdTimer); _tdTimer = null; } _container = null; }
 
   // ── TD-celebration preview: loop through the user's starters with real headshots + team colours ──
   // [primary, secondary, tertiary] — primary is the bg, secondary the accent, all three feed the side stripe
@@ -328,48 +334,88 @@
   function _tdType(pos) { return pos === "QB" ? "PASS TD" : (pos === "WR" || pos === "TE") ? "REC TD" : "RUSH TD"; }
 
   // Build the celebration payload for one of my players (shared by the preview loop + the live trigger)
-  function _playerCelebData(pid, event, ptsOverride) {
+  function _playerCelebData(pid, event, o) {
+    o = o || {};
     const pl = _resolve(pid), pos = pl.pos || "", isDef = pos === "DEF";
     const col = NFL_COLORS[pl.team] || ["#1a1a2e", "#ffffff", "#8a94a3"];
     return {
-      skipFetch: true, event: event, showPoints: true, ptsOverride: ptsOverride,
+      skipFetch: true, event: event, showPoints: true,
+      ptsOverride: (typeof o.ptsOverride === "number") ? o.ptsOverride : undefined,
       teamName: pl.team || "", primary: col[0], secondary: col[1], colors: col,
       playerName: pl.name, position: isDef ? "" : pos,
       headshot: isDef ? "" : "https://sleepercdn.com/content/nfl/players/" + pid + ".jpg",
       logo: "https://a.espncdn.com/i/teamlogos/nfl/500/" + _espnAbbr(pl.team) + ".png", logoBox: LOGO_BOX[pl.team] || null,
-      tdType: (event === "TD") ? _tdType(pos) : "", yards: 0,
+      tdType: o.tdType || ((event === "TD") ? _tdType(pos) : ""), yards: o.yards || 0,
     };
   }
-  function _fireCeleb(pid, event, ptsOverride) {
+  function _fireCeleb(pid, event, o) {
     if (!_active || !_container || typeof root.mountTDCelebration !== "function") return;
     _celebrating = true;
     root.mountTDCelebration(_container, Object.assign({ dismissMs: 7500, onDone: function () {
       _celebrating = false;
       if (_active && _lastM) _render(_lastM[0], _lastM[1]);   // restore the scoreboard once the takeover ends
-    } }, _playerCelebData(pid, event, ptsOverride)));
+    } }, _playerCelebData(pid, event, o)));
   }
-  // Watch my starters' stats each refresh; when a TD / FG / INT increments, fire the player celebration once.
-  function _checkLiveScores(myM) {
-    if (!myM || _celebrating) return;
-    const st = myM.starters || [], sp = myM.starters_points || [];
-    let fire = null;
-    for (let i = 0; i < st.length; i++) {
-      const pid = st[i]; if (!pid || pid === "0") continue;
-      const pos = _resolve(pid).pos || "", s = (_stats && _stats[pid]) || {};
-      const cur = {
-        td: (s.rush_td || 0) + (s.rec_td || 0) + (s.pass_td || 0),
-        fgm: s.fgm || 0, int: pos === "DEF" ? (s.int || 0) : 0, pts: sp[i] || 0,
-      };
-      const prev = _prevScore[pid];
-      if (prev && !fire) {
-        const dp = Math.round((cur.pts - prev.pts) * 10) / 10;
-        if (pos !== "DEF" && pos !== "K" && cur.td > prev.td) fire = { pid: pid, event: "TD", pts: dp > 0 ? dp : null };
-        else if (pos === "K" && cur.fgm > prev.fgm) fire = { pid: pid, event: "FG", pts: dp > 0 ? dp : null };
-        else if (pos === "DEF" && cur.int > prev.int) fire = { pid: pid, event: "INT", pts: dp > 0 ? dp : null };
-      }
-      _prevScore[pid] = cur;
+
+  // ── Live TD/FG watch off ESPN scoring plays (quick + accurate; matched to my roster) ──────────────
+  function _normName(s) { return (s || "").toLowerCase().replace(/\b(jr|sr|ii|iii|iv|v)\b/g, "").replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim(); }
+  function _parsePlay(text) {
+    if (!text) return { scorer: "", passer: "", yards: 0, tdType: "RUSH TD", isFG: false };
+    const clean = text.replace(/\s*\(.*?\)\s*$/g, "").trim();
+    const m = clean.match(/^(.+?)\s+(\d+)\s+Yd\s+(.*)/i);
+    let scorer = "", passer = "", yards = 0, tdType = "RUSH TD", isFG = false;
+    if (m) {
+      scorer = m[1].trim(); yards = parseInt(m[2], 10);
+      const verb = m[3].toLowerCase();
+      const pm = clean.match(/pass from (.+)$/i);
+      if (/field goal/i.test(verb)) { isFG = true; tdType = "FG"; }
+      else if (/pass from/i.test(verb)) { tdType = "REC TD"; if (pm) passer = pm[1].trim(); }
+      else if (/run|rush/i.test(verb)) tdType = "RUSH TD";
+      else if (/pass/i.test(verb)) tdType = "PASS TD";
     }
-    if (fire) _fireCeleb(fire.pid, fire.event, fire.pts);
+    return { scorer: scorer, passer: passer, yards: yards, tdType: tdType, isFG: isFG };
+  }
+  function _matchMine(name, wantK) {
+    if (!name) return null;
+    const n = _normName(name);
+    for (const p of _myOff) {
+      if (wantK && p.pos !== "K") continue;
+      if (!wantK && p.pos === "K") continue;
+      const pn = _normName(p.name);
+      if (pn === n || pn.endsWith(n) || n.endsWith(pn)) return p;
+    }
+    return null;
+  }
+  async function _watchTDs() {
+    if (!_active || _celebrating || !_myOff.length) return;
+    try {
+      const d = await _json("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?_=" + Date.now());
+      const myTeams = {}; _myOff.forEach(function (p) { if (p.team) myTeams[_espnAbbr(p.team)] = 1; });
+      for (const e of (d.events || [])) {
+        const comp = (e.competitions || [])[0] || {};
+        if ((((comp.status || e.status || {}).type) || {}).state !== "in") continue;   // live only
+        const cs = comp.competitors || [];
+        if (!cs.some(function (c) { return myTeams[(c.team && c.team.abbreviation || "").toLowerCase()]; })) continue;
+        const total = cs.reduce(function (s, c) { return s + (parseInt(c.score || 0, 10)); }, 0);
+        const prev = _lastGameScore[e.id]; _lastGameScore[e.id] = total;
+        if (prev != null && total <= prev) continue;   // no new points → skip the summary fetch
+        const sum = await _json("https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=" + e.id + "&_=" + Date.now());
+        for (const play of (sum.scoringPlays || [])) {
+          const key = e.id + ":" + (play.id || play.sequenceNumber || play.text);
+          if (_seenPlays[key]) continue;
+          _seenPlays[key] = true;
+          if (!_tdBaseline) continue;   // first pass just marks existing plays as seen
+          const st = (play.scoringType && play.scoringType.abbreviation) || (play.type && play.type.abbreviation) || "";
+          if (st !== "TD" && st !== "FG") continue;
+          const pp = _parsePlay(play.text);
+          const mScorer = _matchMine(pp.scorer, pp.isFG);
+          const mPasser = (!pp.isFG && pp.passer) ? _matchMine(pp.passer, false) : null;
+          if (mScorer && !_celebrating) _fireCeleb(mScorer.pid, pp.isFG ? "FG" : "TD", { yards: pp.yards, tdType: pp.isFG ? "" : pp.tdType });
+          else if (mPasser && mPasser.pos === "QB" && !_celebrating) _fireCeleb(mPasser.pid, "TD", { yards: pp.yards, tdType: "PASS TD" });
+        }
+      }
+      _tdBaseline = true;
+    } catch (_) { /* transient */ }
   }
 
   let _preview = false, _previewTimer = null;
