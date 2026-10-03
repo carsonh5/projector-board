@@ -232,6 +232,14 @@
     const dr=data.drives||{};
     const drive=dr.current || (dr.previous&&dr.previous.length? dr.previous[dr.previous.length-1] : null);
     renderScore(comp, drive);
+    if(_opts.onFrame){   // report THIS (delayed) snapshot so the host scoreboard stays frame-locked to the ball
+      const comps=comp.competitors||[];
+      const away=comps.find(function(c){return c.homeAway==="away";})||{}, home=comps.find(function(c){return c.homeAway==="home";})||{};
+      const type=(comp.status||{}).type||{};
+      _opts.onFrame({ state:type.state||"", detail:type.shortDetail||type.description||"",
+        dd: drive?ddShort(drive):"", aScore:away.score, hScore:home.score,
+        possId: (drive&&drive.team)?String(drive.team.id):null });
+    }
     if(!drive){ clearField(); return; }   // scoreboard-only; never fall back to other games (Colorado-only scene)
     const sig=String(((drive.team||{}).id)||"")+"|"+((drive.plays||[]).length)+"|"+(drive.displayResult||"");
     renderDrive(drive, animate && sig!==_lastSig);

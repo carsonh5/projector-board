@@ -1021,10 +1021,10 @@ function renderFantasyScene(){
 }
 /* ===== FIELD SIM scene — full-field drive/play visualization in the main box (module: fieldsim.js) =====
    Main box = animated field (ball + run/pass colored play segments); ticker band = that game's scoreboard. */
-var _fsEvent=null, _fsDemo=false, _fsMounted=false;
+var _fsEvent=null, _fsDemo=false, _fsMounted=false, _fsCU=null, _fsFrame=null;
 function exitFieldSim(){
   if(_fsMounted){ try{ stopFieldSim(); }catch(e){} _fsMounted=false; }
-  _fsEvent=null; _fsDemo=false;
+  _fsEvent=null; _fsDemo=false; _fsCU=null; _fsFrame=null;
   var tk=document.getElementById("t-ticker"); if(tk){ tk.style.cssText=""; }   // drop the scoreboard positioning; marquee rebuilds
   _tkStructSig=""; _lastTicker="";
   document.body.classList.remove("fieldsim");
@@ -1033,9 +1033,12 @@ function exitFieldSim(){
    LEFT  = per team [timeouts | logo | abbr | score]  (two rows: away over home)
    MID   = down & distance
    RIGHT = clock / quarter (or kickoff time) */
-function drawFieldScoreboard(g){
+/* g = the board's Colorado game (logos/abbr/kickoff/geometry); f = the field module's current
+   DELAYED frame (scores/clock/down&distance) — using f keeps the scoreboard in sync with the ball. */
+function drawFieldScoreboard(g, f){
   if(typeof _tkAnim!=="undefined" && _tkAnim){ try{ _tkAnim.cancel(); }catch(e){} _tkAnim=null; }
   var tk=document.getElementById("t-ticker"); if(!tk) return;
+  var st=(f&&f.state)?f.state:g.state;
   tk.style.cssText="position:absolute;inset:0;transform:none;display:block;overflow:hidden;";
   tk.replaceChildren();
   var gAl=(Z&&Z.gA&&Z.gA.l!=null)?Z.gA.l:44, gAr=(Z&&Z.gA&&Z.gA.r!=null)?Z.gA.r:54;
@@ -1056,7 +1059,7 @@ function drawFieldScoreboard(g){
     return s; }
   /* LEFT panel: both teams side by side (away – home) */
   var left=panel(0, gAl); left.style.gap="1.6vw";
-  var sA=(g.state==="pre")?"":g.aS, sH=(g.state==="pre")?"":g.hS;
+  var sA=(st==="pre")?"":(f?f.aScore:g.aS), sH=(st==="pre")?"":(f?f.hScore:g.hS);
   left.appendChild(team(g.aAbbr, g.aLogo, sA));
   var sep=document.createElement("span"); sep.textContent="–";
   sep.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4vh;color:#6a6f76;"; left.appendChild(sep);
@@ -1064,13 +1067,13 @@ function drawFieldScoreboard(g){
   var mid=panel(100-gAr, gBl-(100-gAr));
   var dd=document.createElement("span");
   dd.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#FFE84D;letter-spacing:0.03em;white-space:nowrap;text-align:center;";
-  dd.textContent = g.state==="in" ? (g.dd||"") : (g.state==="pre" ? "KICKOFF" : "FINAL");
+  dd.textContent = st==="in" ? ((f?f.dd:g.dd)||"") : (st==="pre" ? "KICKOFF" : "FINAL");
   mid.appendChild(dd);
   var right=panel(100-gBr, gBr);
   var tm=document.createElement("span");
   tm.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.4vh;white-space:nowrap;text-align:center;letter-spacing:0.02em;color:"+
-    (g.state==="in"?"#FF6A00":(g.state==="pre"?"#35E0E0":"#d8dce2"))+";";
-  tm.textContent = g.state==="in" ? (g.detail||"") : (g.state==="pre" ? (g.start||"") : "FINAL");
+    (st==="in"?"#FF6A00":(st==="pre"?"#35E0E0":"#d8dce2"))+";";
+  tm.textContent = st==="in" ? ((f?f.detail:g.detail)||"") : (st==="pre" ? (g.start||"") : "FINAL");
   right.appendChild(tm);
 }
 function renderFieldScene(){
@@ -1091,11 +1094,13 @@ function renderFieldScene(){
       var m=document.createElement("div"); m.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:3vh;color:#FFE84D;letter-spacing:0.03em;"; m.textContent="COLORADO — NO GAME THIS WEEK"; tkn.appendChild(m); }
     return;
   }
-  drawFieldScoreboard(cu);   // refresh the scoreboard every render cycle with live data
+  _fsCU=cu; drawFieldScoreboard(cu, _fsFrame);   // logos/layout from cu; numbers from the field's delayed frame (synced to the ball)
   var demo=(cu.state==="post"), eid=cu.id;   // live -> real sim; final -> replay the Buffs' game; pre -> waiting
   if(_fsEvent!==eid || _fsDemo!==demo){
-    _fsEvent=eid; _fsDemo=demo; _fsMounted=true;
-    mountFieldSim(document.getElementById("fieldsim"), eid, { demo:demo, onError:function(){} });
+    _fsEvent=eid; _fsDemo=demo; _fsMounted=true; _fsFrame=null;
+    mountFieldSim(document.getElementById("fieldsim"), eid, { demo:demo,
+      onFrame:function(fr){ _fsFrame=fr; if(_fsCU) drawFieldScoreboard(_fsCU, fr); },
+      onError:function(){} });
   }
 }
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
