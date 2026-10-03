@@ -697,7 +697,7 @@ function promoteGames(force){
 /* score change: feature-game touchdown => full takeover; otherwise the flash */
 var _tdActive=false, _tickerSaved="", _spotlightId=null;
 function onScore(g, side, delta){
-  if(SCENE==="fantasy"||SCENE==="tddemo") return;   // fantasy has its own player-specific celebration; no generic team confetti here
+  if(SCENE==="fantasy"||SCENE==="tddemo"||SCENE==="field") return;   // these scenes suppress the generic cross-game TD takeover/flash
   var col=side==="away"?g.aTC.bg:g.hTC.bg, abbr=side==="away"?g.aAbbr:g.hAbbr;
   if(delta>=6 && (SCENE==="feature"||SCENE==="live") && g.id===_spotlightId && !_tdActive && typeof mountTDCelebration==="function"){
     _tdActive=true;
@@ -1025,36 +1025,82 @@ var _fsEvent=null, _fsDemo=false, _fsMounted=false;
 function exitFieldSim(){
   if(_fsMounted){ try{ stopFieldSim(); }catch(e){} _fsMounted=false; }
   _fsEvent=null; _fsDemo=false;
-  var tk=document.getElementById("t-ticker"); if(tk){ tk.style.transform=""; tk.style.width=""; tk.style.justifyContent=""; }
-  _tkStructSig=""; _lastTicker="";   // force the marquee to rebuild when another scene takes the ticker back
+  var tk=document.getElementById("t-ticker"); if(tk){ tk.style.cssText=""; }   // drop the scoreboard positioning; marquee rebuilds
+  _tkStructSig=""; _lastTicker="";
   document.body.classList.remove("fieldsim");
+}
+/* Colorado scoreboard laid out across the three ticker door panels:
+   LEFT  = per team [timeouts | logo | abbr | score]  (two rows: away over home)
+   MID   = down & distance
+   RIGHT = clock / quarter (or kickoff time) */
+function drawFieldScoreboard(g){
+  if(typeof _tkAnim!=="undefined" && _tkAnim){ try{ _tkAnim.cancel(); }catch(e){} _tkAnim=null; }
+  var tk=document.getElementById("t-ticker"); if(!tk) return;
+  tk.style.cssText="position:absolute;inset:0;transform:none;display:block;overflow:hidden;";
+  tk.replaceChildren();
+  var gAl=(Z&&Z.gA&&Z.gA.l!=null)?Z.gA.l:44, gAr=(Z&&Z.gA&&Z.gA.r!=null)?Z.gA.r:54;
+  var gBr=(Z&&Z.gB&&Z.gB.r!=null)?Z.gB.r:23, gBl=(Z&&Z.gB&&Z.gB.l!=null)?Z.gB.l:72;
+  function panel(l,w,align){ var d=document.createElement("div");
+    d.style.cssText="position:absolute;top:0;bottom:0;left:"+l+"vw;width:"+w+"vw;display:flex;flex-direction:column;"+
+      "align-items:"+(align||"center")+";justify-content:center;overflow:hidden;padding:0 0.8vw;box-sizing:border-box;";
+    tk.appendChild(d); return d; }
+  /* timeouts: three horizontal bars stacked vertically; remaining = bright gold */
+  function tos(n){ var c=document.createElement("div");
+    c.style.cssText="display:flex;flex-direction:column;justify-content:center;gap:0.5vh;flex:0 0 auto;width:1.5vw;";
+    var k=(n==null)?3:Math.max(0,Math.min(3,n));
+    for(var i=0;i<3;i++){ var b=document.createElement("div");
+      b.style.cssText="height:0.42vh;width:100%;border-radius:1px;background:"+(i<k?"#FFE84D":"#3a3f46")+";"; c.appendChild(b); }
+    return c; }
+  function row(abbr,logo,score,to){ var r=document.createElement("div");
+    r.style.cssText="display:flex;align-items:center;gap:0.8vw;height:48%;";
+    r.appendChild(tos(to));
+    var im=document.createElement("img"); im.src=logo||""; im.alt="";
+    im.style.cssText="height:4.4vh;width:4.4vh;object-fit:contain;flex:0 0 auto;";
+    im.onerror=function(){ this.style.visibility="hidden"; }; r.appendChild(im);
+    var ab=document.createElement("span"); ab.textContent=abbr||"";
+    ab.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:3.8vh;color:#fff;letter-spacing:0.02em;"; r.appendChild(ab);
+    var sc=document.createElement("span"); sc.textContent=(score==null?"":score);
+    sc.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.6vh;color:#fff;font-variant-numeric:tabular-nums;margin-left:auto;"; r.appendChild(sc);
+    return r; }
+  var left=panel(0, gAl, "stretch"); left.style.gap="0.6vh";
+  var sA=(g.state==="pre")?"":g.aS, sH=(g.state==="pre")?"":g.hS;
+  left.appendChild(row(g.aAbbr, g.aLogo, sA, g.aTO));
+  left.appendChild(row(g.hAbbr, g.hLogo, sH, g.hTO));
+  var mid=panel(100-gAr, gBl-(100-gAr));
+  var dd=document.createElement("span");
+  dd.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#FFE84D;letter-spacing:0.03em;white-space:nowrap;text-align:center;";
+  dd.textContent = g.state==="in" ? (g.dd||"") : (g.state==="pre" ? "KICKOFF" : "FINAL");
+  mid.appendChild(dd);
+  var right=panel(100-gBr, gBr);
+  var tm=document.createElement("span");
+  tm.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.4vh;white-space:nowrap;text-align:center;letter-spacing:0.02em;color:"+
+    (g.state==="in"?"#FF6A00":(g.state==="pre"?"#35E0E0":"#d8dce2"))+";";
+  tm.textContent = g.state==="in" ? (g.detail||"") : (g.state==="pre" ? (g.start||"") : "FINAL");
+  right.appendChild(tm);
 }
 function renderFieldScene(){
   exitHL(); exitPS(); exitStandings(); exitSchedule();
   document.body.classList.add("fieldsim"); document.body.classList.remove("cards","stacked");
+  document.getElementById("count").textContent="FIELD · COLORADO";
   if(typeof mountFieldSim!=="function"){ exitFieldSim(); noGames("Field module not loaded"); return; }
-  /* choose the game: featured team's game if set, else the highest-watch live game */
-  var g = (FEATURE.length && typeof bestGameFor==="function") ? bestGameFor(FEATURE[0]) : null;
-  var live = games.filter(function(x){return x.state==="in";}).sort(function(a,b){return b.watch-a.watch;});
-  if(!g || g.state!=="in"){ if(live[0]) g=live[0]; }
-  /* live game -> real sim; otherwise demo-replay a finished game so the board is never blank */
-  var eid=null, demo=false;
-  if(g && g.state==="in"){ eid=g.id; demo=false; }
-  else {
-    var post=games.filter(function(x){return x.state==="post";}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-    var d=(g && g.state==="post") ? g : post[0];
-    if(d){ eid=d.id; demo=true; }
-    else { exitFieldSim(); noGames("No game to run yet — the sim starts when a game is live"); return; }
+  /* COLORADO ONLY — this scene always tracks the Buffs (ESPN team id 38). */
+  var cu=null;
+  for(var i=0;i<games.length;i++){ var g=games[i];
+    if(String(g.aId)==="38"||String(g.hId)==="38"||_nrm(g.aAbbr)==="colo"||_nrm(g.hAbbr)==="colo"||_nrm(g.aLoc)==="colorado"||_nrm(g.hLoc)==="colorado"){ cu=g; break; } }
+  if(!cu){   // Buffs bye / no game in this week's slate: show the field art + a note, no sim
+    if(_fsMounted){ try{ stopFieldSim(); }catch(e){} _fsMounted=false; }
+    _fsEvent="none"; _fsDemo=false;
+    var fsEl=document.getElementById("fieldsim"); if(fsEl) fsEl.style.cssText="overflow:hidden;background:#0a0f0b url('field.svg') center/100% 100% no-repeat;";
+    if(typeof _tkAnim!=="undefined" && _tkAnim){ try{ _tkAnim.cancel(); }catch(e){} _tkAnim=null; }
+    var tkn=document.getElementById("t-ticker"); if(tkn){ tkn.style.cssText="position:absolute;inset:0;transform:none;display:flex;align-items:center;justify-content:center;"; tkn.replaceChildren();
+      var m=document.createElement("div"); m.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:3vh;color:#FFE84D;letter-spacing:0.03em;"; m.textContent="COLORADO — NO GAME THIS WEEK"; tkn.appendChild(m); }
+    return;
   }
-  document.getElementById("count").textContent = demo ? "FIELD · REPLAY" : "FIELD · LIVE";
+  drawFieldScoreboard(cu);   // refresh the scoreboard every render cycle with live data
+  var demo=(cu.state==="post"), eid=cu.id;   // live -> real sim; final -> replay the Buffs' game; pre -> waiting
   if(_fsEvent!==eid || _fsDemo!==demo){
     _fsEvent=eid; _fsDemo=demo; _fsMounted=true;
-    /* hand the ticker band to the scoreboard: cancel the marquee animation + center it statically */
-    if(typeof _tkAnim!=="undefined" && _tkAnim){ try{ _tkAnim.cancel(); }catch(e){} _tkAnim=null; }
-    var tk=document.getElementById("t-ticker"); if(tk){ tk.style.transform="none"; tk.style.width="100%"; tk.style.justifyContent="center"; tk.replaceChildren(); }
-    mountFieldSim(document.getElementById("fieldsim"), eid, { demo:demo, scoreEl:tk,
-      onEmpty:function(){ exitFieldSim(); SCENE="all"; showAll=true; FEATURE=[]; render(); },
-      onError:function(){} });
+    mountFieldSim(document.getElementById("fieldsim"), eid, { demo:demo, onError:function(){} });
   }
 }
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;

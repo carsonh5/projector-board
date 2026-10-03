@@ -38,16 +38,16 @@
   // field.svg coordinate system (measured from Carson's artwork)
   const VBW=1280, VBH=332, XG_L=106, XG_R=1172, YMID=166, SPAN=XG_R-XG_L;
 
-  // Projector-legible play colors (warm/bright win on a dim projector)
+  // High-contrast play colors tuned to read against the green turf
   const COL = {
-    run:  "#FFB000",                 // amber
-    pass: "#35E0E0",                 // cyan
-    inc:  "rgba(53,224,224,0.4)",    // faded cyan (incomplete)
-    sack: "#FF2400",                 // red (loss)
-    pen:  "#FFE84D",                 // gold
-    to:   "#FF2D95",                 // magenta (turnover)
-    st:   "#9aa0a6",                 // gray (special teams)
-    td:   "#2ECC40",                 // green accent on a scoring play
+    run:  "#FF2A1A",                 // red
+    pass: "#2438E6",                 // dark saturated blue
+    inc:  "rgba(36,56,230,0.5)",     // faded blue (incomplete pass)
+    sack: "#FF8A00",                 // orange (loss — distinct from the red run)
+    pen:  "#FFD400",                 // gold (also the first-down line)
+    to:   "#C026D3",                 // purple (turnover)
+    st:   "#e6e9ee",                 // near-white (special teams)
+    td:   "#ffffff",                 // white accent on a scoring play
   };
 
   let _wrap=null, _svg=null, _scoreEl=null, _active=false, _timer=null, _eventId=null;
@@ -89,11 +89,11 @@
       style:"position:absolute;inset:0;width:100%;height:100%;z-index:1;" });
     _svg=svg;
     svg.appendChild(_svgel("g",{ id:"fs-plays" }));
-    // first-down line
-    svg.appendChild(_svgel("line",{ id:"fs-first", x1:0,y1:20,x2:0,y2:VBH-20, stroke:COL.pen, "stroke-width":3,
+    // first-down line (full height, thick gold)
+    svg.appendChild(_svgel("line",{ id:"fs-first", x1:0,y1:0,x2:0,y2:VBH, stroke:COL.pen, "stroke-width":8,
       style:"opacity:0;transition:all .55s cubic-bezier(.34,.85,.3,1);" }));
-    // line of scrimmage
-    svg.appendChild(_svgel("line",{ id:"fs-los", x1:0,y1:14,x2:0,y2:VBH-14, stroke:"rgba(255,255,255,0.9)","stroke-width":2.2,
+    // line of scrimmage (full height)
+    svg.appendChild(_svgel("line",{ id:"fs-los", x1:0,y1:0,x2:0,y2:VBH, stroke:"rgba(255,255,255,0.95)","stroke-width":3.5,
       style:"transition:all .55s cubic-bezier(.34,.85,.3,1);" }));
     // ball (football) at the LOS
     const ball=_svgel("ellipse",{ id:"fs-ball", cx:XG_L, cy:YMID, rx:15, ry:9, fill:"#8a4b1f", stroke:"#f4e3c4",
@@ -124,7 +124,7 @@
           "stroke-dasharray":"7 7" }); layer.appendChild(tick);
       } else {
         const a=Math.min(x1,x2), b=Math.max(x1,x2), w=Math.max(7,b-a);
-        const seg=_svgel("rect",{ x:a, y:YMID-13, width:w, height:26, rx:9, fill:col, opacity: newest?0.97:0.4 });
+        const seg=_svgel("rect",{ x:a, y:YMID-13, width:w, height:26, rx:9, fill:col, opacity: newest?0.98:0.72 });
         if(newest){ seg.setAttribute("stroke","rgba(255,255,255,0.85)"); seg.setAttribute("stroke-width",1.6);
           if(animateNewest) seg.style.cssText="transform-box:fill-box;transform-origin:"+(x2<x1?"right":"left")+" center;animation:fs-grow .6s ease-out both;"; }
         layer.appendChild(seg);
@@ -169,43 +169,70 @@
     if(td){ label+="  TD"; col=COL.td; }
     return { label:label, col:col };
   }
+  function ddShort(drive){   // "3RD & 7" from the most recent play with a down
+    const plays=(drive&&drive.plays)||[];
+    for(let i=plays.length-1;i>=0;i--){ const t=((plays[i].start||{}).downDistanceText)||"";
+      const m=t.match(/^\s*(\d+\w*\s*&\s*\w+)/i); if(m) return m[1].toUpperCase(); }
+    return "";
+  }
+  /* Compact two-line scoreboard sized to live inside the ticker band (the host positions the
+     element in the bottom-left door panel). Line 1 = teams + scores; line 2 = clock · D&D · last play. */
   function renderScore(comp, drive){
     if(!_scoreEl) return;
     const comps=(comp&&comp.competitors)||[];
     const home=comps.find(function(t){return t.homeAway==="home";})||{}, away=comps.find(function(t){return t.homeAway==="away";})||{};
-    const st=(comp&&comp.status)||{}, type=st.type||{};
-    const hT=home.team||{}, aT=away.team||{};
+    const type=((comp&&comp.status)||{}).type||{};
     const posId = drive && drive.team ? String(drive.team.id) : null;
+    const stCol = type.state==="in"?"#FF6A00":(type.state==="pre"?"#35E0E0":"#d8dce2");
     _scoreEl.replaceChildren();
-    const box=_el("div","display:flex;align-items:center;justify-content:center;gap:1.1vw;width:100%;height:100%;"+
-      "font-family:'Oswald',sans-serif;font-weight:700;white-space:nowrap;");
-    function side(t,score){ const s=_el("span","display:inline-flex;align-items:center;gap:0.5vw;");
+    const wrap=_el("div","display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5vh;"+
+      "width:100%;height:100%;overflow:hidden;font-family:'Oswald',sans-serif;line-height:1;");
+    // line 1 — teams + scores, possession football on the team with the ball
+    const l1=_el("div","display:flex;align-items:center;justify-content:center;gap:0.9vw;white-space:nowrap;font-weight:700;");
+    function side(cp){ const t=cp.team||{}, s=_el("span","display:inline-flex;align-items:center;gap:0.45vw;");
       if(posId && String(t.id)===posId){ const fb=_el("span","font-size:3vh;"); fb.textContent="🏈"; s.appendChild(fb); }
-      const ab=_el("span","font-size:4.4vh;letter-spacing:0.02em;"); ab.textContent=(t.abbreviation||t.displayName||"").toUpperCase();
-      const sc=_el("span","font-size:4.8vh;font-variant-numeric:tabular-nums;color:#fff;"); sc.textContent=(score==null?"":score);
+      const ab=_el("span","font-size:4.6vh;letter-spacing:0.02em;color:#fff;"); ab.textContent=(t.abbreviation||t.displayName||"").toUpperCase();
+      const sc=_el("span","font-size:4.8vh;font-variant-numeric:tabular-nums;color:#fff;"); sc.textContent=(cp.score==null?"":cp.score);
       s.appendChild(ab); s.appendChild(sc); return s; }
-    box.appendChild(side(aT, away.score));
-    const sep=_el("span","font-size:3vh;color:#6a6f76;padding:0 0.3vw;"); sep.textContent="–"; box.appendChild(sep);
-    box.appendChild(side(hT, home.score));
-    const mid=_el("span","font-size:3.4vh;color:"+(type.state==="in"?"#FF6A00":(type.state==="pre"?"#35E0E0":"#d8dce2"))+";"+
-      "margin-left:1vw;letter-spacing:0.02em;"); mid.textContent=type.shortDetail||type.description||""; box.appendChild(mid);
+    l1.appendChild(side(away));
+    const sep=_el("span","font-size:3vh;color:#6a6f76;"); sep.textContent="–"; l1.appendChild(sep);
+    l1.appendChild(side(home));
+    wrap.appendChild(l1);
+    // line 2 — clock/quarter · down&distance · last-play chip
+    const l2=_el("div","display:flex;align-items:center;justify-content:center;gap:0.7vw;white-space:nowrap;"+
+      "font-family:'Barlow Condensed',sans-serif;font-weight:700;");
+    const clk=_el("span","font-size:3.2vh;color:"+stCol+";letter-spacing:0.02em;"); clk.textContent=type.shortDetail||type.description||""; l2.appendChild(clk);
+    const dd=ddShort(drive);
+    if(dd){ const s2=_el("span","font-size:2.8vh;color:#555b63;"); s2.textContent="·"; l2.appendChild(s2);
+      const d=_el("span","font-size:3vh;color:#FFD400;"); d.textContent=dd; l2.appendChild(d); }
     const chip=lastPlayChip(drive);
-    if(chip){ const c=_el("span","font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:3.2vh;"+
-        "margin-left:1vw;padding:0.1vh 0.9vw;border-radius:0.5vh;background:rgba(255,255,255,0.06);color:"+chip.col+";letter-spacing:0.03em;");
-      c.textContent=chip.label; box.appendChild(c); }
-    _scoreEl.appendChild(box);
+    if(chip){ const s3=_el("span","font-size:2.8vh;color:#555b63;"); s3.textContent="·"; l2.appendChild(s3);
+      const c=_el("span","font-size:3vh;color:"+chip.col+";"); c.textContent=chip.label; l2.appendChild(c); }
+    wrap.appendChild(l2);
+    _scoreEl.appendChild(wrap);
   }
   function teamMetaFromHeader(comp){ const m={};
     (((comp||{}).competitors)||[]).forEach(function(c){ const t=c.team||{}; m[String(t.id)]={ abbr:t.abbreviation||"", tc:_tc(t.color) }; });
     return m; }
 
   // ── paint one frame ──────────────────────────────────────────────────────────
+  function clearField(){   // pre-game / between drives: reset markers, no segments
+    if(!_svg) return;
+    const layer=_svg.querySelector("#fs-plays"); if(layer) layer.replaceChildren();
+    const midX=xAt(50), los=_svg.querySelector("#fs-los"), ball=_svg.querySelector("#fs-ball"),
+          lace=_svg.querySelector("#fs-lace"), first=_svg.querySelector("#fs-first");
+    if(los){ los.setAttribute("x1",midX); los.setAttribute("x2",midX); }
+    if(ball){ ball.setAttribute("cx",midX); }
+    if(lace){ lace.setAttribute("x1",midX-5); lace.setAttribute("x2",midX+5); }
+    if(first){ first.style.opacity="0"; }
+    _lastSig="";
+  }
   function paint(data, animate){
     const comp=((data.header||{}).competitions||[])[0]||{};
     const dr=data.drives||{};
     const drive=dr.current || (dr.previous&&dr.previous.length? dr.previous[dr.previous.length-1] : null);
     renderScore(comp, drive);
-    if(!drive){ if(_opts.onEmpty) _opts.onEmpty(); return; }
+    if(!drive){ clearField(); return; }   // scoreboard-only; never fall back to other games (Colorado-only scene)
     const sig=String(((drive.team||{}).id)||"")+"|"+((drive.plays||[]).length)+"|"+(drive.displayResult||"");
     renderDrive(drive, animate && sig!==_lastSig);
     _lastSig=sig;
