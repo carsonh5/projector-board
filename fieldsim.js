@@ -52,7 +52,7 @@
 
   let _wrap=null, _svg=null, _scoreEl=null, _active=false, _timer=null, _eventId=null;
   let _demo=false, _demoTimer=null, _opts={};
-  let _lastSig="";
+  let _lastSig="", _snaps=[], _renderTimer=null, _lastPickT=null;   // broadcast-delay buffer
 
   function _el(tag, css, cls){ const e=document.createElement(tag); if(css) e.style.cssText=css; if(cls) e.className=cls; return e; }
   function _svgel(tag, attrs){ const e=document.createElementNS(SVGNS, tag); if(attrs) for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
@@ -238,14 +238,28 @@
     _lastSig=sig;
   }
 
-  async function tick(){
+  async function tick(){   // fetch a summary snapshot into the delay buffer
     if(!_active||_demo) return;
     try{
       const res=await fetch(_sumUrl(_eventId), {cache:"no-store"});
       if(!res.ok) throw new Error("summary HTTP "+res.status);
       const data=await res.json(); if(!_active) return;
-      paint(data, true);
+      _snaps.push({ t:Date.now(), data:{ header:data.header, drives:data.drives } });
+      const keep=Date.now()-130000; while(_snaps.length>2 && _snaps[0].t<keep) _snaps.shift();   // ~130s history
     }catch(err){ if(_opts.onError) _opts.onError(err); }
+  }
+  /* Broadcast delay: render the snapshot from window.BOARD_DELAY_SEC ago so the sim matches a
+     delayed TV/stream instead of spoiling plays. Runs every second; picks the newest snapshot
+     at least `delay` old (or the oldest buffered until the buffer fills). */
+  function paintLoop(){
+    if(!_active||_demo||!_snaps.length) return;
+    const delay=(typeof window!=="undefined" && +window.BOARD_DELAY_SEC)||0;
+    const cutoff=Date.now()-delay*1000;
+    let pick=_snaps[0];
+    for(let i=0;i<_snaps.length;i++){ if(_snaps[i].t<=cutoff) pick=_snaps[i]; }
+    if(pick.t===_lastPickT) return;   // same snapshot already shown
+    _lastPickT=pick.t;
+    paint(pick.data, true);
   }
 
   // ── demo: replay a real completed game's drives/plays over time ───────────────
@@ -270,16 +284,18 @@
   function mountFieldSim(container, eventId, opts){
     opts=opts||{}; _opts=opts; stopFieldSim();
     _wrap=container; _scoreEl=opts.scoreEl||null; _active=true; _eventId=eventId;
-    _demo=!!opts.demo; _lastSig="";
+    _demo=!!opts.demo; _lastSig=""; _snaps=[]; _lastPickT=null;
     buildOverlay(container);
     if(_demo){ runDemo(eventId); return; }
-    tick(); _timer=setInterval(tick, 8000);
+    tick(); _timer=setInterval(tick, 8000);           // fetch into the buffer
+    _renderTimer=setInterval(paintLoop, 1000);        // render the delayed snapshot
   }
   function stopFieldSim(){
     _active=false; _demo=false;
     if(_timer){ clearInterval(_timer); _timer=null; }
+    if(_renderTimer){ clearInterval(_renderTimer); _renderTimer=null; }
     if(_demoTimer){ clearTimeout(_demoTimer); _demoTimer=null; }
-    _wrap=null; _svg=null; _scoreEl=null; _lastSig="";
+    _snaps=[]; _lastPickT=null; _wrap=null; _svg=null; _scoreEl=null; _lastSig="";
   }
 
   root.mountFieldSim = mountFieldSim;

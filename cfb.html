@@ -1574,6 +1574,7 @@ async function pullZones(){ try{
   if(sk!==_lastSceneKey){ _lastSceneKey=sk; applyScene(row.scene,row.feature_team,row.feature_matchup,row.feature_list,row.feat_when,row.feat_matchup,row.ticker); }
   const _ds=row.delay_sec|0;                          // broadcast delay (seconds) from voice/remote
   if(_ds!==DELAY_SEC){ DELAY_SEC=_ds; updateDelayBadge(); promoteGames(true); }
+  if(typeof window!=="undefined") window.BOARD_DELAY_SEC=DELAY_SEC;   // field sim delays its own summary feed to match
   const dm=row.demo|0;                               // remote demo: push a canned field example to the projector
   if(dm!==demoIx){ demoIx=dm; DEMO=(dm>=1&&dm<=DEMOS.length)?DEMOS[dm-1]:null; render(); }
 }catch(e){} }
