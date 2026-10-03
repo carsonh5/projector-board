@@ -555,16 +555,18 @@ function _ymd(x){ return ""+x.getFullYear()+String(x.getMonth()+1).padStart(2,"0
 function _fbDate(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1); return _ymd(d); }
 function _dayKey(dt){ const x=new Date(dt); if(x.getHours()<6) x.setDate(x.getDate()-1); return _ymd(x); }
 /* ===== LEAGUE: the board renders either college football or the NFL — same code, different ESPN
-   endpoint. LEAGUE is driven by board_sync.league (voice/remote). The NFL scoreboard accepts the
-   same ?dates= range, so only the path segment changes. */
+   endpoint. LEAGUE is driven by board_sync.league (voice/remote); only the path segment changes. */
 let LEAGUE = "cfb";                                   // "cfb" | "nfl"
 function leaguePath(){ return LEAGUE==="nfl" ? "nfl" : "college-football"; }   // ESPN api path segment
 function logoLeaguePath(){ return LEAGUE==="nfl" ? "nfl" : "ncaa"; }           // ESPN team-logo CDN path segment
 if(typeof window!=="undefined") window.BOARD_LEAGUE = leaguePath();            // shared with the sub-modules (schedule/highlights/etc.)
-/* pull the whole week (range works in one call) so featuring ANY team finds its game — last final or next upcoming */
-function weekRange(){ const d=new Date(); if(d.getHours()<6) d.setDate(d.getDate()-1);
-  const s=new Date(d); s.setDate(s.getDate()-7); const e=new Date(d); e.setDate(e.getDate()+8); return _ymd(s)+"-"+_ymd(e); }
-function sbUrl(){ return "https://site.api.espn.com/apis/site/v2/sports/football/"+leaguePath()+"/scoreboard?dates="+weekRange()+"&limit=300"; }
+/* Pull the current week's FULL slate in one call. ESPN dropped support for dates=YYYYMMDD-YYYYMMDD
+   ranges (now HTTP 400) and its bare scoreboard returns only a ~16-game featured subset. One request
+   gets the whole current week: CFB via groups=80 (FBS slate, Thu–Sat); NFL's default already returns
+   the full week (Thu–Mon). No date param or week-number lookup — featuring a team still finds its
+   game and the ticker's rest-of-week view stays full. */
+function sbUrl(){ const u="https://site.api.espn.com/apis/site/v2/sports/football/"+leaguePath()+"/scoreboard?limit=300";
+  return LEAGUE==="nfl" ? u : u+"&groups=80"; }
 
 function tick(){ const n=new Date(); let h=n.getHours(); const m=String(n.getMinutes()).padStart(2,"0");
   const ap=h>=12?"PM":"AM"; h=h%12||12; document.getElementById("clock").textContent=`${h}:${m} ${ap}`;
@@ -1245,7 +1247,7 @@ function tickerLabelFor(pool, mode){
 }
 function renderTicker(){
   const mode=TICKER_MODE||"all";
-  /* draw from the WHOLE WEEK (games spans -3..+8 days), so the ticker is full any day —
+  /* draw from the WHOLE WEEK (games spans the current week's slate), so the ticker is full any day —
      not just the handful of games happening today. */
   const live=games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch);
   const pre =games.filter(g=>g.state==="pre").sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
