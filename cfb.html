@@ -1040,32 +1040,27 @@ function drawFieldScoreboard(g){
   tk.replaceChildren();
   var gAl=(Z&&Z.gA&&Z.gA.l!=null)?Z.gA.l:44, gAr=(Z&&Z.gA&&Z.gA.r!=null)?Z.gA.r:54;
   var gBr=(Z&&Z.gB&&Z.gB.r!=null)?Z.gB.r:23, gBl=(Z&&Z.gB&&Z.gB.l!=null)?Z.gB.l:72;
-  function panel(l,w,align){ var d=document.createElement("div");
-    d.style.cssText="position:absolute;top:0;bottom:0;left:"+l+"vw;width:"+w+"vw;display:flex;flex-direction:column;"+
-      "align-items:"+(align||"center")+";justify-content:center;overflow:hidden;padding:0 0.8vw;box-sizing:border-box;";
+  function panel(l,w){ var d=document.createElement("div");
+    d.style.cssText="position:absolute;top:0;bottom:0;left:"+l+"vw;width:"+w+"vw;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 0.8vw;box-sizing:border-box;";
     tk.appendChild(d); return d; }
-  /* timeouts: three horizontal bars stacked vertically; remaining = bright gold */
-  function tos(n){ var c=document.createElement("div");
-    c.style.cssText="display:flex;flex-direction:column;justify-content:center;gap:0.5vh;flex:0 0 auto;width:1.5vw;";
-    var k=(n==null)?3:Math.max(0,Math.min(3,n));
-    for(var i=0;i<3;i++){ var b=document.createElement("div");
-      b.style.cssText="height:0.42vh;width:100%;border-radius:1px;background:"+(i<k?"#FFE84D":"#3a3f46")+";"; c.appendChild(b); }
-    return c; }
-  function row(abbr,logo,score,to){ var r=document.createElement("div");
-    r.style.cssText="display:flex;align-items:center;gap:0.8vw;height:48%;";
-    r.appendChild(tos(to));
+  /* one team = logo + abbr + score (horizontal) */
+  function team(abbr,logo,score){ var s=document.createElement("div");
+    s.style.cssText="display:flex;align-items:center;gap:0.7vw;";
     var im=document.createElement("img"); im.src=logo||""; im.alt="";
-    im.style.cssText="height:4.4vh;width:4.4vh;object-fit:contain;flex:0 0 auto;";
-    im.onerror=function(){ this.style.visibility="hidden"; }; r.appendChild(im);
+    im.style.cssText="height:6vh;width:6vh;object-fit:contain;flex:0 0 auto;";
+    im.onerror=function(){ this.style.visibility="hidden"; }; s.appendChild(im);
     var ab=document.createElement("span"); ab.textContent=abbr||"";
-    ab.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:3.8vh;color:#fff;letter-spacing:0.02em;"; r.appendChild(ab);
+    ab.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.4vh;color:#fff;letter-spacing:0.02em;"; s.appendChild(ab);
     var sc=document.createElement("span"); sc.textContent=(score==null?"":score);
-    sc.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.6vh;color:#fff;font-variant-numeric:tabular-nums;margin-left:auto;"; r.appendChild(sc);
-    return r; }
-  var left=panel(0, gAl, "stretch"); left.style.gap="0.6vh";
+    sc.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:6vh;color:#fff;font-variant-numeric:tabular-nums;"; s.appendChild(sc);
+    return s; }
+  /* LEFT panel: both teams side by side (away – home) */
+  var left=panel(0, gAl); left.style.gap="1.6vw";
   var sA=(g.state==="pre")?"":g.aS, sH=(g.state==="pre")?"":g.hS;
-  left.appendChild(row(g.aAbbr, g.aLogo, sA, g.aTO));
-  left.appendChild(row(g.hAbbr, g.hLogo, sH, g.hTO));
+  left.appendChild(team(g.aAbbr, g.aLogo, sA));
+  var sep=document.createElement("span"); sep.textContent="–";
+  sep.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4vh;color:#6a6f76;"; left.appendChild(sep);
+  left.appendChild(team(g.hAbbr, g.hLogo, sH));
   var mid=panel(100-gAr, gBl-(100-gAr));
   var dd=document.createElement("span");
   dd.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#FFE84D;letter-spacing:0.03em;white-space:nowrap;text-align:center;";
