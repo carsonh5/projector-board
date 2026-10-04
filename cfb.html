@@ -1021,10 +1021,11 @@ function renderFantasyScene(){
 }
 /* ===== FIELD SIM scene — full-field drive/play visualization in the main box (module: fieldsim.js) =====
    Main box = animated field (ball + run/pass colored play segments); ticker band = that game's scoreboard. */
-var _fsEvent=null, _fsDemo=false, _fsMounted=false, _fsCU=null, _fsFrame=null;
+var _fsEvent=null, _fsDemo=false, _fsMounted=false, _fsCU=null, _fsFrame=null, _fsMode="";
 function exitFieldSim(){
   if(_fsMounted){ try{ stopFieldSim(); }catch(e){} _fsMounted=false; }
-  _fsEvent=null; _fsDemo=false; _fsCU=null; _fsFrame=null;
+  if(_fsMode==="stats"){ try{ stopPlayerStats(); }catch(e){} }
+  _fsEvent=null; _fsDemo=false; _fsCU=null; _fsFrame=null; _fsMode="";
   var tk=document.getElementById("t-ticker"); if(tk){ tk.style.cssText=""; }   // drop the scoreboard positioning; marquee rebuilds
   _tkStructSig=""; _lastTicker="";
   document.body.classList.remove("fieldsim");
@@ -1076,7 +1077,7 @@ function drawFieldScoreboard(g, f){
   var mid=panel(100-gAr, gBl-(100-gAr)); mid.style.gap="0.8vw";
   var dd=document.createElement("span");
   dd.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#FFE84D;letter-spacing:0.03em;white-space:nowrap;";
-  dd.textContent = st==="in" ? ((f?f.dd:g.dd)||"") : (st==="pre" ? "KICKOFF" : "FINAL");
+  dd.textContent = (st==="in" && /half/i.test(g.detail||"")) ? "" : (st==="in" ? ((f?f.dd:g.dd)||"") : (st==="pre" ? "KICKOFF" : "FINAL"));
   mid.appendChild(dd);
   if(st==="in" && f && f.spot){
     var sep2=document.createElement("span"); sep2.textContent="·";
@@ -1103,7 +1104,22 @@ function renderFieldScene(){
       var m=document.createElement("div"); m.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:3vh;color:#FFE84D;letter-spacing:0.03em;"; m.textContent="COLORADO — NO GAME THIS WEEK"; tkn.appendChild(m); }
     return;
   }
-  _fsCU=cu; drawFieldScoreboard(cu, _fsFrame);   // logos/layout from cu; numbers from the field's delayed frame (synced to the ball)
+  _fsCU=cu;
+  /* HALFTIME — swap the field for the Buffs' player stats; back to the field for the 2nd half */
+  var isHalf = (cu.state==="in" && /half/i.test(cu.detail||""));
+  if(isHalf && typeof mountPlayerStats==="function"){
+    drawFieldScoreboard(cu, null);   // scoreboard shows "Halftime" + score (not a stale play clock)
+    document.getElementById("count").textContent="HALFTIME · STATS";
+    if(_fsMode!=="stats"){
+      _fsMode="stats";
+      try{ stopFieldSim(); }catch(e){} _fsMounted=false; _fsEvent=null; _fsFrame=null;
+      mountPlayerStats(document.getElementById("fieldsim"), cu.id, "Colorado", { onEmpty:function(){}, onError:function(){} });
+    }
+    return;
+  }
+  if(_fsMode==="stats"){ try{ stopPlayerStats(); }catch(e){} }   // leaving halftime -> rebuild the field below
+  _fsMode="field";
+  drawFieldScoreboard(cu, _fsFrame);   // logos/layout from cu; numbers from the field's delayed frame (synced to the ball)
   var demo=(cu.state==="post"), eid=cu.id;   // live -> real sim; final -> replay the Buffs' game; pre -> waiting
   if(_fsEvent!==eid || _fsDemo!==demo){
     _fsEvent=eid; _fsDemo=demo; _fsMounted=true; _fsFrame=null;
