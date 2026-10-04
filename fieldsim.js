@@ -122,14 +122,20 @@
   function computeState(lp, first0){
     const st={ ballTE:50, firstTE:null, dd:"", scored:false };
     if(!lp){ const s0=(first0&&first0.start)||{}; st.ballTE=(s0.yardsToEndzone!=null)?s0.yardsToEndzone:50; return st; }
+    const cat=playCat((lp.type&&lp.type.text)||"");
     const s=lp.start||{}, e=lp.end||{};
     const sYTE=s.yardsToEndzone, eYTE=(e.yardsToEndzone!=null)?e.yardsToEndzone:sYTE, D=s.down, dist=s.distance;
+    // turnover (INT/fumble): end spot flips to the other team's perspective -> don't compute; wait for the new drive
+    if(cat==="to"){ st.ballTE=(sYTE!=null)?sYTE:50; st.dd=""; st.firstTE=null; return st; }
     st.ballTE=(eYTE!=null)?eYTE:50;
     if(lp.scoringPlay || st.ballTE<=0){ st.scored=true; st.ballTE=Math.max(0,st.ballTE); return st; }
     if(sYTE!=null && dist!=null && D!=null){
       const lineToGain=sYTE-dist;
       if(eYTE<=lineToGain){ const nd=Math.min(10,eYTE); st.firstTE=eYTE-nd; st.dd="1ST & "+(st.firstTE<=0?"GOAL":nd); }
-      else if(D+1<=4){ st.firstTE=lineToGain; st.dd=ord(D+1)+" & "+(lineToGain<=0?"GOAL":(eYTE-lineToGain)); }
+      else if(D+1<=4){ const rem=eYTE-lineToGain;
+        if(rem>0 && rem<=35){ st.firstTE=lineToGain; st.dd=ord(D+1)+" & "+(lineToGain<=0?"GOAL":rem); }
+        else { st.firstTE=null; st.dd=""; }   // implausible distance (flipped spot / odd penalty) -> wait for new drive
+      }
       else { st.firstTE=null; st.dd=""; }   // 4th down not converted -> turnover on downs; wait for the new drive
     }
     return st;
