@@ -117,6 +117,18 @@
     if(te>=50) return (possAbbr||"")+" "+(100-te);   // on the possessing team's own side
     return (oppAbbr||"")+" "+te;                     // in opponent territory
   }
+  /* Clock taken OFF the last play (not the live status), so it's locked to the play lines: ESPN's
+     status clock runs ahead of the drive feed by the in-progress play, which the delay can't close. */
+  function playClock(drive, fallback){
+    const plays=(drive&&drive.plays)||[];
+    for(let i=plays.length-1;i>=0;i--){ const p=plays[i];
+      let clk=(p.clock&&p.clock.displayValue)||"";
+      if(!clk){ const m=((p.text)||"").match(/\((\d{1,2}:\d{2})\)/); if(m) clk=m[1]; }
+      const per=(p.period&&p.period.number)||null;
+      if(clk){ const o=per===1?"1st":per===2?"2nd":per===3?"3rd":per===4?"4th":(per?per+"th":""); return clk+(o?(" - "+o):""); }
+    }
+    return fallback||"";
+  }
   /* Current situation from ONE play so ball, line-to-gain and down&distance all agree: ball glued to
      the play's end; line-to-gain fixed for the series; D&D = the next snap. */
   function computeState(lp, first0){
@@ -295,7 +307,8 @@
               oppAbbr =(aId===pid?(home.team||{}).abbreviation:(away.team||{}).abbreviation);
         spot=spotText(st.ballTE, possAbbr, oppAbbr);
       }
-      _opts.onFrame({ state:type.state||"", detail:type.shortDetail||type.description||"",
+      _opts.onFrame({ state:type.state||"",
+        detail:(type.state==="in" && drive) ? playClock(drive, type.shortDetail||type.description||"") : (type.shortDetail||type.description||""),
         dd: st?st.dd:"", aScore:away.score, hScore:home.score,
         possId:(drive&&drive.team)?String(drive.team.id):null, spot:spot });
     }
