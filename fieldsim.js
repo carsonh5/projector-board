@@ -154,13 +154,16 @@
           "stroke-dasharray":"7 7" }); layer.appendChild(tick);
       } else {
         const a=Math.min(x1,x2), b=Math.max(x1,x2), w=Math.max(8,b-a);
-        const seg=_svgel("rect",{ x:a, y:YMID-13, width:w, height:26, rx:9, fill:col, opacity: newest?0.98:0.8,
+        // a loss (ball moved backward) drops to a lower track so it stands out, like a game's drive chart
+        const loss=(e.yardsToEndzone!=null && s.yardsToEndzone!=null && e.yardsToEndzone > s.yardsToEndzone+0.5);
+        const yTop=YMID-13+(loss?26:0);
+        const seg=_svgel("rect",{ x:a, y:yTop, width:w, height:26, rx:9, fill:col, opacity: newest?0.98:0.8,
           stroke: newest?"#ffffff":"#06100a", "stroke-width": newest?2.8:2 });   // outline every bar so adjacent plays stay distinct
         if(newest && animateNewest) seg.style.cssText="transform-box:fill-box;transform-origin:"+(x2<x1?"right":"left")+" center;animation:fs-grow .6s ease-out both;";
         layer.appendChild(seg);
         if(newest){
-          const dir=(x2>=x1)?1:-1;
-          const arr=_svgel("polygon",{ points:x2+","+YMID+" "+(x2-dir*16)+","+(YMID-14)+" "+(x2-dir*16)+","+(YMID+14),
+          const yc=yTop+13, dir=(x2>=x1)?1:-1;
+          const arr=_svgel("polygon",{ points:x2+","+yc+" "+(x2-dir*16)+","+(yc-14)+" "+(x2-dir*16)+","+(yc+14),
             fill: p.scoringPlay?COL.td:col, stroke:"#06100a", "stroke-width":1.2 }); layer.appendChild(arr);
         }
       }
@@ -268,8 +271,11 @@
     }
     const comps=comp.competitors||[];
     const away=comps.find(function(c){return c.homeAway==="away";})||{}, home=comps.find(function(c){return c.homeAway==="home";})||{};
-    // teams attack opposite end zones: AWAY attacks right, HOME attacks left
-    const attackRight = !!(drive && drive.team && String(drive.team.id)===String((away.team||{}).id));
+    // teams attack opposite end zones AND switch ends each quarter (Q2/Q4 flipped) — from the period
+    const period=(((comp.status)||{}).period)||((((comp.status)||{}).type)||{}).period||1;
+    const possIsAway=!!(drive && drive.team && String(drive.team.id)===String((away.team||{}).id));
+    const baseAwayRight=(period%2===1);   // odd quarters (Q1/Q3): away attacks right; even (Q2/Q4): flipped
+    const attackRight = possIsAway ? baseAwayRight : !baseAwayRight;
     let st=null;
     if(drive){ const sig=String(((drive.team||{}).id)||"")+"|"+((drive.plays||[]).length)+"|"+(drive.displayResult||"");
       st=renderDrive(drive, animate && sig!==_lastSig, attackRight); _lastSig=sig; }
