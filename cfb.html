@@ -1047,7 +1047,7 @@ function drawFieldScoreboard(g, f){
     d.style.cssText="position:absolute;top:0;bottom:0;left:"+l+"vw;width:"+w+"vw;display:flex;align-items:center;justify-content:"+(justify||"center")+";overflow:hidden;padding:0 1vw;box-sizing:border-box;";
     tk.appendChild(d); return d; }
   /* one team = logo + abbr + score (horizontal) */
-  function team(abbr,logo,score){ var s=document.createElement("div");
+  function team(abbr,logo,score,hasPoss){ var s=document.createElement("div");
     s.style.cssText="display:flex;align-items:center;gap:0.6vw;";
     var im=document.createElement("img"); im.src=logo||""; im.alt="";
     im.style.cssText="height:6vh;width:6vh;object-fit:contain;flex:0 0 auto;";
@@ -1056,14 +1056,18 @@ function drawFieldScoreboard(g, f){
     ab.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5.2vh;color:#fff;letter-spacing:0.02em;"; s.appendChild(ab);
     var sc=document.createElement("span"); sc.textContent=(score==null?"":score);
     sc.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:7vh;color:#fff;font-variant-numeric:tabular-nums;"; s.appendChild(sc);
+    if(hasPoss){ var dot=document.createElement("span");   // possession indicator
+      dot.style.cssText="width:1.8vh;height:1.8vh;border-radius:50%;background:#fff;flex:0 0 auto;margin-left:0.4vw;box-shadow:0 0 0.6vh rgba(255,255,255,0.6);";
+      s.appendChild(dot); }
     return s; }
   /* LEFT panel: teams + scores packed far-left, then the clock in yellow */
   var left=panel(0, gAl, "flex-start"); left.style.gap="1.2vw";
   var sA=(st==="pre")?"":(f?f.aScore:g.aS), sH=(st==="pre")?"":(f?f.hScore:g.hS);
-  left.appendChild(team(g.aAbbr, g.aLogo, sA));
+  var pid=(f&&f.possId!=null)?String(f.possId):"";
+  left.appendChild(team(g.aAbbr, g.aLogo, sA, pid===String(g.aId)));
   var sep=document.createElement("span"); sep.textContent="–";
   sep.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4vh;color:#6a6f76;"; left.appendChild(sep);
-  left.appendChild(team(g.hAbbr, g.hLogo, sH));
+  left.appendChild(team(g.hAbbr, g.hLogo, sH, pid===String(g.hId)));
   var clk=document.createElement("span");
   clk.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.2vh;color:#FFE84D;letter-spacing:0.02em;white-space:nowrap;margin-left:1.3vw;";
   clk.textContent = st==="in" ? ((f?f.detail:g.detail)||"") : (st==="pre" ? (g.start||"") : "FINAL");
@@ -1073,8 +1077,8 @@ function drawFieldScoreboard(g, f){
   dd.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#FFE84D;letter-spacing:0.03em;white-space:nowrap;text-align:center;";
   dd.textContent = st==="in" ? ((f?f.dd:g.dd)||"") : (st==="pre" ? "KICKOFF" : "FINAL");
   mid.appendChild(dd);
-  /* RIGHT panel: ball spot / yard line (e.g. "COLO 37") */
-  var right=panel(100-gBr, gBr);
+  /* RIGHT panel: ball spot / yard line (e.g. "COLO 37") — left-aligned in its section */
+  var right=panel(100-gBr, gBr, "flex-start");
   var yl=document.createElement("span");
   yl.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#fff;letter-spacing:0.02em;white-space:nowrap;text-align:center;";
   yl.textContent = (st==="in" && f && f.spot) ? f.spot : "";

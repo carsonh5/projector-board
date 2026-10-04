@@ -77,7 +77,10 @@
     return "other";
   }
   function isScrimmage(cat){ return cat==="run"||cat==="pass"||cat==="inc"||cat==="sack"||cat==="pen"||cat==="to"; }
-  function xAt(toEnd){ const te=(toEnd==null?50:Math.max(0,Math.min(100,toEnd))); return XG_R - (100-te)/100*SPAN; }   /* possessing team drives RIGHT -> LEFT */
+  /* Each team attacks a FIXED end zone (opposite directions). attackRight=true -> scoring EZ on the
+     right (team drives left->right); false -> scoring EZ on the left (drives right->left). */
+  function xAt(toEnd, attackRight){ const te=(toEnd==null?50:Math.max(0,Math.min(100,toEnd)));
+    return attackRight ? (XG_R - te/100*SPAN) : (XG_L + te/100*SPAN); }
 
   // ── overlay scaffold (the field itself is the CSS background = field.svg) ─────
   function buildOverlay(container){
@@ -126,13 +129,14 @@
     if(sYTE!=null && dist!=null && D!=null){
       const lineToGain=sYTE-dist;
       if(eYTE<=lineToGain){ const nd=Math.min(10,eYTE); st.firstTE=eYTE-nd; st.dd="1ST & "+(st.firstTE<=0?"GOAL":nd); }
-      else { st.firstTE=lineToGain; st.dd=ord(D+1)+" & "+(lineToGain<=0?"GOAL":(eYTE-lineToGain)); }
+      else if(D+1<=4){ st.firstTE=lineToGain; st.dd=ord(D+1)+" & "+(lineToGain<=0?"GOAL":(eYTE-lineToGain)); }
+      else { st.firstTE=null; st.dd=""; }   // 4th down not converted -> turnover on downs; wait for the new drive
     }
     return st;
   }
 
   // ── render one drive's plays + markers; returns the computed current state ───
-  function renderDrive(drive, animateNewest){
+  function renderDrive(drive, animateNewest, attackRight){
     if(!_svg) return null;
     const layer=_svg.querySelector("#fs-plays"); if(!layer) return null;
     const plays=(drive&&drive.plays)||[];
@@ -142,7 +146,7 @@
     scrim.forEach(function(p, i){
       const cat=playCat((p.type&&p.type.text)||"");
       const s=p.start||{}, e=p.end||{};
-      const x1=xAt(s.yardsToEndzone), x2=xAt(e.yardsToEndzone);
+      const x1=xAt(s.yardsToEndzone, attackRight), x2=xAt(e.yardsToEndzone, attackRight);
       const newest=(i===scrim.length-1);
       const col=COL[cat]||COL.st;
       if(cat==="inc"){
@@ -165,12 +169,12 @@
     const st=computeState(scrim[scrim.length-1], plays[0]);
     const los=_svg.querySelector("#fs-los"), ball=_svg.querySelector("#fs-ball"),
           lace=_svg.querySelector("#fs-lace"), first=_svg.querySelector("#fs-first");
-    const curX=xAt(st.ballTE);
+    const curX=xAt(st.ballTE, attackRight);
     if(los){ los.setAttribute("x1",curX); los.setAttribute("x2",curX); }
     if(ball){ ball.setAttribute("cx",curX); }
     if(lace){ lace.setAttribute("x1",curX-5); lace.setAttribute("x2",curX+5); }
     if(first){
-      if(st.firstTE!=null && !st.scored){ const fx=xAt(st.firstTE); first.setAttribute("x1",fx); first.setAttribute("x2",fx); first.style.opacity="0.92"; }
+      if(st.firstTE!=null && !st.scored){ const fx=xAt(st.firstTE, attackRight); first.setAttribute("x1",fx); first.setAttribute("x2",fx); first.style.opacity="0.92"; }
       else first.style.opacity="0";
     }
     return st;
@@ -262,13 +266,15 @@
       if(!_tdBaseline){ tds.forEach(function(p){ _seenTD[p.id]=1; }); _tdBaseline=true; }
       else { tds.forEach(function(p){ if(!_seenTD[p.id]){ _seenTD[p.id]=1; _opts.onTD(p); } }); }
     }
+    const comps=comp.competitors||[];
+    const away=comps.find(function(c){return c.homeAway==="away";})||{}, home=comps.find(function(c){return c.homeAway==="home";})||{};
+    // teams attack opposite end zones: AWAY attacks right, HOME attacks left
+    const attackRight = !!(drive && drive.team && String(drive.team.id)===String((away.team||{}).id));
     let st=null;
     if(drive){ const sig=String(((drive.team||{}).id)||"")+"|"+((drive.plays||[]).length)+"|"+(drive.displayResult||"");
-      st=renderDrive(drive, animate && sig!==_lastSig); _lastSig=sig; }
+      st=renderDrive(drive, animate && sig!==_lastSig, attackRight); _lastSig=sig; }
     else { clearField(); }
     if(_opts.onFrame){   // host scoreboard reads this delayed frame -> frame-locked to the ball
-      const comps=comp.competitors||[];
-      const away=comps.find(function(c){return c.homeAway==="away";})||{}, home=comps.find(function(c){return c.homeAway==="home";})||{};
       const type=(comp.status||{}).type||{};
       let spot="";
       if(st && drive && drive.team){
