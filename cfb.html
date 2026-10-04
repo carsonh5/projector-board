@@ -1072,17 +1072,18 @@ function drawFieldScoreboard(g, f){
   clk.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.2vh;color:#FFE84D;letter-spacing:0.02em;white-space:nowrap;margin-left:1.3vw;";
   clk.textContent = st==="in" ? ((f?f.detail:g.detail)||"") : (st==="pre" ? (g.start||"") : "FINAL");
   left.appendChild(clk);
-  var mid=panel(100-gAr, gBl-(100-gAr));
+  /* MIDDLE panel: down & distance + yard line together (e.g. "3RD & 7 · COLO 43") */
+  var mid=panel(100-gAr, gBl-(100-gAr)); mid.style.gap="0.8vw";
   var dd=document.createElement("span");
-  dd.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#FFE84D;letter-spacing:0.03em;white-space:nowrap;text-align:center;";
+  dd.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#FFE84D;letter-spacing:0.03em;white-space:nowrap;";
   dd.textContent = st==="in" ? ((f?f.dd:g.dd)||"") : (st==="pre" ? "KICKOFF" : "FINAL");
   mid.appendChild(dd);
-  /* RIGHT panel: ball spot / yard line (e.g. "COLO 37") — left-aligned in its section */
-  var right=panel(100-gBr, gBr, "flex-start");
-  var yl=document.createElement("span");
-  yl.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#fff;letter-spacing:0.02em;white-space:nowrap;text-align:center;";
-  yl.textContent = (st==="in" && f && f.spot) ? f.spot : "";
-  right.appendChild(yl);
+  if(st==="in" && f && f.spot){
+    var sep2=document.createElement("span"); sep2.textContent="·";
+    sep2.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:3.6vh;color:#6a6f76;"; mid.appendChild(sep2);
+    var yl=document.createElement("span"); yl.textContent=f.spot;
+    yl.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.6vh;color:#fff;letter-spacing:0.02em;white-space:nowrap;"; mid.appendChild(yl);
+  }
 }
 function renderFieldScene(){
   exitHL(); exitPS(); exitStandings(); exitSchedule();

@@ -160,6 +160,7 @@
     const plays=(drive&&drive.plays)||[];
     const scrim=plays.filter(function(p){ return isScrimmage(playCat((p.type&&p.type.text)||"")); });
     layer.replaceChildren();
+    let newestLoss=false;
 
     scrim.forEach(function(p, i){
       const cat=playCat((p.type&&p.type.text)||"");
@@ -175,6 +176,7 @@
         // a loss (ball moved backward) drops to a lower track so it stands out, like a game's drive chart
         const loss=(e.yardsToEndzone!=null && s.yardsToEndzone!=null && e.yardsToEndzone > s.yardsToEndzone+0.5);
         const yTop=YMID-13+(loss?26:0);
+        if(newest) newestLoss=loss;
         const seg=_svgel("rect",{ x:a, y:yTop, width:w, height:26, rx:9, fill:col, opacity: newest?0.98:0.8,
           stroke: newest?"#ffffff":"#06100a", "stroke-width": newest?2.8:2 });   // outline every bar so adjacent plays stay distinct
         if(newest && animateNewest) seg.style.cssText="transform-box:fill-box;transform-origin:"+(x2<x1?"right":"left")+" center;animation:fs-grow .6s ease-out both;";
@@ -190,10 +192,10 @@
     const st=computeState(scrim[scrim.length-1], plays[0]);
     const los=_svg.querySelector("#fs-los"), ball=_svg.querySelector("#fs-ball"),
           lace=_svg.querySelector("#fs-lace"), first=_svg.querySelector("#fs-first");
-    const curX=xAt(st.ballTE, attackRight);
+    const curX=xAt(st.ballTE, attackRight), ballCy=YMID+(newestLoss?26:0);
     if(los){ los.setAttribute("x1",curX); los.setAttribute("x2",curX); }
-    if(ball){ ball.setAttribute("cx",curX); }
-    if(lace){ lace.setAttribute("x1",curX-5); lace.setAttribute("x2",curX+5); }
+    if(ball){ ball.setAttribute("cx",curX); ball.setAttribute("cy",ballCy); }
+    if(lace){ lace.setAttribute("x1",curX-5); lace.setAttribute("x2",curX+5); lace.setAttribute("y1",ballCy); lace.setAttribute("y2",ballCy); }
     if(first){
       if(st.firstTE!=null && !st.scored){ const fx=xAt(st.firstTE, attackRight); first.setAttribute("x1",fx); first.setAttribute("x2",fx); first.style.opacity="0.92"; }
       else first.style.opacity="0";
