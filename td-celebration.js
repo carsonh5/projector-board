@@ -166,6 +166,13 @@
     // Strip trailing paren (kicker note, review note, etc.)
     const clean = text.replace(/\s*\(.*?\)\s*$/g, "").trim();
 
+    // "A pass (complete) (to) B for N yds, for a TD" -> receiver B scores
+    const mPass = clean.match(/pass(?:\s+complete)?\s+(?:to\s+)?(.+?)\s+for\s+(\d+)\s*y(?:ard|d)s?/i);
+    if (mPass) return { playerName: mPass[1].trim().replace(/\s+for\s+a?\s*td.*$/i, "").trim(), yards: parseInt(mPass[2], 10), tdType: "REC TD" };
+    // "A run/rush (for) N yds" -> A scores
+    const mRun = clean.match(/^(.+?)\s+(?:run|rush(?:es|ed)?)\s+(?:for\s+)?(\d+)\s*y(?:ard|d)s?/i);
+    if (mRun) return { playerName: mRun[1].trim(), yards: parseInt(mRun[2], 10), tdType: "RUSH TD" };
+
     let yards     = 0;
     let playerName = "";
     let tdType    = "RUSH TD";
@@ -282,6 +289,16 @@
     for (const [k, v] of Object.entries(lookup)) {
       const kl = k.toLowerCase();
       if (tokens.every(t => kl.includes(t))) return v;
+    }
+
+    // Abbreviated first name: "J. Williams" -> match last name + first initial ("Jimmy Williams")
+    const am = playerName.match(/^([A-Za-z])\.?\s+(.+)$/);
+    if (am) {
+      const init = am[1].toLowerCase(), last = am[2].toLowerCase().trim();
+      for (const [k, v] of Object.entries(lookup)) {
+        const parts = k.toLowerCase().split(/\s+/);
+        if (parts.length && parts[0][0] === init && k.toLowerCase().indexOf(last) >= 0) return v;
+      }
     }
 
     return { id: "", jersey: "", position: "", headshot: "", name: playerName };

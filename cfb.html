@@ -1043,38 +1043,42 @@ function drawFieldScoreboard(g, f){
   tk.replaceChildren();
   var gAl=(Z&&Z.gA&&Z.gA.l!=null)?Z.gA.l:44, gAr=(Z&&Z.gA&&Z.gA.r!=null)?Z.gA.r:54;
   var gBr=(Z&&Z.gB&&Z.gB.r!=null)?Z.gB.r:23, gBl=(Z&&Z.gB&&Z.gB.l!=null)?Z.gB.l:72;
-  function panel(l,w){ var d=document.createElement("div");
-    d.style.cssText="position:absolute;top:0;bottom:0;left:"+l+"vw;width:"+w+"vw;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 0.8vw;box-sizing:border-box;";
+  function panel(l,w,justify){ var d=document.createElement("div");
+    d.style.cssText="position:absolute;top:0;bottom:0;left:"+l+"vw;width:"+w+"vw;display:flex;align-items:center;justify-content:"+(justify||"center")+";overflow:hidden;padding:0 1vw;box-sizing:border-box;";
     tk.appendChild(d); return d; }
   /* one team = logo + abbr + score (horizontal) */
   function team(abbr,logo,score){ var s=document.createElement("div");
-    s.style.cssText="display:flex;align-items:center;gap:0.7vw;";
+    s.style.cssText="display:flex;align-items:center;gap:0.6vw;";
     var im=document.createElement("img"); im.src=logo||""; im.alt="";
     im.style.cssText="height:6vh;width:6vh;object-fit:contain;flex:0 0 auto;";
     im.onerror=function(){ this.style.visibility="hidden"; }; s.appendChild(im);
     var ab=document.createElement("span"); ab.textContent=abbr||"";
-    ab.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.4vh;color:#fff;letter-spacing:0.02em;"; s.appendChild(ab);
+    ab.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5.2vh;color:#fff;letter-spacing:0.02em;"; s.appendChild(ab);
     var sc=document.createElement("span"); sc.textContent=(score==null?"":score);
-    sc.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:6vh;color:#fff;font-variant-numeric:tabular-nums;"; s.appendChild(sc);
+    sc.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:7vh;color:#fff;font-variant-numeric:tabular-nums;"; s.appendChild(sc);
     return s; }
-  /* LEFT panel: both teams side by side (away – home) */
-  var left=panel(0, gAl); left.style.gap="1.6vw";
+  /* LEFT panel: teams + scores packed far-left, then the clock in yellow */
+  var left=panel(0, gAl, "flex-start"); left.style.gap="1.2vw";
   var sA=(st==="pre")?"":(f?f.aScore:g.aS), sH=(st==="pre")?"":(f?f.hScore:g.hS);
   left.appendChild(team(g.aAbbr, g.aLogo, sA));
   var sep=document.createElement("span"); sep.textContent="–";
   sep.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4vh;color:#6a6f76;"; left.appendChild(sep);
   left.appendChild(team(g.hAbbr, g.hLogo, sH));
+  var clk=document.createElement("span");
+  clk.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.2vh;color:#FFE84D;letter-spacing:0.02em;white-space:nowrap;margin-left:1.3vw;";
+  clk.textContent = st==="in" ? ((f?f.detail:g.detail)||"") : (st==="pre" ? (g.start||"") : "FINAL");
+  left.appendChild(clk);
   var mid=panel(100-gAr, gBl-(100-gAr));
   var dd=document.createElement("span");
   dd.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#FFE84D;letter-spacing:0.03em;white-space:nowrap;text-align:center;";
   dd.textContent = st==="in" ? ((f?f.dd:g.dd)||"") : (st==="pre" ? "KICKOFF" : "FINAL");
   mid.appendChild(dd);
+  /* RIGHT panel: ball spot / yard line (e.g. "COLO 37") */
   var right=panel(100-gBr, gBr);
-  var tm=document.createElement("span");
-  tm.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:4.4vh;white-space:nowrap;text-align:center;letter-spacing:0.02em;color:"+
-    (st==="in"?"#FF6A00":(st==="pre"?"#35E0E0":"#d8dce2"))+";";
-  tm.textContent = st==="in" ? ((f?f.detail:g.detail)||"") : (st==="pre" ? (g.start||"") : "FINAL");
-  right.appendChild(tm);
+  var yl=document.createElement("span");
+  yl.style.cssText="font-family:'Oswald',sans-serif;font-weight:700;font-size:5vh;color:#fff;letter-spacing:0.02em;white-space:nowrap;text-align:center;";
+  yl.textContent = (st==="in" && f && f.spot) ? f.spot : "";
+  right.appendChild(yl);
 }
 function renderFieldScene(){
   exitHL(); exitPS(); exitStandings(); exitSchedule();
@@ -1098,10 +1102,21 @@ function renderFieldScene(){
   var demo=(cu.state==="post"), eid=cu.id;   // live -> real sim; final -> replay the Buffs' game; pre -> waiting
   if(_fsEvent!==eid || _fsDemo!==demo){
     _fsEvent=eid; _fsDemo=demo; _fsMounted=true; _fsFrame=null;
-    mountFieldSim(document.getElementById("fieldsim"), eid, { demo:demo,
+    mountFieldSim(document.getElementById("fieldsim"), eid, { demo:demo, tdTeamId:"38",
       onFrame:function(fr){ _fsFrame=fr; if(_fsCU) drawFieldScoreboard(_fsCU, fr); },
+      onTD:function(){ fireColoradoTD(); },
       onError:function(){} });
   }
+}
+/* Colorado TD — play the fantasy-style headshot takeover (td-celebration.js resolves the scorer
+   + headshot from the boxscore). No confetti. Fires from the delayed feed, so it matches the field. */
+function fireColoradoTD(){
+  if(typeof mountTDCelebration!=="function" || !_fsCU) return;
+  var cu=_fsCU, logo=(String(cu.hId)==="38")?cu.hLogo:cu.aLogo;
+  mountTDCelebration(document.getElementById("zone-main"), {
+    eventId: cu.id, teamId: "38", teamName: "Colorado",
+    primary: "#CFB87C", secondary: "#000000", logo: logo,
+    colors: ["#CFB87C","#000000","#ffffff"], onDone: function(){} });
 }
 function fmtCD(ms){ const s=Math.max(0,Math.floor(ms/1000)); const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), ss=s%60;
   if(d>0) return d+"d "+h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");

@@ -53,6 +53,7 @@
   let _wrap=null, _svg=null, _scoreEl=null, _active=false, _timer=null, _eventId=null;
   let _demo=false, _demoTimer=null, _opts={};
   let _lastSig="", _snaps=[], _renderTimer=null, _lastPickT=null;   // broadcast-delay buffer
+  let _tdTeamId=null, _seenTD={}, _tdBaseline=false;                // Colorado TD-celebration trigger
 
   function _el(tag, css, cls){ const e=document.createElement(tag); if(css) e.style.cssText=css; if(cls) e.className=cls; return e; }
   function _svgel(tag, attrs){ const e=document.createElementNS(SVGNS, tag); if(attrs) for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
@@ -76,7 +77,7 @@
     return "other";
   }
   function isScrimmage(cat){ return cat==="run"||cat==="pass"||cat==="inc"||cat==="sack"||cat==="pen"||cat==="to"; }
-  function xAt(toEnd){ const te=(toEnd==null?50:Math.max(0,Math.min(100,toEnd))); return XG_L + (100-te)/100*SPAN; }
+  function xAt(toEnd){ const te=(toEnd==null?50:Math.max(0,Math.min(100,toEnd))); return XG_R - (100-te)/100*SPAN; }   /* possessing team drives RIGHT -> LEFT */
 
   // ── overlay scaffold (the field itself is the CSS background = field.svg) ─────
   function buildOverlay(container){
@@ -106,9 +107,34 @@
   }
 
   // ── render one drive's plays + markers ───────────────────────────────────────
+  function ord(n){ return n===1?"1ST":n===2?"2ND":n===3?"3RD":n===4?"4TH":(n+"TH"); }
+  function spotText(toEnd, possAbbr, oppAbbr){
+    if(toEnd==null) return "";
+    const te=Math.max(0,Math.min(100,toEnd));
+    if(te>=50) return (possAbbr||"")+" "+(100-te);   // on the possessing team's own side
+    return (oppAbbr||"")+" "+te;                     // in opponent territory
+  }
+  /* Current situation from ONE play so ball, line-to-gain and down&distance all agree: ball glued to
+     the play's end; line-to-gain fixed for the series; D&D = the next snap. */
+  function computeState(lp, first0){
+    const st={ ballTE:50, firstTE:null, dd:"", scored:false };
+    if(!lp){ const s0=(first0&&first0.start)||{}; st.ballTE=(s0.yardsToEndzone!=null)?s0.yardsToEndzone:50; return st; }
+    const s=lp.start||{}, e=lp.end||{};
+    const sYTE=s.yardsToEndzone, eYTE=(e.yardsToEndzone!=null)?e.yardsToEndzone:sYTE, D=s.down, dist=s.distance;
+    st.ballTE=(eYTE!=null)?eYTE:50;
+    if(lp.scoringPlay || st.ballTE<=0){ st.scored=true; st.ballTE=Math.max(0,st.ballTE); return st; }
+    if(sYTE!=null && dist!=null && D!=null){
+      const lineToGain=sYTE-dist;
+      if(eYTE<=lineToGain){ const nd=Math.min(10,eYTE); st.firstTE=eYTE-nd; st.dd="1ST & "+(st.firstTE<=0?"GOAL":nd); }
+      else { st.firstTE=lineToGain; st.dd=ord(D+1)+" & "+(lineToGain<=0?"GOAL":(eYTE-lineToGain)); }
+    }
+    return st;
+  }
+
+  // ── render one drive's plays + markers; returns the computed current state ───
   function renderDrive(drive, animateNewest){
-    if(!_svg) return;
-    const layer=_svg.querySelector("#fs-plays"); if(!layer) return;
+    if(!_svg) return null;
+    const layer=_svg.querySelector("#fs-plays"); if(!layer) return null;
     const plays=(drive&&drive.plays)||[];
     const scrim=plays.filter(function(p){ return isScrimmage(playCat((p.type&&p.type.text)||"")); });
     layer.replaceChildren();
@@ -120,37 +146,34 @@
       const newest=(i===scrim.length-1);
       const col=COL[cat]||COL.st;
       if(cat==="inc"){
-        const tick=_svgel("line",{ x1:x1,y1:YMID-30,x2:x1,y2:YMID+30, stroke:col, "stroke-width":3.5,
+        const tick=_svgel("line",{ x1:x1,y1:YMID-30,x2:x1,y2:YMID+30, stroke:col, "stroke-width":4,
           "stroke-dasharray":"7 7" }); layer.appendChild(tick);
       } else {
-        const a=Math.min(x1,x2), b=Math.max(x1,x2), w=Math.max(7,b-a);
-        const seg=_svgel("rect",{ x:a, y:YMID-13, width:w, height:26, rx:9, fill:col, opacity: newest?0.98:0.72 });
-        if(newest){ seg.setAttribute("stroke","rgba(255,255,255,0.85)"); seg.setAttribute("stroke-width",1.6);
-          if(animateNewest) seg.style.cssText="transform-box:fill-box;transform-origin:"+(x2<x1?"right":"left")+" center;animation:fs-grow .6s ease-out both;"; }
+        const a=Math.min(x1,x2), b=Math.max(x1,x2), w=Math.max(8,b-a);
+        const seg=_svgel("rect",{ x:a, y:YMID-13, width:w, height:26, rx:9, fill:col, opacity: newest?0.98:0.8,
+          stroke: newest?"#ffffff":"#06100a", "stroke-width": newest?2.8:2 });   // outline every bar so adjacent plays stay distinct
+        if(newest && animateNewest) seg.style.cssText="transform-box:fill-box;transform-origin:"+(x2<x1?"right":"left")+" center;animation:fs-grow .6s ease-out both;";
         layer.appendChild(seg);
-        if(newest){ // direction arrowhead at the end of the newest play
+        if(newest){
           const dir=(x2>=x1)?1:-1;
           const arr=_svgel("polygon",{ points:x2+","+YMID+" "+(x2-dir*16)+","+(YMID-14)+" "+(x2-dir*16)+","+(YMID+14),
-            fill: p.scoringPlay?COL.td:col, stroke:"rgba(0,0,0,0.35)", "stroke-width":1 }); layer.appendChild(arr);
+            fill: p.scoringPlay?COL.td:col, stroke:"#06100a", "stroke-width":1.2 }); layer.appendChild(arr);
         }
       }
     });
 
-    // markers: current spot = end of last scrimmage play, else drive start
+    const st=computeState(scrim[scrim.length-1], plays[0]);
     const los=_svg.querySelector("#fs-los"), ball=_svg.querySelector("#fs-ball"),
           lace=_svg.querySelector("#fs-lace"), first=_svg.querySelector("#fs-first");
-    let curTE = scrim.length ? (scrim[scrim.length-1].end||{}).yardsToEndzone
-                             : (plays[0] && (plays[0].start||{}).yardsToEndzone);
-    const curX=xAt(curTE);
+    const curX=xAt(st.ballTE);
     if(los){ los.setAttribute("x1",curX); los.setAttribute("x2",curX); }
     if(ball){ ball.setAttribute("cx",curX); }
     if(lace){ lace.setAttribute("x1",curX-5); lace.setAttribute("x2",curX+5); }
-    const lastStart=(scrim.length?scrim[scrim.length-1].start:(plays[0]||{}).start)||{};
-    const dist=lastStart.distance;
     if(first){
-      if(dist!=null && curTE!=null){ const fx=Math.min(XG_R, curX+dist/100*SPAN); first.setAttribute("x1",fx); first.setAttribute("x2",fx); first.style.opacity="0.92"; }
+      if(st.firstTE!=null && !st.scored){ const fx=xAt(st.firstTE); first.setAttribute("x1",fx); first.setAttribute("x2",fx); first.style.opacity="0.92"; }
       else first.style.opacity="0";
     }
+    return st;
   }
 
   // ── scoreboard (rendered into the ticker band) ───────────────────────────────
@@ -231,19 +254,33 @@
     const comp=((data.header||{}).competitions||[])[0]||{};
     const dr=data.drives||{};
     const drive=dr.current || (dr.previous&&dr.previous.length? dr.previous[dr.previous.length-1] : null);
-    renderScore(comp, drive);
-    if(_opts.onFrame){   // report THIS (delayed) snapshot so the host scoreboard stays frame-locked to the ball
+    // Colorado TD trigger — fire once per new scoring TD in the (delayed) feed
+    if(_opts.onTD && _tdTeamId && data.scoringPlays){
+      const tds=data.scoringPlays.filter(function(p){
+        const isTD=(p.scoringType&&p.scoringType.abbreviation==="TD")||(p.type&&/touchdown/i.test((p.type.text)||""));
+        return isTD && p.team && String(p.team.id)===String(_tdTeamId); });
+      if(!_tdBaseline){ tds.forEach(function(p){ _seenTD[p.id]=1; }); _tdBaseline=true; }
+      else { tds.forEach(function(p){ if(!_seenTD[p.id]){ _seenTD[p.id]=1; _opts.onTD(p); } }); }
+    }
+    let st=null;
+    if(drive){ const sig=String(((drive.team||{}).id)||"")+"|"+((drive.plays||[]).length)+"|"+(drive.displayResult||"");
+      st=renderDrive(drive, animate && sig!==_lastSig); _lastSig=sig; }
+    else { clearField(); }
+    if(_opts.onFrame){   // host scoreboard reads this delayed frame -> frame-locked to the ball
       const comps=comp.competitors||[];
       const away=comps.find(function(c){return c.homeAway==="away";})||{}, home=comps.find(function(c){return c.homeAway==="home";})||{};
       const type=(comp.status||{}).type||{};
+      let spot="";
+      if(st && drive && drive.team){
+        const pid=String(drive.team.id), aId=String((away.team||{}).id);
+        const possAbbr=(aId===pid?(away.team||{}).abbreviation:(home.team||{}).abbreviation),
+              oppAbbr =(aId===pid?(home.team||{}).abbreviation:(away.team||{}).abbreviation);
+        spot=spotText(st.ballTE, possAbbr, oppAbbr);
+      }
       _opts.onFrame({ state:type.state||"", detail:type.shortDetail||type.description||"",
-        dd: drive?ddShort(drive):"", aScore:away.score, hScore:home.score,
-        possId: (drive&&drive.team)?String(drive.team.id):null });
+        dd: st?st.dd:"", aScore:away.score, hScore:home.score,
+        possId:(drive&&drive.team)?String(drive.team.id):null, spot:spot });
     }
-    if(!drive){ clearField(); return; }   // scoreboard-only; never fall back to other games (Colorado-only scene)
-    const sig=String(((drive.team||{}).id)||"")+"|"+((drive.plays||[]).length)+"|"+(drive.displayResult||"");
-    renderDrive(drive, animate && sig!==_lastSig);
-    _lastSig=sig;
   }
 
   async function tick(){   // fetch a summary snapshot into the delay buffer
@@ -252,7 +289,7 @@
       const res=await fetch(_sumUrl(_eventId), {cache:"no-store"});
       if(!res.ok) throw new Error("summary HTTP "+res.status);
       const data=await res.json(); if(!_active) return;
-      _snaps.push({ t:Date.now(), data:{ header:data.header, drives:data.drives } });
+      _snaps.push({ t:Date.now(), data:{ header:data.header, drives:data.drives, scoringPlays:data.scoringPlays } });
       const keep=Date.now()-130000; while(_snaps.length>2 && _snaps[0].t<keep) _snaps.shift();   // ~130s history
     }catch(err){ if(_opts.onError) _opts.onError(err); }
   }
@@ -293,6 +330,7 @@
     opts=opts||{}; _opts=opts; stopFieldSim();
     _wrap=container; _scoreEl=opts.scoreEl||null; _active=true; _eventId=eventId;
     _demo=!!opts.demo; _lastSig=""; _snaps=[]; _lastPickT=null;
+    _tdTeamId=opts.tdTeamId||null; _seenTD={}; _tdBaseline=false;
     buildOverlay(container);
     if(_demo){ runDemo(eventId); return; }
     tick(); _timer=setInterval(tick, 8000);           // fetch into the buffer
