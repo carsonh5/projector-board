@@ -1002,7 +1002,7 @@ function renderScheduleScene(){
 const FANTASY_LEAGUE_ID = "1367723640828760064";   // Bluff City Football League, 2026
 const FANTASY_USER_ID   = "1237974224442757120";   // carsonh17
 var _faMounted=false;
-function exitFantasy(){ if(_faMounted){ try{stopFantasy();}catch(e){} _faMounted=false; } document.body.classList.remove("fantasy"); var _e=document.getElementById("fantasy"); if(_e) _e.style.display=""; }
+function exitFantasy(){ if(_faMounted){ try{stopFantasy();}catch(e){} _faMounted=false; } _faWeek=null; document.body.classList.remove("fantasy"); var _e=document.getElementById("fantasy"); if(_e) _e.style.display=""; }
 var _tdDemoOn=false;
 function exitTDDemo(){ if(_tdDemoOn){ try{stopPreviewTD();}catch(e){} _tdDemoOn=false; document.body.classList.remove("fantasy"); } }
 function renderTDDemo(){
@@ -1012,12 +1012,18 @@ function renderTDDemo(){
     previewFantasyTD(document.getElementById("fantasy"), { leagueId:FANTASY_LEAGUE_ID, userId:FANTASY_USER_ID,
     onError:function(){ exitTDDemo(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
 }
+var _faWeek=null;
 function renderFantasyScene(){
   if(typeof mountFantasy!=="function"){ exitFantasy(); document.body.classList.remove("cards","stacked"); noGames("Fantasy module not loaded"); return; }
   document.body.classList.add("fantasy"); document.body.classList.remove("cards","stacked");
-  if(!_faMounted){ _faMounted=true; mountFantasy(document.getElementById("fantasy"), { leagueId:FANTASY_LEAGUE_ID, userId:FANTASY_USER_ID,
-    onEmpty:function(){ exitFantasy(); SCENE="all"; showAll=true; FEATURE=[]; render(); },
-    onError:function(){ exitFantasy(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
+  /* optional week pin: a numeric FEATURE[0] (board_sync feature_list, e.g. "4") shows that past week; else live */
+  var fw = (FEATURE.length && /^\d+$/.test(FEATURE[0])) ? parseInt(FEATURE[0],10) : null;
+  if(!_faMounted || _faWeek!==fw){
+    try{ stopFantasy(); }catch(e){} _faMounted=true; _faWeek=fw;
+    document.getElementById("fantasy").replaceChildren();
+    mountFantasy(document.getElementById("fantasy"), { leagueId:FANTASY_LEAGUE_ID, userId:FANTASY_USER_ID, week:(fw||undefined),
+      onEmpty:function(){ exitFantasy(); SCENE="all"; showAll=true; FEATURE=[]; render(); },
+      onError:function(){ exitFantasy(); SCENE="all"; showAll=true; FEATURE=[]; render(); } }); }
 }
 /* ===== FIELD SIM scene — full-field drive/play visualization in the main box (module: fieldsim.js) =====
    Main box = animated field (ball + run/pass colored play segments); ticker band = that game's scoreboard. */
