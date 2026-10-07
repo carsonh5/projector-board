@@ -574,8 +574,11 @@ if(typeof window!=="undefined") window.BOARD_LEAGUE = leaguePath();            /
    gets the whole current week: CFB via groups=80 (FBS slate, Thu–Sat); NFL's default already returns
    the full week (Thu–Mon). No date param or week-number lookup — featuring a team still finds its
    game and the ticker's rest-of-week view stays full. */
-function sbUrl(){ const u="https://site.api.espn.com/apis/site/v2/sports/football/"+leaguePath()+"/scoreboard?limit=300";
-  return LEAGUE==="nfl" ? u : u+"&groups=80"; }
+let _cfbWeek=null;   // when set (board_sync feature_team = a number), pin the CFB slate to that past week (e.g. to feature a finished game)
+function sbUrl(){ const base="https://site.api.espn.com/apis/site/v2/sports/football/"+leaguePath()+"/scoreboard?limit=300";
+  if(LEAGUE==="nfl") return base;
+  if(_cfbWeek) return base+"&groups=80&week="+_cfbWeek+"&seasontype=2&dates="+(new Date().getFullYear());
+  return base+"&groups=80"; }
 
 function tick(){ const n=new Date(); let h=n.getHours(); const m=String(n.getMinutes()).padStart(2,"0");
   const ap=h>=12?"PM":"AM"; h=h%12||12; document.getElementById("clock").textContent=`${h}:${m} ${ap}`;
@@ -1610,6 +1613,8 @@ async function pullZones(){ try{
   const r=await fetch(SB_URL+"/rest/v1/board_sync?id=eq.1&select=zones,map,scene,feature_team,feature_matchup,demo,feature_list,feat_when,feat_matchup,ticker,delay_sec,league",{headers:SB_HEAD,cache:"no-store"});
   const j=await r.json(); const row=j&&j[0]; if(!row) return;
   setLeague(row.scene==="fantasy" ? "nfl" : row.league);   // fantasy is NFL → force NFL ticker/slate; else follow board_sync (clears + reloads on change)
+  const _wk=(/^\d+$/.test(String(row.feature_team||"")))?parseInt(row.feature_team,10):null;   // numeric feature_team pins the CFB slate to a past week
+  if(_wk!==_cfbWeek){ _cfbWeek=_wk; games=[]; _snaps=[]; lastScores={}; firstLoad=true; _lastPickT=null; if(typeof load==="function") load(); }
   const z=row.zones;
   if(z&&z.m){ for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); } applyZones(); }
   const ms=row.map;
