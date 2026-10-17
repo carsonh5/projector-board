@@ -82,6 +82,13 @@
   .sx input[type=text] { flex: 1; width: auto; }
   .chiprow { display: flex; gap: 6px; flex-wrap: wrap; }
   .chiprow .chip.on { background: var(--gold); border-color: var(--gold); color: #111; }
+  .tkbox .chiprow { margin-top: 8px; }
+  .tkbox .sx select { flex: 1; min-width: 0; }
+  .tkplay { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tkseg { display: inline-flex; align-items: center; gap: 6px; background: #1d1a0e; border: 1px solid var(--gold); color: var(--text); border-radius: 16px; padding: 6px 6px 6px 10px; font-size: 13px; }
+  .tkseg.now { background: var(--gold); color: #111; }
+  .tkseg button { border: 0; background: transparent; color: inherit; font-size: 14px; padding: 0 4px; }
+  .tkq { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--dim); margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -104,7 +111,14 @@
     <div class="scenes" id="scenes"></div>
     <div id="scenextra"></div>
     <div class="sect">Ticker</div>
-    <div class="chiprow" id="tickers"></div>
+    <div class="tkbox">
+      <div class="tkplay" id="tkplay"></div>
+      <label class="tkq"><input type="checkbox" id="tkqueue"> Queue: add to the rotation instead of replacing (rotates every minute)</label>
+      <div class="chiprow" id="tickers"></div>
+      <div class="sx"><label>Conference</label><select id="tkconf"><option>SEC</option><option>Big Ten</option><option>Big 12</option><option>ACC</option><option>American</option><option>Mountain West</option><option>Sun Belt</option><option>MAC</option><option>Conference USA</option><option>Pac-12</option><option>Independent</option></select><button class="chip on" data-tk="conf">Show</button></div>
+      <div class="sx"><label>Game stats</label><select id="tkgame"></select><button class="chip on" data-tk="stats">Show</button></div>
+      <div class="sx"><label>Message</label><input type="text" id="tkmsg" placeholder="GO BUFFS" maxlength="80"><button class="chip on" data-tk="msg">Show</button></div>
+    </div>
     <div class="sect">Multi game picks</div>
     <p class="hint">Tap a game to add it to the Multi game cards (up to 5). Changes go live right away.</p>
     <div id="gamelist"></div>
@@ -112,7 +126,7 @@
 
   <section id="rz" hidden>
     <div class="switch"><div><b>RedZone</b><div class="hint" style="margin:2px 0 0">Flips the TV on breaks</div></div><button class="toggle" id="rztoggle" aria-label="RedZone on or off"></button></div>
-    <p class="legend"><b>☰ Drag</b> to reorder. <b>Comeback Watch</b>: sits at its spot, jumps to #2 if it gets within one score or the trailing team reaches the red zone. <b>🔒 Flip only</b>: never leaves this game for another game's red zone, only for its own commercials.</p>
+    <p class="legend"><b>☰ Drag</b> to reorder. <b>Comeback Watch</b>: stays at its spot, but jumps to #2 if it gets within one score or the trailing team reaches the red zone. <b>🔒 Don't interrupt</b>: while this game is being played, never switch away for another game's red zone. Only its own commercials.</p>
     <div class="sect">Priority (1 = favorite)</div>
     <div id="rzlist"></div>
     <div class="sect">Add live games</div>
@@ -158,7 +172,22 @@ const SCENES = [
   { id: "playerstats", name: "Player stats", sub: "One team's box score",             set: { scene: "playerstats", league: "cfb" }, arg: "text", argLabel: "Team", def: "Colorado" },
   { id: "tddemo",    name: "TD celebration", sub: "Demo the touchdown takeover",      set: { scene: "tddemo", league: "cfb" } },
 ];
-const TICKERS = [["all", "All"], ["live", "Live"], ["top25", "Top 25"], ["upcoming", "Upcoming"], ["post", "Finals"]];
+const TICKERS = [["all", "All"], ["live", "Live only"], ["liveup", "Live + Upcoming"], ["upcoming", "Upcoming"], ["post", "Finals"], ["top25", "Top 25"]];
+// ticker = segments joined by "|" (the board rotates them every minute): see renderTicker in cfb.html
+const tkSegs = () => String(row0.ticker || "all").split("|").map(s => s.trim()).filter(Boolean);
+function tkName(seg) {
+  const t = TICKERS.find(([k]) => k === seg); if (t) return t[1];
+  if (seg.startsWith("conf:")) return seg.slice(5);
+  if (seg.startsWith("msg:")) return "“" + seg.slice(4) + "”";
+  if (seg.startsWith("stats:")) { const g = games.find(x => x.id === seg.slice(6)); return "Stats: " + (g ? `${g.a.abbr} at ${g.h.abbr}` : "game"); }
+  return seg;
+}
+async function setTicker(segs) {
+  const v = (segs.length ? segs : ["all"]).join("|");
+  try { await sb("PATCH", { ticker: v }); row0.ticker = v; renderScenes(); toast("Ticker: " + segs.map(tkName).join(" → ")); }
+  catch (e) { toast("Didn't save: " + e.message); }
+}
+function tkAdd(seg) { setTicker($("#tkqueue").checked ? tkSegs().filter(s => s !== "all").concat([seg]) : [seg]); }
 let row0 = {}, sceneArg = {};
 function currentScene() {
   const s = row0.scene || "all", lg = row0.league || "cfb";
@@ -188,7 +217,12 @@ function renderScenes() {
     const v = sceneArg[cur] ?? ((row0.feature_list || [])[0] || sc.def || "");
     $("#scenextra").innerHTML = `<div class="sx"><label>${sc.argLabel}</label><input type="text" id="scenearg" value="${esc(v)}" ${sc.arg === "week" ? 'inputmode="numeric"' : ""}><button class="chip on" data-act="scenego">Show</button></div>`;
   } else $("#scenextra").innerHTML = "";
-  $("#tickers").innerHTML = TICKERS.map(([k, n]) => `<button class="chip ${((row0.ticker || "all") === k) ? "on" : ""}" data-ticker="${k}">${n}</button>`).join("");
+  const segs = tkSegs();
+  $("#tkplay").innerHTML = segs.map((s, i) => `<span class="tkseg ${segs.length === 1 ? "now" : ""}">${esc(tkName(s))}${segs.length > 1 ? `<button data-tkdel="${i}" aria-label="Remove">✕</button>` : ""}</span>`).join(segs.length > 1 ? "<span style='color:var(--dim)'>→</span>" : "");
+  $("#tickers").innerHTML = TICKERS.map(([k, n]) => `<button class="chip ${segs.length === 1 && segs[0] === k ? "on" : ""}" data-ticker="${k}">${n}</button>`).join("");
+  const sel = $("#tkgame"), keep = sel.value;
+  sel.innerHTML = games.filter(g => g.state !== "pre").map(g => `<option value="${g.id}">${esc(g.a.abbr)} ${esc(g.a.score)} at ${esc(g.h.abbr)} ${esc(g.h.score)} · ${esc(g.detail)}</option>`).join("") || "<option value=''>No games started yet</option>";
+  if (keep) sel.value = keep;
 }
 
 // ---------- live saving (debounced so taps and typing coalesce) ----------
@@ -276,8 +310,7 @@ function renderRz() {
         <div class="lbl">${esc(r.label)}${onTv === r.name ? " 📺" : ""}<small>${esc(sub)}</small></div>
         <button class="ib" data-act="del" aria-label="Remove">✕</button></div>
       <div class="chips"><button class="chip cb ${r.comeback ? "on" : ""}" data-act="comeback">Comeback Watch</button>
-        <button class="chip lk ${r.lock ? "on" : ""}" data-act="lock">🔒 Flip only</button>
-        <button class="chip nv ${r.never ? "on" : ""}" data-act="never">🚫 Never</button></div></div>`;
+        <button class="chip lk ${r.lock ? "on" : ""}" data-act="lock">🔒 Don't interrupt</button></div></div>`;
   }).join("") : `<div class="empty">No RedZone games yet. Add some below.</div>`;
   const inList = new Set(rz.games.map(r => String(r.espn)));
   const avail = games.filter(g => g.state !== "post" && !inList.has(g.id));
@@ -318,8 +351,16 @@ document.addEventListener("click", e => {
   if (tabBtn) { tab = tabBtn.dataset.tab; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("sel", t === tabBtn));
     $("#board").hidden = tab !== "board"; $("#rz").hidden = tab !== "rz"; return; }
   const scBtn = e.target.closest("[data-scene]"); if (scBtn) { setScene(scBtn.dataset.scene); return; }
-  const tk = e.target.closest("[data-ticker]");
-  if (tk) { sb("PATCH", { ticker: tk.dataset.ticker }).then(() => { row0.ticker = tk.dataset.ticker; renderScenes(); toast("Ticker: " + tk.textContent); }).catch(err => toast("Didn't save: " + err.message)); return; }
+  const tk = e.target.closest("[data-ticker]"); if (tk) { tkAdd(tk.dataset.ticker); return; }
+  const tkd = e.target.closest("[data-tkdel]"); if (tkd) { const s = tkSegs(); s.splice(+tkd.dataset.tkdel, 1); setTicker(s); return; }
+  const tkb = e.target.closest("[data-tk]");
+  if (tkb) {
+    const k = tkb.dataset.tk;
+    if (k === "conf") tkAdd("conf:" + $("#tkconf").value);
+    if (k === "stats") { if (!$("#tkgame").value) return toast("No game to show"); tkAdd("stats:" + $("#tkgame").value); }
+    if (k === "msg") { const m = $("#tkmsg").value.replace(/\|/g, "/").trim(); if (!m) return toast("Type a message first"); tkAdd("msg:" + m); }
+    return;
+  }
   const act = e.target.closest("[data-act]"); if (!act) return;
   const a = act.dataset.act, card = act.closest("[data-id]"), row = act.closest("[data-name]");
   if (a === "scenego") { const cur = currentScene(); sceneArg[cur] = $("#scenearg").value; setScene(cur, sceneArg[cur]); return; }
@@ -335,14 +376,13 @@ document.addEventListener("click", e => {
     rz.games.push({ name, espn: g.id, label, match: label, priority: rz.games.length + 1, never: false, comeback: false, lock: false });
     renderRz(); saveRzSoon(400, `Added ${label}`);
   }
-  if (row && ["del", "comeback", "lock", "never"].includes(a)) {
+  if (row && ["del", "comeback", "lock"].includes(a)) {
     const list = sorted(), i = list.findIndex(r => r.name === row.dataset.name), r = list[i];
     if (a === "del") list.splice(i, 1);
     if (a === "comeback") { r.comeback = !r.comeback; delete r.rz_team; delete r.boost_to; delete r.close_within; }
     if (a === "lock") r.lock = !r.lock;
-    if (a === "never") r.never = !r.never;
     list.forEach((x, k) => x.priority = k + 1); rz.games = list; renderRz();
-    saveRzSoon(300, a === "del" ? "Removed" : a === "comeback" ? `Comeback Watch ${r.comeback ? "on" : "off"}` : a === "lock" ? `Flip only ${r.lock ? "on" : "off"}` : `Never ${r.never ? "on" : "off"}`);
+    saveRzSoon(300, a === "del" ? "Removed" : a === "comeback" ? `Comeback Watch ${r.comeback ? "on" : "off"}` : `Don't interrupt ${r.lock ? "on" : "off"}`);
   }
 });
 document.addEventListener("change", e => {
@@ -359,26 +399,35 @@ document.addEventListener("keydown", e => {
 });
 
 // ---------- drag to reorder (touch + mouse) ----------
+// The dragged row follows the finger with a transform (moving it in the DOM mid-drag drops the touch on
+// phones); the others slide aside to show where it will land; the new order is applied on release.
+const noScroll = ev => ev.preventDefault();
 document.addEventListener("pointerdown", e => {
   const h = e.target.closest(".handle"); if (!h) return;
   e.preventDefault();
-  const rowEl = h.closest(".rzrow"), box = $("#rzlist");
-  dragging = true; rowEl.classList.add("dragging"); h.setPointerCapture(e.pointerId);
+  const box = $("#rzlist"), rows = [...box.querySelectorAll(".rzrow")], rowEl = h.closest(".rzrow"), from = rows.indexOf(rowEl);
+  const rects = rows.map(r => r.getBoundingClientRect()), step = rects.length > 1 ? rects[1].top - rects[0].top : rects[0].height + 8;
+  const startY = e.clientY; let to = from;
+  dragging = true; rowEl.classList.add("dragging");
+  window.addEventListener("touchmove", noScroll, { passive: false });   // iOS: stop the page scrolling under the finger
   const move = ev => {
-    const rows = [...box.querySelectorAll(".rzrow")].filter(r => r !== rowEl);
-    const after = rows.find(r => { const b = r.getBoundingClientRect(); return ev.clientY < b.top + b.height / 2; });
-    if (after) box.insertBefore(rowEl, after); else box.appendChild(rowEl);
-    [...box.querySelectorAll(".rzrow")].forEach((r, k) => r.querySelector(".num").textContent = k + 1);
+    const dy = ev.clientY - startY;
+    rowEl.style.transform = `translateY(${dy}px)`;
+    to = Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / step)));
+    rows.forEach((r, i) => { if (r === rowEl) return;
+      const shift = (from < to && i > from && i <= to) ? -step : (from > to && i >= to && i < from) ? step : 0;
+      r.style.transition = "transform .15s"; r.style.transform = shift ? `translateY(${shift}px)` : ""; });
   };
   const up = () => {
-    h.removeEventListener("pointermove", move); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up);
-    rowEl.classList.remove("dragging"); dragging = false;
-    const order = [...box.querySelectorAll(".rzrow")].map(r => r.dataset.name);
-    const before = sorted().map(r => r.name).join();
-    rz.games.forEach(r => r.priority = order.indexOf(r.name) + 1);
-    if (order.join() !== before) { renderRz(); saveRzSoon(200, "Order saved"); }
+    window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+    window.removeEventListener("touchmove", noScroll);
+    rows.forEach(r => { r.style.transform = ""; r.style.transition = ""; }); rowEl.classList.remove("dragging"); dragging = false;
+    if (to === from) return;
+    const list = sorted(); const [m] = list.splice(from, 1); list.splice(to, 0, m);
+    list.forEach((r, k) => r.priority = k + 1); rz.games = list;
+    renderRz(); saveRzSoon(200, `${m.label} → #${to + 1}`);
   };
-  h.addEventListener("pointermove", move); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
+  window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
 });
 
 $("#rztoggle").onclick = () => { rz.enabled = rz.enabled === false; renderRz(); saveRzSoon(100, rz.enabled ? "RedZone on" : "RedZone off"); };
