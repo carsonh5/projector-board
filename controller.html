@@ -82,7 +82,7 @@
   .pick { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #0c1017; color: var(--dim); font-size: 20px; flex: 0 0 auto; }
   .picked .pick { background: var(--gold); color: #111; border-color: var(--gold); }
   .extra { display: none; margin-top: 10px; gap: 8px; align-items: center; }
-  .picked .extra { display: flex; }
+  body.bets .picked .extra { display: flex; }   /* bet team + spread only with the Bet tracker on */
   .betteam { display: flex; gap: 6px; }
   .betteam button { display: flex; align-items: center; gap: 6px; padding: 6px 10px 6px 6px; border-radius: 10px; background: #0c1017; border: 1px solid var(--line); font-size: 13px; }
   .betteam button img { width: 22px; height: 22px; object-fit: contain; }
@@ -160,7 +160,8 @@
     <div id="scenepanel"></div>
 
     <div class="sect">Multi game picks <small id="pickcount"></small></div>
-    <p class="hint">Tap + to add a game to the Multi game cards (up to 5). Pick who you bet on and the spread for a parlay leg.</p>
+    <div class="switch" style="margin-bottom:10px"><div><b>Bet tracker</b><small>Show who you bet on and the spread on the projector cards</small></div><button class="toggle" id="bettoggle" aria-label="Bet tracker on or off"></button></div>
+    <p class="hint">Tap + to add a game to the Multi game cards (up to 5).</p>
     <div id="gamelist"></div>
 
     <div class="sect">Ticker <small id="tksum"></small></div>
@@ -264,7 +265,9 @@ function currentScene() {
   if (s === "feature") return "multi";
   return SCENES.some(x => x.id === s) ? s : "cfb";
 }
-const pickList = () => Object.values(board).map(b => { const sp = (b.spread || "").replace(/[^\d.+-]/g, "");
+// Bet tracker off: picks go to the board without spreads (spreads stay remembered on this phone for when it's back on)
+let betOn = (() => { try { return localStorage.getItem("gd_bet") === "1"; } catch (e) { return false; } })();
+const pickList = () => Object.values(board).map(b => { const sp = betOn ? (b.spread || "").replace(/[^\d.+-]/g, "") : "";
   return b.team.toLowerCase() + (sp ? " " + (/^[+-]/.test(sp) ? sp : "-" + sp) : ""); });
 async function setScene(id, arg) {
   const sc = SCENES.find(x => x.id === id); if (!sc) return;
@@ -311,9 +314,13 @@ function parseBoard(list) {   // entries like "texas -13.5" or "ole miss" -> {ga
     const key = nrm(m ? m[1] : e), spread = m ? m[2] : "";
     const has = g => [g.a, g.h].some(t => [t.loc, t.abbr].map(nrm).includes(key));
     const g = games.find(g => g.state !== "post" && has(g)) || games.find(has);
-    if (g) board[g.id] = { team: [g.a, g.h].find(t => [t.loc, t.abbr].map(nrm).includes(key)).loc, spread };
+    if (g) { const team = [g.a, g.h].find(t => [t.loc, t.abbr].map(nrm).includes(key)).loc;
+      board[g.id] = { team, spread: spread || savedSpreads()[g.id + ":" + team] || "" }; }
   });
 }
+// spreads typed on this phone, keyed by game + team, so turning the Bet tracker off and on keeps them
+function savedSpreads() { try { return JSON.parse(localStorage.getItem("gd_spreads") || "{}"); } catch (e) { return {}; } }
+function rememberSpread(id, b) { try { const s = savedSpreads(); s[id + ":" + b.team] = b.spread; localStorage.setItem("gd_spreads", JSON.stringify(s)); } catch (e) {} }
 function saveBoardSoon(ms = 350) {
   dirtyBoard++; clearTimeout(saveBoardSoon.t);
   saveBoardSoon.t = setTimeout(async () => {
@@ -340,6 +347,8 @@ function tags(g) {
 const cardStyle = g => `--ca:${col(g.a.color)};--ch:${col(g.h.color)}`;
 function renderBoard() {
   $("#pickcount").textContent = `${Object.keys(board).length}/5`;
+  $("#bettoggle").classList.toggle("on", betOn);
+  document.body.classList.toggle("bets", betOn);
   if (!games.length) { $("#gamelist").innerHTML = `<div class="empty">No games today</div>`; return; }
   $("#gamelist").innerHTML = games.filter(g => g.state !== "post" || board[g.id]).map(g => {
     const b = board[g.id];
@@ -489,7 +498,7 @@ document.addEventListener("click", e => {
 document.addEventListener("input", e => {
   if (e.target.id === "teamq") { teamQuery = e.target.value; renderTeamResults(); return; }
   const card = e.target.closest("[data-id]");
-  if (card && board[card.dataset.id] && e.target.dataset.act === "spread") { board[card.dataset.id].spread = e.target.value.trim(); saveBoardSoon(900); }
+  if (card && board[card.dataset.id] && e.target.dataset.act === "spread") { const b = board[card.dataset.id]; b.spread = e.target.value.trim(); rememberSpread(card.dataset.id, b); saveBoardSoon(900); }
 });
 
 // drag to reorder: the row follows the finger (moving it in the DOM mid drag drops the touch on phones)
@@ -519,6 +528,11 @@ document.addEventListener("pointerdown", e => {
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
 });
 
+$("#bettoggle").onclick = () => {
+  betOn = !betOn; try { localStorage.setItem("gd_bet", betOn ? "1" : "0"); } catch (e) {}
+  renderBoard(); if (Object.keys(board).length) saveBoardSoon(100);   // resend picks with or without spreads
+  toast(betOn ? "Bet tracker on" : "Bet tracker off");
+};
 $("#rztoggle").onclick = () => { rz.enabled = rz.enabled === false; renderRz(); saveRzSoon(100, rz.enabled ? "RedZone on" : "RedZone off"); };
 $("#adbtn").onclick = async () => {   // RedZone can't always see commercials: tell it, it flips now and comes back on time
   if (!status || !status.on_tv) return toast("RedZone doesn't know what's on yet");
