@@ -24,6 +24,10 @@
   .now .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: 6px; }
   .now .t { font-family: Oswald, sans-serif; font-size: 18px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .now .d { font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nowteams { margin: 2px 0; font-family: Oswald, sans-serif; font-size: 17px; }
+  .nowteams .team { font-family: Oswald, sans-serif; font-size: 18px; line-height: 1.55; }
+  .nowteams .team img { width: 26px; height: 26px; }
+  .nowteams .team .sc { font-size: 20px; }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
   .dot.on { background: var(--green); } .dot.off { background: var(--red); }
   .quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
@@ -146,7 +150,7 @@
 </head>
 <body>
 <div class="top">
-  <div class="now" id="now"><div class="logos" id="nowlogos"></div><div class="info"><div class="k"><span class="dot" id="rzdot"></span><span id="nowk">RedZone</span></div><div class="t" id="nowt">Connecting…</div><div class="d" id="nowd"></div></div></div>
+  <div class="now" id="now"><div class="info"><div class="k"><span class="dot" id="rzdot"></span><span id="nowk">RedZone</span></div><div id="nowt" class="nowteams">Connecting…</div><div class="d" id="nowd"></div></div></div>
   <div class="quick">
     <button class="qbtn" id="adbtn" style="background:var(--cyan)">📺 Commercial, flip</button>
     <button class="qbtn" id="topbtn" style="background:var(--green)">⏮ Back to #1</button>
@@ -434,9 +438,10 @@ function renderStatus() {
   const age = Math.round((Date.now() - new Date(s.at)) / 1000), stale = age > 90;
   $("#rzdot").className = "dot " + (s.enabled !== false && !stale ? "on" : "off");
   const r = rz.games.find(x => x.name === s.on_tv), g = r && gameById(r.espn);
-  $("#nowlogos").innerHTML = g ? `<img src="${esc(g.a.logo)}" alt=""><img src="${esc(g.h.logo)}" alt="">` : "";
   $("#nowk").textContent = stale ? "RedZone offline" : s.enabled === false ? "RedZone off" : "On TV now";
-  $("#nowt").textContent = g ? `${g.a.loc} ${g.state !== "pre" ? g.a.score : ""} at ${g.h.loc} ${g.state !== "pre" ? g.h.score : ""}` : (r ? r.label : (s.on_tv || "—"));
+  // stacked like the game cards: logo next to each team name, score on the right
+  if (g) $("#nowt").innerHTML = teamRow(g.a, g, g.h) + teamRow(g.h, g, g.a);
+  else $("#nowt").textContent = r ? r.label : (s.on_tv || "—");
   $("#nowd").textContent = stale ? `Last seen ${Math.round(age / 60)} min ago` : [g ? g.detail : "", plainStatus(s)].filter(Boolean).join(" · ");
   $("#resume").hidden = !(s.action === "paused" && !stale);
 }
