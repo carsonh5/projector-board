@@ -442,8 +442,11 @@ function renderStatus() {
   const r = rz.games.find(x => x.name === s.on_tv), g = r && gameById(r.espn);
   $("#nowk").textContent = stale ? "RedZone offline" : s.enabled === false ? "RedZone off" : "On TV now";
   // stacked like the game cards: logo next to each team name, score on the right
-  if (g) $("#nowt").innerHTML = teamRow(g.a, g, g.h) + teamRow(g.h, g, g.a);
-  else $("#nowt").textContent = r ? r.label : (s.on_tv || "—");
+  // a game outside the RedZone list (you changed the channel) comes through as "other:<Fubo title>"
+  const other = String(s.on_tv || "").startsWith("other:") ? String(s.on_tv).slice(6).replace(/, NCAAF.*$/, "") : "";
+  const og = other && games.find(x => other.toLowerCase().includes(x.h.loc.toLowerCase()) && other.toLowerCase().includes(x.a.loc.toLowerCase()));
+  if (g || og) $("#nowt").innerHTML = teamRow((g || og).a, g || og, (g || og).h) + teamRow((g || og).h, g || og, (g || og).a);
+  else $("#nowt").textContent = r ? r.label : (other || s.on_tv || "Unknown");
   $("#nowd").textContent = stale ? `Last seen ${Math.round(age / 60)} min ago` : [g ? g.detail : "", plainStatus(s)].filter(Boolean).join(" · ");
   $("#resume").hidden = !(s.action === "paused" && !stale);
 }
