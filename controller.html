@@ -176,6 +176,7 @@
   <section id="rz" hidden>
     <div class="switch"><div><b>RedZone</b><small>Flips the TV when your game goes to commercial</small></div><button class="toggle" id="rztoggle" aria-label="RedZone on or off"></button></div>
     <div class="sect">Your games <small>☰ drag to reorder</small></div>
+    <button class="qbtn" id="top5btn" style="width:100%;background:var(--gold);margin-bottom:10px">🖥️ Show my top 5 on the projector</button>
     <div id="rzlist"></div>
     <div class="legend">
       <div><b>Comeback Watch</b>: stays at its spot, jumps to #2 if it gets within one score or the trailing team reaches the red zone.</div>
@@ -533,6 +534,16 @@ document.addEventListener("pointerdown", e => {
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
 });
 
+// Put the top 5 RedZone games (by your order, live/upcoming before finals) on the projector as Multi game cards
+$("#top5btn").onclick = () => {
+  const list = sorted().map(r => gameById(r.espn)).filter(Boolean);
+  const pick = list.filter(g => g.state !== "post").concat(list.filter(g => g.state === "post")).slice(0, 5);
+  if (!pick.length) return toast("None of your games are on today's slate");
+  const next = {};
+  pick.forEach(g => { next[g.id] = board[g.id] || { team: g.h.loc, spread: savedSpreads()[g.id + ":" + g.h.loc] || "" }; });
+  board = next; renderBoard(); saveBoardSoon(0);   // saving picks also switches the projector to Multi game
+  toast(`Projector: your top ${pick.length}`);
+};
 $("#bettoggle").onclick = () => {
   betOn = !betOn; try { localStorage.setItem("gd_bet", betOn ? "1" : "0"); } catch (e) {}
   renderBoard(); if (Object.keys(board).length) saveBoardSoon(100);   // resend picks with or without spreads
