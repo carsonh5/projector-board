@@ -365,6 +365,8 @@
     padding: 0.35vh 0.5vw; border-radius: 0.6vh; background: #FFD84D; color: #111; align-self: center; flex: 0 0 auto; }
   .gsprd.cover { background: #2ecc71; color: #06200f; }
   .gsprd.miss  { background: #e74c3c; color: #fff; }
+  /* likely commercial (timeout / quarter break / after a score / play feed stalled) */
+  .gbrk { margin-left: 0.6vw; padding: 0.1vh 0.45vw; border-radius: 0.5vh; background: #35E0E0; color: #111; font-weight: 700; }
   body.cards.n4 .gteam .glogo { width: 5.8vh; height: 5.8vh; }   /* keep the pre-game logo inside the shorter n4 band */
   /* possession football: inline to the right of the team name */
   .gposs-inline {
@@ -638,6 +640,17 @@ function favSide(c){ const o=c.odds?.[0]; if(!o) return null;
 
 let games=[], lastScores={}, firstLoad=true;
 let _snaps=[], DELAY_SEC=0, _lastPickT=null;   // broadcast-delay: rolling buffer of {t,games}; render the snapshot from DELAY_SEC ago
+/* commercial-break guess: streams carry no ad marker (tested on Fubo 10/17), so infer from the feed.
+   _lpIds remembers when each game's last-play id first appeared; a stall with no new play = likely TV timeout. */
+const _lpIds={}, BREAK_STALL_MS=120000;
+function lpSeen(gid, lpid){ const k=String(lpid||""); const s=_lpIds[gid];
+  if(!s || s.id!==k) _lpIds[gid]={id:k, t:Date.now()}; return _lpIds[gid].t; }
+function breakOf(g){
+  if(g.state!=="in" || g.stName==="STATUS_HALFTIME") return false;   // halftime already reads HALFTIME in the footer
+  if(g.stName==="STATUS_END_PERIOD") return true;
+  if(/timeout|end period|end of half|extra point|two-point|2pt|field goal good|safety/i.test(g.lpType||"")) return true;   // timeouts, quarter breaks, after a score
+  return !!g.lpSince && (Date.now()-DELAY_SEC*1000-g.lpSince) > BREAK_STALL_MS;   // no new play for 2 min
+}
 async function load(){
   try{
     const res=await fetch(sbUrl()); if(!res.ok) throw new Error("HTTP "+res.status);
@@ -673,6 +686,7 @@ async function load(){
         aRank:aR, hRank:hR, isToday:(_dayKey(ev.date)===_fbDate()),
         venue:c.venue?.fullName||"", venCity:c.venue?.address?.city||"", venState:c.venue?.address?.state||"",
         lastPlay:c.situation?.lastPlay?.text||"",
+        lpType:c.situation?.lastPlay?.type?.text||"", stName:st.name||"", lpSince:lpSeen(ev.id, c.situation?.lastPlay?.id),
         ranked:(aR<99||hR<99), topRank:Math.min(aR,hR),
         redzone:!!c.situation?.isRedZone, possText:c.situation?.possessionText||"", dd:c.situation?.shortDownDistanceText||"",
         poss:c.situation?.possession||"", aId:away.team.id, hId:home.team.id, dist:(c.situation&&c.situation.distance!=null?+c.situation.distance:null),
@@ -1225,7 +1239,7 @@ function gameCard(g, single){
     const oneLine = sitStr
       ? `${g.detail}<span style="color:#888;padding:0 0.6vw">|</span><span class="gdd">${sitStr}</span>`
       : g.detail;
-    foot=`<div class="gfoot"><div class="gstat">${oneLine}</div></div>`;
+    foot=`<div class="gfoot"><div class="gstat">${oneLine}${breakOf(g)?`<span class="gbrk">BREAK</span>`:""}</div></div>`;
   } else if(pre){
     foot=`<div class="gfoot"><div class="gstat pre">${g.start}</div>${single?`<div class="gdd" id="cd"></div>`:""}${lines?`<div class="gline">${lines}</div>`:""}</div>`;
   } else {
