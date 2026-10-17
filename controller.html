@@ -67,6 +67,7 @@
 <header>
   <h1>Game Day Remote</h1>
   <div class="status"><span class="dot" id="rzdot"></span><span id="rzstatus">Connecting…</span></div>
+  <button class="btn" id="adbtn" style="margin-top:10px;width:100%;background:var(--cyan)">📺 It's a commercial, flip now</button>
   <div class="tabs">
     <button class="tab sel" data-tab="board">Scoreboard</button>
     <button class="tab" data-tab="rz">RedZone</button>
@@ -250,6 +251,17 @@ $("#save").onclick = async () => {
       rz.nonce = Date.now(); await sb("PATCH", { redzone: rz }); dirtyRz = false; toast("RedZone saved");
     }
   } catch (e) { toast("Save failed: " + e.message); }
+};
+// Tell RedZone the game on TV is in commercial (it can't always see that): it flips now and comes back on the next play.
+$("#adbtn").onclick = async () => {
+  if (!status || !status.on_tv) return toast("RedZone doesn't know what's on yet");
+  try {
+    const row = await sb("GET"); const cur = row.redzone || rz;
+    cur.force_break = { game: status.on_tv, at: new Date().toISOString() };
+    await sb("PATCH", { redzone: cur });
+    const g = rz.games.find(r => r.name === status.on_tv);
+    toast(`Got it, flipping off ${g ? g.label : status.on_tv}`);
+  } catch (e) { toast("Failed: " + e.message); }
 };
 $("#resume").onclick = async () => { rz.nonce = Date.now(); try { await sb("PATCH", { redzone: rz }); toast("RedZone resumed"); } catch (e) { toast("Failed: " + e.message); } };
 
