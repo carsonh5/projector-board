@@ -80,6 +80,8 @@
   .team .rk { color: var(--dim); font-size: 11px; margin-right: -5px; }
   .team .sc { font-family: Oswald, sans-serif; font-size: 19px; min-width: 26px; text-align: right; }
   .team.lead .sc { color: var(--text); } .team.trail .sc { color: var(--dim); }
+  .ball { font-size: 13px; margin-left: 6px; vertical-align: 1px; }
+  .dd { color: var(--text); font-weight: 600; }
   .meta { font-size: 12px; color: var(--dim); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .tag { font-size: 10.5px; font-weight: 700; letter-spacing: .03em; padding: 2px 6px; border-radius: 5px; background: var(--line); color: var(--text); }
   .tag.live { background: #b91c1c; } .tag.rz { background: var(--red); } .tag.brk { background: var(--cyan); color: #111; } .tag.warn { background: #4a3a0c; color: var(--gold); }
@@ -245,10 +247,12 @@ async function loadGames() {
   games = (j.events || []).map(ev => {
     const c = ev.competitions[0], st = ev.status.type;
     const a = c.competitors.find(t => t.homeAway === "away"), h = c.competitors.find(t => t.homeAway === "home");
-    const team = t => ({ loc: t.team.location, abbr: t.team.abbreviation, logo: t.team.logo, color: t.team.color, conf: String(t.team.conferenceId || ""),
+    const team = t => ({ id: String(t.team.id), loc: t.team.location, abbr: t.team.abbreviation, logo: t.team.logo, color: t.team.color, conf: String(t.team.conferenceId || ""),
       score: t.score, rank: (t.curatedRank && t.curatedRank.current < 99) ? t.curatedRank.current : null });
     const lp = c.situation && c.situation.lastPlay ? c.situation.lastPlay.type?.text || "" : "";
+    const sit = c.situation || {};
     return { id: ev.id, state: st.state, detail: st.shortDetail, date: ev.date, a: team(a), h: team(h),
+      poss: String(sit.possession || ""), dd: sit.shortDownDistanceText || "", spot: sit.possessionText || "",   // who has the ball, "2nd & 7", "TENN 12"
       nets: (c.broadcasts || []).flatMap(b => b.names || []), rz: !!(c.situation && c.situation.isRedZone),
       brk: st.name === "STATUS_HALFTIME" || st.name === "STATUS_END_PERIOD" || /touchdown|field goal good|extra point/i.test(lp) };
   }).sort((x, y) => (rank(x) - rank(y)) || (new Date(x.date) - new Date(y.date)));
@@ -340,10 +344,13 @@ function saveBoardSoon(ms = 350) {
 }
 function teamRow(t, g, other) {
   const sc = g.state !== "pre", cls = sc ? (+t.score > +other.score ? "lead" : +t.score < +other.score ? "trail" : "") : "";
-  return `<div class="team ${cls}"><img src="${esc(t.logo)}" alt="" loading="lazy">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}<span class="nm">${esc(t.loc)}</span>${sc ? `<span class="sc">${esc(t.score)}</span>` : ""}</div>`;
+  const ball = g.state === "in" && g.poss && g.poss === t.id ? `<span class="ball" title="Has the ball">🏈</span>` : "";
+  return `<div class="team ${cls}"><img src="${esc(t.logo)}" alt="" loading="lazy">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}<span class="nm">${esc(t.loc)}${ball}</span>${sc ? `<span class="sc">${esc(t.score)}</span>` : ""}</div>`;
 }
+// "2nd & 7 · TENN 12" for a live game with a known spot
+const downLine = g => g.state === "in" && (g.dd || g.spot) ? `<span class="dd">${esc([g.dd, g.spot].filter(Boolean).join(" · "))}</span>` : "";
 function tags(g) {
-  let s = g.state === "in" ? `<span class="tag live">LIVE</span>` : "";
+  let s = downLine(g) + (g.state === "in" ? `<span class="tag live">LIVE</span>` : "");
   if (g.state === "in" && g.rz) s += `<span class="tag rz">RED ZONE</span>`;
   if (g.state === "in" && g.brk) s += `<span class="tag brk">BREAK</span>`;
   if (g.nets.length) s += `<span>${esc(g.nets.join(", "))}</span>`;
@@ -447,7 +454,9 @@ function renderStatus() {
   const og = other && games.find(x => other.toLowerCase().includes(x.h.loc.toLowerCase()) && other.toLowerCase().includes(x.a.loc.toLowerCase()));
   if (g || og) $("#nowt").innerHTML = teamRow((g || og).a, g || og, (g || og).h) + teamRow((g || og).h, g || og, (g || og).a);
   else $("#nowt").textContent = r ? r.label : (other || s.on_tv || "Unknown");
-  $("#nowd").textContent = stale ? `Last seen ${Math.round(age / 60)} min ago` : [g ? g.detail : "", plainStatus(s)].filter(Boolean).join(" · ");
+  const gg = g || og;
+  $("#nowd").textContent = stale ? `Last seen ${Math.round(age / 60)} min ago`
+    : [gg ? gg.detail : "", gg && gg.state === "in" ? [gg.dd, gg.spot].filter(Boolean).join(" · ") : "", plainStatus(s)].filter(Boolean).join(" · ");
   $("#resume").hidden = !(s.action === "paused" && !stale);
 }
 
