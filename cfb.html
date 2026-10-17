@@ -368,6 +368,15 @@
   /* likely commercial (timeout / quarter break / after a score / play feed stalled) */
   .gbrk { margin-left: 0.6vw; padding: 0.1vh 0.45vw; border-radius: 0.5vh; background: #35E0E0; color: #111; font-weight: 700; }
   body.cards.n4 .gteam .glogo { width: 5.8vh; height: 5.8vh; }   /* keep the pre-game logo inside the shorter n4 band */
+  /* 5-up: narrower still (5 x 18.6vw + gaps fits the band); scale name, score, logo, footer to match */
+  body.cards.n5 #cards { gap: 0.9vw; padding: 0 0.9vw; }
+  body.cards.n5 .gcard { flex: 0 0 18.6vw; width: 18.6vw; }
+  body.cards.n5 .gname, body.cards.n5 .grank { font-size: 3.1vh; }
+  body.cards.n5 .gscore { font-size: 5.2vh; }
+  body.cards.n5 .gteam { padding: 0.9vh 0.8vw 0.9vh 1vw; gap: 0 0.6vw; }
+  body.cards.n5 .gteam .glogo { width: 4.8vh; height: 4.8vh; }
+  body.cards.n5 .gstat { font-size: 2.2vh; }
+  body.cards.n5 .gsprd { font-size: 2vh; }
   /* possession football: inline to the right of the team name */
   .gposs-inline {
     display: inline-flex;
@@ -1466,8 +1475,8 @@ function render(){
       exitHL(); document.body.classList.remove("cards","stacked"); renderSpotlight(liveG[0]);   /* single live game, full detail */
     } else {
       exitHL(); document.body.classList.add("cards"); document.body.classList.remove("stacked");
-      const list=liveG.slice(0,4);
-      document.body.classList.remove("n1","n2","n3","n4"); document.body.classList.add("n"+list.length);
+      const list=liveG.slice(0,5);
+      document.body.classList.remove("n1","n2","n3","n4","n5"); document.body.classList.add("n"+list.length);
       document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g,false);}).join("");
       _cdDate=null; _spotlightId=null;   /* cards view has no single spotlight → don't let a stale id trigger a TD takeover */
     }
@@ -1491,8 +1500,8 @@ function render(){
       }
     } else if(cards.length>=2){
       exitHL(); document.body.classList.add("cards"); document.body.classList.remove("stacked");
-      const list=cards.slice(0,4);
-      document.body.classList.remove("n1","n2","n3","n4"); document.body.classList.add("n"+list.length);
+      const list=cards.slice(0,5);
+      document.body.classList.remove("n1","n2","n3","n4","n5"); document.body.classList.add("n"+list.length);
       document.getElementById("cards").innerHTML=list.map(function(g){return gameCard(g,false);}).join("");
       _cdDate=null; _spotlightId=null;   /* cards view has no single spotlight → don't let a stale id trigger a TD takeover */
     } else {
