@@ -72,6 +72,16 @@
   .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: #222a38; color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
   .toast.show { opacity: 1; }
   .empty { color: var(--dim); text-align: center; padding: 20px; font-size: 14px; }
+  .scenes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .scene { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--text); min-height: 62px; }
+  .scene b { display: block; font-size: 14px; }
+  .scene span { display: block; font-size: 12px; color: var(--dim); margin-top: 3px; }
+  .scene.sel { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); background: #1d1a0e; }
+  .sx { display: flex; gap: 8px; align-items: center; margin-top: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .sx label { font-size: 13px; color: var(--dim); }
+  .sx input[type=text] { flex: 1; width: auto; }
+  .chiprow { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chiprow .chip.on { background: var(--gold); border-color: var(--gold); color: #111; }
 </style>
 </head>
 <body>
@@ -90,7 +100,13 @@
 
 <main>
   <section id="board">
-    <p class="hint">Tap a game to put it on the projector (up to 5). Changes go live right away.</p>
+    <div class="sect" style="margin-top:4px">Scene</div>
+    <div class="scenes" id="scenes"></div>
+    <div id="scenextra"></div>
+    <div class="sect">Ticker</div>
+    <div class="chiprow" id="tickers"></div>
+    <div class="sect">Multi game picks</div>
+    <p class="hint">Tap a game to add it to the Multi game cards (up to 5). Changes go live right away.</p>
     <div id="gamelist"></div>
   </section>
 
@@ -120,21 +136,71 @@ const sorted = () => [...rz.games].sort((x, y) => x.priority - y.priority);
 
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 1600); }
 async function sb(method, body) {
-  const r = await fetch(SB_URL + (method === "GET" ? "&select=feature_list,redzone,redzone_status" : ""), {
+  const r = await fetch(SB_URL + (method === "GET" ? "&select=feature_list,picks,scene,league,ticker,redzone,redzone_status" : ""), {
     method, headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
     body: body ? JSON.stringify(body) : undefined });
   if (!r.ok) throw new Error("server " + r.status);
   return method === "GET" ? (await r.json())[0] : null;
 }
 
+// ---------- scenes (everything the projector board can show) ----------
+// The board shows picked cards whenever feature_list has entries, so picks live in their own column and are
+// copied into feature_list only for the Multi game scene.
+const SCENES = [
+  { id: "cfb",       name: "CFB Saturday",   sub: "Spotlight rotates today's games",  set: { scene: "all", league: "cfb" } },
+  { id: "multi",     name: "Multi game",     sub: "Your picked games as cards",        set: { scene: "feature", league: "cfb" } },
+  { id: "live",      name: "Live now",       sub: "Every game in progress",            set: { scene: "live", league: "cfb" } },
+  { id: "field",     name: "Colorado Field", sub: "Buffs field sim, stats at half",    set: { scene: "field", league: "cfb" } },
+  { id: "nfl",       name: "NFL Sunday",     sub: "NFL slate and ticker",              set: { scene: "all", league: "nfl" } },
+  { id: "fantasy",   name: "Fantasy",        sub: "Sleeper league matchups",           set: { scene: "fantasy", league: "nfl" }, arg: "week", argLabel: "Week (blank = live)" },
+  { id: "standings", name: "Standings",      sub: "Conference table",                  set: { scene: "standings", league: "cfb" }, arg: "text", argLabel: "Conference", def: "Big 12" },
+  { id: "schedule",  name: "Schedule",       sub: "One team's season",                 set: { scene: "schedule", league: "cfb" }, arg: "text", argLabel: "Team", def: "Colorado" },
+  { id: "playerstats", name: "Player stats", sub: "One team's box score",             set: { scene: "playerstats", league: "cfb" }, arg: "text", argLabel: "Team", def: "Colorado" },
+  { id: "tddemo",    name: "TD celebration", sub: "Demo the touchdown takeover",      set: { scene: "tddemo", league: "cfb" } },
+];
+const TICKERS = [["all", "All"], ["live", "Live"], ["top25", "Top 25"], ["upcoming", "Upcoming"], ["post", "Finals"]];
+let row0 = {}, sceneArg = {};
+function currentScene() {
+  const s = row0.scene || "all", lg = row0.league || "cfb";
+  if (s === "all") return lg === "nfl" ? "nfl" : "cfb";
+  if (s === "feature") return "multi";
+  return SCENES.some(x => x.id === s) ? s : "cfb";
+}
+function pickList() {
+  return Object.values(board).map(b => { const sp = (b.spread || "").replace(/[^\d.+-]/g, "");
+    return b.team.toLowerCase() + (sp ? " " + (/^[+-]/.test(sp) ? sp : "-" + sp) : ""); });
+}
+async function setScene(id, arg) {
+  const sc = SCENES.find(x => x.id === id); if (!sc) return;
+  const body = Object.assign({ feature_team: null, feature_matchup: null, feat_matchup: false, feat_when: "current", demo: 0 }, sc.set);
+  if (id === "multi") body.feature_list = pickList();
+  else if (sc.arg) { const v = (arg ?? sceneArg[id] ?? sc.def ?? "").trim(); body.feature_list = v ? [v.toLowerCase()] : []; }
+  else body.feature_list = [];
+  if (id === "multi" && !body.feature_list.length) return toast("Pick some games below first");
+  try { await sb("PATCH", body); Object.assign(row0, body); renderScenes(); toast(`Projector: ${sc.name}`); }
+  catch (e) { toast("Didn't save: " + e.message); }
+}
+function renderScenes() {
+  const cur = currentScene();
+  $("#scenes").innerHTML = SCENES.map(s => `<button class="scene ${s.id === cur ? "sel" : ""}" data-scene="${s.id}"><b>${s.name}</b><span>${s.sub}</span></button>`).join("");
+  const sc = SCENES.find(x => x.id === cur);
+  if (sc && sc.arg) {
+    const v = sceneArg[cur] ?? ((row0.feature_list || [])[0] || sc.def || "");
+    $("#scenextra").innerHTML = `<div class="sx"><label>${sc.argLabel}</label><input type="text" id="scenearg" value="${esc(v)}" ${sc.arg === "week" ? 'inputmode="numeric"' : ""}><button class="chip on" data-act="scenego">Show</button></div>`;
+  } else $("#scenextra").innerHTML = "";
+  $("#tickers").innerHTML = TICKERS.map(([k, n]) => `<button class="chip ${((row0.ticker || "all") === k) ? "on" : ""}" data-ticker="${k}">${n}</button>`).join("");
+}
+
 // ---------- live saving (debounced so taps and typing coalesce) ----------
 function saveBoardSoon(ms = 350) {
   dirtyBoard++; clearTimeout(saveBoardSoon.t);
   saveBoardSoon.t = setTimeout(async () => {
-    const list = Object.values(board).map(b => { const sp = (b.spread || "").replace(/[^\d.+-]/g, "");
-      return b.team.toLowerCase() + (sp ? " " + (/^[+-]/.test(sp) ? sp : "-" + sp) : ""); });
-    try { await sb("PATCH", { scene: list.length ? "feature" : "all", feature_team: null, feature_matchup: null, feature_list: list, feat_when: "current", feat_matchup: false, demo: 0, league: "cfb" });
-      toast(list.length ? `Projector: ${list.length} game${list.length > 1 ? "s" : ""}` : "Projector: all games"); }
+    const list = pickList();
+    // picking games means "show my picks": switch to Multi game (or back to CFB Saturday when the last pick is removed)
+    const body = list.length ? { picks: list, scene: "feature", league: "cfb", feature_team: null, feature_matchup: null, feature_list: list, feat_when: "current", feat_matchup: false, demo: 0 }
+                             : { picks: [], ...(currentScene() === "multi" ? { scene: "all", league: "cfb", feature_list: [] } : {}) };
+    try { await sb("PATCH", body); Object.assign(row0, body); renderScenes();
+      toast(list.length ? `Multi game: ${list.length} game${list.length > 1 ? "s" : ""}` : "Picks cleared"); }
     catch (e) { toast("Didn't save: " + e.message); }
     dirtyBoard = 0;
   }, ms);
@@ -235,7 +301,11 @@ async function refresh(full) {
   try {
     if (full) await loadGames();
     const row = await sb("GET");
-    if (full) { if (!dirtyBoard) parseBoard(row.feature_list); if (!dirtyRz && row.redzone) rz = row.redzone; }
+    if (full) {
+      if (!dirtyBoard) { row0 = row; parseBoard(row.picks || (row.scene === "feature" ? row.feature_list : [])); }
+      if (!dirtyRz && row.redzone) rz = row.redzone;
+      if (!dirtyBoard && document.activeElement.id !== "scenearg") renderScenes();
+    }
     status = row.redzone_status;
     renderStatus();
     if (full) { renderBoard(); renderRz(); } else if (tab === "rz" && !dirtyRz) renderRz();
@@ -247,8 +317,12 @@ document.addEventListener("click", e => {
   const tabBtn = e.target.closest(".tab");
   if (tabBtn) { tab = tabBtn.dataset.tab; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("sel", t === tabBtn));
     $("#board").hidden = tab !== "board"; $("#rz").hidden = tab !== "rz"; return; }
+  const scBtn = e.target.closest("[data-scene]"); if (scBtn) { setScene(scBtn.dataset.scene); return; }
+  const tk = e.target.closest("[data-ticker]");
+  if (tk) { sb("PATCH", { ticker: tk.dataset.ticker }).then(() => { row0.ticker = tk.dataset.ticker; renderScenes(); toast("Ticker: " + tk.textContent); }).catch(err => toast("Didn't save: " + err.message)); return; }
   const act = e.target.closest("[data-act]"); if (!act) return;
   const a = act.dataset.act, card = act.closest("[data-id]"), row = act.closest("[data-name]");
+  if (a === "scenego") { const cur = currentScene(); sceneArg[cur] = $("#scenearg").value; setScene(cur, sceneArg[cur]); return; }
   if (a === "pick") {
     const g = games.find(x => x.id === card.dataset.id);
     if (board[g.id]) delete board[g.id];
@@ -278,6 +352,10 @@ document.addEventListener("change", e => {
 document.addEventListener("input", e => {
   const card = e.target.closest("[data-id]"); if (!card || !board[card.dataset.id] || e.target.dataset.act !== "spread") return;
   board[card.dataset.id].spread = e.target.value.trim(); saveBoardSoon(900);   // wait for typing to pause
+});
+
+document.addEventListener("keydown", e => {
+  if (e.target.id === "scenearg" && e.key === "Enter") { const cur = currentScene(); sceneArg[cur] = e.target.value; e.target.blur(); setScene(cur, sceneArg[cur]); }
 });
 
 // ---------- drag to reorder (touch + mouse) ----------
