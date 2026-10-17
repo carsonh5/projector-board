@@ -135,6 +135,7 @@
   .opt { font-size: 12px; font-weight: 600; padding: 7px 11px; border-radius: 16px; border: 1px solid var(--line); background: #0c1017; color: var(--dim); }
   .opt.on.cb { background: var(--violet); border-color: var(--violet); color: #111; }
   .opt.on.lk { background: var(--gold); border-color: var(--gold); color: #111; }
+  .opt.watch { background: var(--green); border-color: var(--green); color: #06200f; }
   .legend { display: grid; gap: 6px; margin-top: 10px; font-size: 12.5px; color: var(--dim); line-height: 1.4; }
   .legend b { color: var(--text); }
 
@@ -411,7 +412,7 @@ function renderRz() {
       <div class="rzhead"><span class="handle" aria-label="Drag to reorder">☰</span><span class="num">${i + 1}</span>${body}
         <button class="ib" data-act="del" aria-label="Remove">✕</button></div>
       <div class="rzfoot">${g ? `<div class="meta">${onTv === r.name ? `<span class="tag ontv">ON TV</span>` : ""}<span>${esc(g.detail)}</span>${tags(g)}</div>` : ""}
-        <div class="opts"><button class="opt cb ${r.comeback ? "on" : ""}" data-act="comeback">Comeback Watch</button><button class="opt lk ${r.lock ? "on" : ""}" data-act="lock">🔒 Don't interrupt</button></div></div></div>`;
+        <div class="opts">${onTv === r.name ? "" : `<button class="opt watch" data-act="watch">▶ Watch</button>`}<button class="opt cb ${r.comeback ? "on" : ""}" data-act="comeback">Comeback Watch</button><button class="opt lk ${r.lock ? "on" : ""}" data-act="lock">🔒 Don't interrupt</button></div></div></div>`;
   }).join("") : `<div class="empty">No games yet. Add some below.</div>`;
   const inList = new Set(rz.games.map(r => String(r.espn)));
   const avail = games.filter(g => g.state !== "post" && !inList.has(g.id));
@@ -492,6 +493,7 @@ document.addEventListener("click", e => {
     rz.games.push({ name, espn: g.id, label, match: label, priority: rz.games.length + 1, comeback: false, lock: false });
     renderRz(); saveRzSoon(400, `Added ${label}`);
   }
+  if (row && a === "watch") { goTo(row.dataset.name); return; }
   if (row && ["del", "comeback", "lock"].includes(a)) {
     const list = sorted(), i = list.findIndex(r => r.name === row.dataset.name), r = list[i];
     if (a === "del") list.splice(i, 1);
@@ -555,11 +557,14 @@ $("#adbtn").onclick = async () => {   // RedZone can't always see commercials: t
   try { const row = await sb("GET"); const cur = row.redzone || rz; cur.force_break = { game: status.on_tv, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur }); toast("Flipping off the commercial"); }
   catch (e) { toast("Failed: " + e.message); }
 };
-$("#topbtn").onclick = async () => {   // jump straight to #1 (when you can see it's back before RedZone can)
-  try { const row = await sb("GET"); const cur = row.redzone || rz; const top = [...(cur.games || [])].sort((a, b) => a.priority - b.priority)[0];
-    if (!top) return toast("No RedZone games set"); cur.go_to = { game: top.name, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur }); toast(`Going to ${top.label}`); }
+// Tune a specific game now (RedZone treats it as your pick and trusts it for 90 s; 🔒 keeps it there)
+async function goTo(name) {
+  try { const row = await sb("GET"); const cur = row.redzone || rz; const g = (cur.games || []).find(x => x.name === name);
+    if (!g) return toast("That game isn't in your list"); cur.go_to = { game: g.name, at: new Date().toISOString() };
+    await sb("PATCH", { redzone: cur }); toast(`Going to ${g.label}`); }
   catch (e) { toast("Failed: " + e.message); }
-};
+}
+$("#topbtn").onclick = () => { const top = sorted()[0]; if (!top) return toast("No RedZone games set"); goTo(top.name); };
 $("#resume").onclick = async () => { rz.nonce = Date.now(); try { await sb("PATCH", { redzone: rz }); toast("RedZone resumed"); } catch (e) { toast("Failed: " + e.message); } };
 
 (async () => {
