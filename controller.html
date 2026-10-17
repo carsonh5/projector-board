@@ -67,7 +67,10 @@
 <header>
   <h1>Game Day Remote</h1>
   <div class="status"><span class="dot" id="rzdot"></span><span id="rzstatus">Connecting…</span></div>
-  <button class="btn" id="adbtn" style="margin-top:10px;width:100%;background:var(--cyan)">📺 It's a commercial, flip now</button>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn" id="adbtn" style="background:var(--cyan)">📺 Commercial, flip</button>
+    <button class="btn" id="topbtn" style="background:var(--green)">⏮ Back to #1</button>
+  </div>
   <div class="tabs">
     <button class="tab sel" data-tab="board">Scoreboard</button>
     <button class="tab" data-tab="rz">RedZone</button>
@@ -261,6 +264,17 @@ $("#adbtn").onclick = async () => {
     await sb("PATCH", { redzone: cur });
     const g = rz.games.find(r => r.name === status.on_tv);
     toast(`Got it, flipping off ${g ? g.label : status.on_tv}`);
+  } catch (e) { toast("Failed: " + e.message); }
+};
+// Jump straight to the #1 game (when you can see it's back before RedZone can).
+$("#topbtn").onclick = async () => {
+  try {
+    const row = await sb("GET"); const cur = row.redzone || rz;
+    const top = [...(cur.games || [])].filter(g => !g.never).sort((a, b) => a.priority - b.priority)[0];
+    if (!top) return toast("No RedZone games set");
+    cur.go_to = { game: top.name, at: new Date().toISOString() };
+    await sb("PATCH", { redzone: cur });
+    toast(`Going to ${top.label}`);
   } catch (e) { toast("Failed: " + e.message); }
 };
 $("#resume").onclick = async () => { rz.nonce = Date.now(); try { await sb("PATCH", { redzone: rz }); toast("RedZone resumed"); } catch (e) { toast("Failed: " + e.message); } };
