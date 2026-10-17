@@ -359,6 +359,12 @@
   }
   /* 4-up cards are narrower — shrink the name/rank a touch so longer abbreviations never truncate */
   body.cards.n4 .gname, body.cards.n4 .grank { font-size: 3.6vh; }
+  /* featured team (parlay leg): gold frame on its band + spread pill beside the name */
+  .gteam.gfeat { box-shadow: inset 0 0 0 0.55vh #FFD84D; }
+  .gsprd { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 2.4vh; line-height: 1;
+    padding: 0.35vh 0.5vw; border-radius: 0.6vh; background: #FFD84D; color: #111; align-self: center; flex: 0 0 auto; }
+  .gsprd.cover { background: #2ecc71; color: #06200f; }
+  .gsprd.miss  { background: #e74c3c; color: #fff; }
   body.cards.n4 .gteam .glogo { width: 5.8vh; height: 5.8vh; }   /* keep the pre-game logo inside the shorter n4 band */
   /* possession football: inline to the right of the team name */
   .gposs-inline {
@@ -773,6 +779,7 @@ function tmod(logo,name,score,tc,home,to,ball){
 const FLAGS={live:["LIVE","#FF1A1A"],upset:["UPSET ALERT","#FF2D95"],close:["CLOSE GAME","#FF6A00"],rz:["RED ZONE","#FF6A00"],pre:["NEXT UP","#35E0E0"]};
 let FEATURE=["baylor","oregon"], showAll=true;   // regular full CFB by default; press A for featured
 let SCENE="all", FEAT_WHEN="auto", FEAT_MATCHUP=false, TICKER_MODE="all";   // set by the NLU brain via board_sync
+let FEAT_SPREAD={};   // normalized team -> spread from feature entries like "texas -13.5" (parlay legs shown on the cards)
 function _nrm(s){ return (s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
 function inFeature(g){ if(showAll||!FEATURE.length) return true;
   const keys=[g.aAbbr,g.hAbbr,g.aLoc,g.hLoc,g.aMascot,g.hMascot].map(_nrm);
@@ -1183,7 +1190,14 @@ function gameCard(g, single){
   /* band: CSS-grid row — [gmain: rank+abbrev+poss+tos] [gscorerow: score] [glogo]
      Timeouts appear as small bars on the band itself, beneath the team name.
      Possession football appears inline to the right of the team name. */
-  const band=(loc,abbr,logo,score,rank,tc,ball,to)=>{
+  /* featured side: gold frame on its band, plus its spread pill (green covering / red not) once the game starts */
+  const featKey=(abbr,loc,mascot)=>{ if(showAll||!FEATURE.length) return null;
+    const keys=[abbr,loc,mascot].map(_nrm); return FEATURE.map(_nrm).find(f=>f && keys.indexOf(f)>=0) || null; };
+  const sprdEl=(key,mine,theirs)=>{ const sp=FEAT_SPREAD[key]; if(sp==null||isNaN(sp)) return "";
+    let cls="";
+    if(!pre){ const m=(parseFloat(mine)||0)-(parseFloat(theirs)||0)+sp; cls = m>0 ? " cover" : (m<0 ? " miss" : ""); }
+    return `<span class="gsprd${cls}">${sp>0?"+":""}${sp}</span>`; };
+  const band=(loc,abbr,logo,score,rank,tc,ball,to,fk,spEl)=>{
     const nm=((single?(loc||abbr):(abbr||loc))||"").toUpperCase();
     /* Apply team-color override if the abbrev is in the map */
     const ovr = CARD_COLOR_OVERRIDE[(abbr||"").toUpperCase()];
@@ -1193,8 +1207,8 @@ function gameCard(g, single){
     const possEl = ball ? `<span class="gposs-inline">${FBALL}</span>` : "";
     /* Timeout bars below the name row — only when to data is present */
     const tosEl = (SHOW_TIMEOUTS && to!=null) ? `<div class="gband-tos">${tosBars(to)}</div>` : "";
-    return `<div class="gteam" style="background:${bg};color:${txt}">`
-      + `<div class="gmain"><div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span>${possEl}</div>${tosEl}</div>`
+    return `<div class="gteam${fk?" gfeat":""}" style="background:${bg};color:${txt}">`
+      + `<div class="gmain"><div class="gtop">${rankTag(rank)}<span class="gname">${nm}</span>${possEl}${spEl||""}</div>${tosEl}</div>`
       + `<div class="gscorerow"><span class="gscore">${score}</span></div>`
       + `<span class="glogo"><img src="${logo}" onerror="this.closest('.glogo').style.visibility='hidden'"></span>`
       + `</div>`;
@@ -1218,9 +1232,10 @@ function gameCard(g, single){
     foot=`<div class="gfoot"><div class="gstat fin">FINAL</div></div>`;
   }
 
+  const aK=featKey(g.aAbbr,g.aLoc,g.aMascot), hK=featKey(g.hAbbr,g.hLoc,g.hMascot);
   return `<div class="gcard">`
-    + band(g.aLoc,g.aAbbr,g.aLogo,aS,g.aRank,g.aTC,ps==="away",g.aTO)
-    + band(g.hLoc,g.hAbbr,g.hLogo,hS,g.hRank,g.hTC,ps==="home",g.hTO)
+    + band(g.aLoc,g.aAbbr,g.aLogo,aS,g.aRank,g.aTC,ps==="away",g.aTO,aK,aK&&sprdEl(aK,g.aS,g.hS))
+    + band(g.hLoc,g.hAbbr,g.hLogo,hS,g.hRank,g.hTC,ps==="home",g.hTO,hK,hK&&sprdEl(hK,g.hS,g.aS))
     + foot
     + `</div>`;
 }
@@ -1636,6 +1651,9 @@ function applyScene(scene,team,matchup,list,when,mtch,ticker){
   FEAT_MATCHUP = !!mtch;
   TICKER_MODE = ticker || "all";
   let feats = Array.isArray(list) ? list.map(function(s){return String(s).toLowerCase().trim();}).filter(Boolean) : [];
+  /* a trailing line on a feature entry ("texas -13.5") is a bet: strip it off the team name and keep it for the card pill */
+  FEAT_SPREAD = {};
+  feats = feats.map(function(f){ const m=f.match(/^(.*\S)\s+([+-]\d+(?:\.\d+)?)$/); if(!m) return f; FEAT_SPREAD[_nrm(m[1])]=parseFloat(m[2]); return m[1]; });
   if(!feats.length && scene!=="all" && (team||matchup)){
     feats = matchup ? matchup.split(/\bvs\b|\band\b|,/i).map(function(s){return s.trim().toLowerCase();}).filter(Boolean)
                     : (team ? [String(team).toLowerCase()] : []);
