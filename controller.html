@@ -432,6 +432,7 @@ function plainStatus(s) {
   let m;
   if (s.action === "paused") return d;
   if (s.action === "off") return "Not switching";
+  if (s.pick && s.pick === s.on_tv) return "Your pick, auto resumes at its next commercial";
   if (/direct ch|new picture|tuned|last-channel/.test(d) || s.action === "SWITCH") return "Just switched here";
   if (/^peek/.test(d)) return /is back/.test(d) ? "Game's back, staying" : "Checked, still in commercial";
   if ((m = d.match(/want (\w+), waiting for the play/))) return `Going to ${lab(m[1])} after this play`;
@@ -457,7 +458,10 @@ function renderStatus() {
   const gg = g || og;
   $("#nowd").textContent = stale ? `Last seen ${Math.round(age / 60)} min ago`
     : [gg ? gg.detail : "", gg && gg.state === "in" ? [gg.dd, gg.spot].filter(Boolean).join(" · ") : "", plainStatus(s)].filter(Boolean).join(" · ");
-  $("#resume").hidden = !(s.action === "paused" && !stale);
+  // paused (you changed the channel) or holding your Watch pick: one tap hands control back to RedZone
+  const held = !stale && (s.action === "paused" || (s.pick && s.pick === s.on_tv));
+  $("#resume").textContent = s.action === "paused" ? "▶ Resume RedZone" : "↺ Back to auto RedZone";
+  $("#resume").hidden = !held;
 }
 
 // ---------- refresh ----------
@@ -577,7 +581,12 @@ async function goTo(name) {
   catch (e) { toast("Failed: " + e.message); }
 }
 $("#topbtn").onclick = () => { const top = sorted()[0]; if (!top) return toast("No RedZone games set"); goTo(top.name); };
-$("#resume").onclick = async () => { rz.nonce = Date.now(); try { await sb("PATCH", { redzone: rz }); toast("RedZone resumed"); } catch (e) { toast("Failed: " + e.message); } };
+$("#resume").onclick = async () => {
+  try { const row = await sb("GET"); const cur = row.redzone || rz; cur.release = { at: new Date().toISOString() };
+    if (status && status.action === "paused") cur.nonce = Date.now();
+    await sb("PATCH", { redzone: cur }); rz = cur; $("#resume").hidden = true; toast("RedZone is back on auto"); }
+  catch (e) { toast("Failed: " + e.message); }
+};
 
 (async () => {
   try { SB_KEY = ((await (await fetch("cfb.html", { cache: "no-store" })).text()).match(/const SB_KEY="([^"]+)"/) || [])[1] || ""; } catch (e) {}
