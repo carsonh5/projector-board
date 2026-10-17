@@ -401,6 +401,21 @@ function renderRz() {
   $("#rzadd").innerHTML = avail.length ? avail.map(g => `<div class="game" data-id="${g.id}" style="${cardStyle(g)}"><div class="row"><div class="teams">${teamRow(g.a, g, g.h)}${teamRow(g.h, g, g.a)}</div><button class="pick" data-act="add" aria-label="Add to RedZone">+</button></div><div class="meta"><span>${esc(g.detail)}</span>${tags(g)}</div></div>`).join("")
     : `<div class="empty">Every game today is already in your list</div>`;
 }
+// The switcher's status lines are written for its log; say them in plain words on the phone.
+function plainStatus(s) {
+  const d = String(s.detail || ""), lab = n => { const r = rz.games.find(x => x.name === n); return r ? r.label.replace(/^.* at /, "") : n; };
+  let m;
+  if (s.action === "paused") return d;
+  if (s.action === "off") return "Not switching";
+  if (/direct ch|new picture|tuned|last-channel/.test(d) || s.action === "SWITCH") return "Just switched here";
+  if (/^peek/.test(d)) return /is back/.test(d) ? "Game's back, staying" : "Checked, still in commercial";
+  if ((m = d.match(/want (\w+), waiting for the play/))) return `Going to ${lab(m[1])} after this play`;
+  if ((m = d.match(/want (\w+), holding (4th down|red zone)/))) return `Staying for the ${m[2]}`;
+  if (/commercial flip only|Don't interrupt/i.test(d)) return "Locked on this game";
+  if (/in break/.test(d)) return "Commercial, looking for another game";
+  if (/viewer asked|You picked/.test(d)) return "Your pick";
+  return "Watching";
+}
 function renderStatus() {
   const s = status;
   if (!s) { $("#nowt").textContent = "RedZone hasn't reported yet"; return; }
@@ -410,7 +425,7 @@ function renderStatus() {
   $("#nowlogos").innerHTML = g ? `<img src="${esc(g.a.logo)}" alt=""><img src="${esc(g.h.logo)}" alt="">` : "";
   $("#nowk").textContent = stale ? "RedZone offline" : s.enabled === false ? "RedZone off" : "On TV now";
   $("#nowt").textContent = g ? `${g.a.loc} ${g.state !== "pre" ? g.a.score : ""} at ${g.h.loc} ${g.state !== "pre" ? g.h.score : ""}` : (r ? r.label : (s.on_tv || "—"));
-  $("#nowd").textContent = stale ? `Last seen ${Math.round(age / 60)} min ago` : [g ? g.detail : "", s.detail || s.action].filter(Boolean).join(" · ");
+  $("#nowd").textContent = stale ? `Last seen ${Math.round(age / 60)} min ago` : [g ? g.detail : "", plainStatus(s)].filter(Boolean).join(" · ");
   $("#resume").hidden = !(s.action === "paused" && !stale);
 }
 
