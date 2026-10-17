@@ -8,15 +8,17 @@
 <title>Game Day Remote</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0b0d12; --card:#151922; --line:#232937; --text:#eef1f6; --dim:#8a93a6; --gold:#FFD84D; --cyan:#35E0E0; --red:#e74c3c; --green:#2ecc71; }
+  :root { --bg:#0b0d12; --card:#151922; --line:#232937; --text:#eef1f6; --dim:#8a93a6; --gold:#FFD84D; --cyan:#35E0E0; --red:#e74c3c; --green:#2ecc71; --violet:#a78bfa; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
-  body { padding: env(safe-area-inset-top) 0 calc(84px + env(safe-area-inset-bottom)); }
+  body { padding: env(safe-area-inset-top) 0 calc(80px + env(safe-area-inset-bottom)); }
   header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
   h1 { font-family: Oswald, sans-serif; font-size: 22px; margin: 0; letter-spacing: .02em; }
-  .status { margin-top: 6px; font-size: 13px; color: var(--dim); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); display: inline-block; }
+  .status { margin-top: 6px; font-size: 13px; color: var(--dim); display: flex; gap: 8px; align-items: center; }
+  .status span:last-child { flex: 1; min-width: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex: 0 0 auto; }
   .dot.on { background: var(--green); } .dot.off { background: var(--red); }
+  .quick { display: flex; gap: 8px; margin-top: 10px; }
   .tabs { display: flex; gap: 8px; margin-top: 10px; }
   .tab { flex: 1; padding: 9px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--dim); font-weight: 600; font-size: 14px; }
   .tab.sel { color: #111; background: var(--gold); border-color: var(--gold); }
@@ -35,30 +37,39 @@
   .tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px; background: var(--line); color: var(--text); }
   .tag.rz { background: var(--red); } .tag.brk { background: var(--cyan); color: #111; } .tag.live { background: #b3261e; }
   .tag.warn { background: #5a4410; color: var(--gold); }
-  .pick { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: #0f131b; color: var(--dim); font-size: 20px; }
+  .pick { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: #0f131b; color: var(--dim); font-size: 20px; flex: 0 0 auto; }
   .picked .pick { background: var(--gold); color: #111; border-color: var(--gold); }
   .extra { display: none; margin-top: 8px; gap: 8px; align-items: center; }
   .picked .extra { display: flex; }
   .extra label { font-size: 12px; color: var(--dim); }
-  select, input[type=text] { background: #0f131b; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 14px; }
+  select, input[type=text] { background: #0f131b; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 16px; }
   input[type=text] { width: 80px; }
   .sect { font-family: Oswald, sans-serif; font-size: 13px; letter-spacing: .08em; color: var(--dim); margin: 16px 0 8px; text-transform: uppercase; }
-  .rzrow { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 8px; }
-  .rzrow.never { opacity: .45; }
+  .rzrow { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 10px 10px 4px; margin-bottom: 8px; }
+  .rzrow.never { opacity: .5; }
   .rzrow.ontv { border-color: var(--green); }
-  .num { font-family: Oswald, sans-serif; font-size: 20px; width: 22px; text-align: center; color: var(--gold); }
-  .rzrow .lbl { flex: 1; min-width: 0; font-size: 14px; }
-  .rzrow .lbl small { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
-  .ib { width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--line); background: #0f131b; color: var(--text); font-size: 15px; }
-  .ib.on { background: var(--red); border-color: var(--red); }
+  .rzrow.dragging { opacity: .85; border-color: var(--gold); box-shadow: 0 8px 24px #000a; position: relative; z-index: 3; }
+  .rzhead { display: flex; align-items: center; gap: 6px; }
+  .handle { width: 36px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 20px; touch-action: none; cursor: grab; flex: 0 0 auto; }
+  .num { font-family: Oswald, sans-serif; font-size: 20px; width: 20px; text-align: center; color: var(--gold); flex: 0 0 auto; }
+  .lbl { flex: 1; min-width: 0; font-size: 14px; }
+  .lbl small { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
+  .ib { width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--line); background: #0f131b; color: var(--text); font-size: 15px; flex: 0 0 auto; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 0 42px; }
+  .chip { font-size: 12px; font-weight: 600; padding: 7px 10px; border-radius: 16px; border: 1px solid var(--line); background: #0f131b; color: var(--dim); }
+  .chip.on.cb { background: var(--violet); border-color: var(--violet); color: #111; }
+  .chip.on.lk { background: var(--gold); border-color: var(--gold); color: #111; }
+  .chip.on.nv { background: var(--red); border-color: var(--red); color: #fff; }
   .switch { display: flex; align-items: center; justify-content: space-between; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
-  .toggle { width: 56px; height: 32px; border-radius: 16px; background: var(--line); position: relative; border: 0; }
+  .toggle { width: 56px; height: 32px; border-radius: 16px; background: var(--line); position: relative; border: 0; flex: 0 0 auto; }
   .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: left .15s; }
   .toggle.on { background: var(--green); } .toggle.on::after { left: 27px; }
-  .bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); display: flex; gap: 8px; }
-  .btn { flex: 1; padding: 14px; border-radius: 12px; border: 0; font-weight: 700; font-size: 16px; background: var(--gold); color: #111; }
-  .btn.sec { background: var(--card); color: var(--text); border: 1px solid var(--line); flex: 0 0 auto; }
-  .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: #222a38; color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .legend { font-size: 12px; color: var(--dim); line-height: 1.5; margin: 10px 0 0; }
+  .legend b { color: var(--text); font-weight: 600; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); display: flex; gap: 8px; pointer-events: none; }
+  .bar .btn { pointer-events: auto; }
+  .btn { flex: 1; padding: 13px; border-radius: 12px; border: 0; font-weight: 700; font-size: 15px; background: var(--gold); color: #111; }
+  .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: #222a38; color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
   .toast.show { opacity: 1; }
   .empty { color: var(--dim); text-align: center; padding: 20px; font-size: 14px; }
 </style>
@@ -67,7 +78,7 @@
 <header>
   <h1>Game Day Remote</h1>
   <div class="status"><span class="dot" id="rzdot"></span><span id="rzstatus">Connecting…</span></div>
-  <div style="display:flex;gap:8px;margin-top:10px">
+  <div class="quick">
     <button class="btn" id="adbtn" style="background:var(--cyan)">📺 Commercial, flip</button>
     <button class="btn" id="topbtn" style="background:var(--green)">⏮ Back to #1</button>
   </div>
@@ -79,12 +90,13 @@
 
 <main>
   <section id="board">
-    <p class="hint">Tap up to 5 games for the projector. Add a spread to frame a parlay leg.</p>
+    <p class="hint">Tap a game to put it on the projector (up to 5). Changes go live right away.</p>
     <div id="gamelist"></div>
   </section>
 
   <section id="rz" hidden>
     <div class="switch"><div><b>RedZone</b><div class="hint" style="margin:2px 0 0">Flips the TV on breaks</div></div><button class="toggle" id="rztoggle" aria-label="RedZone on or off"></button></div>
+    <p class="legend"><b>☰ Drag</b> to reorder. <b>Comeback Watch</b>: sits at its spot, jumps to #2 if it gets within one score or the trailing team reaches the red zone. <b>🔒 Flip only</b>: never leaves this game for another game's red zone, only for its own commercials.</p>
     <div class="sect">Priority (1 = favorite)</div>
     <div id="rzlist"></div>
     <div class="sect">Add live games</div>
@@ -92,10 +104,7 @@
   </section>
 </main>
 
-<div class="bar">
-  <button class="btn sec" id="resume" hidden>Resume</button>
-  <button class="btn" id="save">Send to scoreboard</button>
-</div>
+<div class="bar"><button class="btn" id="resume" hidden>▶ Resume RedZone</button></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -103,45 +112,65 @@
 const TUNABLE = /^(abc|cbs|fox|nbc|espn|espn2|sec network|secn|acc network|accn|fs1|fox sports 1|nbcsn|big ten network|btn|cbs sports network|cbssn|the cw|cw)$/i;
 const SB_URL = "https://gnfnvsarnregwunhtnak.supabase.co/rest/v1/board_sync?id=eq.1";
 let SB_KEY = "", games = [], board = {}, rz = { enabled: true, games: [] }, status = null, tab = "board";
-let dirtyBoard = false, dirtyRz = false;   // unsaved edits: periodic refreshes must not overwrite them
+let dirtyBoard = 0, dirtyRz = 0, dragging = false;   // pending saves: periodic refreshes must not overwrite them
 const $ = s => document.querySelector(s);
 const nrm = s => (s || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const sorted = () => [...rz.games].sort((x, y) => x.priority - y.priority);
 
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1800); }
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 1600); }
 async function sb(method, body) {
   const r = await fetch(SB_URL + (method === "GET" ? "&select=feature_list,redzone,redzone_status" : ""), {
     method, headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
     body: body ? JSON.stringify(body) : undefined });
-  if (!r.ok) throw new Error("Supabase " + r.status);
+  if (!r.ok) throw new Error("server " + r.status);
   return method === "GET" ? (await r.json())[0] : null;
+}
+
+// ---------- live saving (debounced so taps and typing coalesce) ----------
+function saveBoardSoon(ms = 350) {
+  dirtyBoard++; clearTimeout(saveBoardSoon.t);
+  saveBoardSoon.t = setTimeout(async () => {
+    const list = Object.values(board).map(b => { const sp = (b.spread || "").replace(/[^\d.+-]/g, "");
+      return b.team.toLowerCase() + (sp ? " " + (/^[+-]/.test(sp) ? sp : "-" + sp) : ""); });
+    try { await sb("PATCH", { scene: list.length ? "feature" : "all", feature_team: null, feature_matchup: null, feature_list: list, feat_when: "current", feat_matchup: false, demo: 0, league: "cfb" });
+      toast(list.length ? `Projector: ${list.length} game${list.length > 1 ? "s" : ""}` : "Projector: all games"); }
+    catch (e) { toast("Didn't save: " + e.message); }
+    dirtyBoard = 0;
+  }, ms);
+}
+function saveRzSoon(ms = 400, msg = "RedZone updated") {
+  dirtyRz++; clearTimeout(saveRzSoon.t);
+  saveRzSoon.t = setTimeout(async () => {
+    try { rz.nonce = Date.now(); await sb("PATCH", { redzone: rz }); toast(msg); } catch (e) { toast("Didn't save: " + e.message); }
+    dirtyRz = 0;
+  }, ms);
 }
 
 async function loadGames() {
   const r = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?groups=80&limit=400");
   const j = await r.json();
+  const rank = g => g.state === "in" ? 0 : g.state === "pre" ? 1 : 2;
   games = (j.events || []).map(ev => {
     const c = ev.competitions[0], st = ev.status.type;
     const a = c.competitors.find(t => t.homeAway === "away"), h = c.competitors.find(t => t.homeAway === "home");
     const team = t => ({ loc: t.team.location, abbr: t.team.abbreviation, logo: t.team.logo, score: t.score,
       rank: (t.curatedRank && t.curatedRank.current < 99) ? t.curatedRank.current : null });
-    const nets = (c.broadcasts || []).flatMap(b => b.names || []);
     const lp = c.situation && c.situation.lastPlay ? c.situation.lastPlay.type?.text || "" : "";
-    return { id: ev.id, state: st.state, detail: st.shortDetail, date: ev.date, a: team(a), h: team(h), nets,
-      rz: !!(c.situation && c.situation.isRedZone), brk: st.name === "STATUS_HALFTIME" || st.name === "STATUS_END_PERIOD" || /timeout|touchdown|field goal good|extra point/i.test(lp) };
+    return { id: ev.id, state: st.state, detail: st.shortDetail, date: ev.date, a: team(a), h: team(h),
+      nets: (c.broadcasts || []).flatMap(b => b.names || []), rz: !!(c.situation && c.situation.isRedZone),
+      brk: st.name === "STATUS_HALFTIME" || st.name === "STATUS_END_PERIOD" || /touchdown|field goal good|extra point/i.test(lp) };
   }).sort((x, y) => (rank(x) - rank(y)) || (new Date(x.date) - new Date(y.date)));
-  function rank(g) { return g.state === "in" ? 0 : g.state === "pre" ? 1 : 2; }
 }
 
-function boardKeyFor(g) { return board[g.id]; }
 function parseBoard(list) {   // feature_list entries like "texas -13.5" or "ole miss" -> {gameId: {team, spread}}
   board = {};
   (list || []).forEach(e => {
     const m = String(e).match(/^(.*\S)\s+([+-]\d+(?:\.\d+)?)$/);
-    const team = nrm(m ? m[1] : e), spread = m ? m[2] : "";
-    const g = games.find(g => g.state !== "post" && [g.a, g.h].some(t => [t.loc, t.abbr].map(nrm).includes(team)))
-           || games.find(g => [g.a, g.h].some(t => [t.loc, t.abbr].map(nrm).includes(team)));
-    if (g) board[g.id] = { team: [g.a, g.h].find(t => [t.loc, t.abbr].map(nrm).includes(team)).loc, spread };
+    const key = nrm(m ? m[1] : e), spread = m ? m[2] : "";
+    const has = g => [g.a, g.h].some(t => [t.loc, t.abbr].map(nrm).includes(key));
+    const g = games.find(g => g.state !== "post" && has(g)) || games.find(has);
+    if (g) board[g.id] = { team: [g.a, g.h].find(t => [t.loc, t.abbr].map(nrm).includes(key)).loc, spread };
   });
 }
 
@@ -152,53 +181,49 @@ function tags(g) {
   let s = g.state === "in" ? `<span class="tag live">LIVE</span>` : "";
   if (g.state === "in" && g.rz) s += `<span class="tag rz">RED ZONE</span>`;
   if (g.state === "in" && g.brk) s += `<span class="tag brk">BREAK</span>`;
-  const net = g.nets.join(", ");
-  if (net) s += `<span>${esc(net)}</span>`;
+  if (g.nets.length) s += `<span>${esc(g.nets.join(", "))}</span>`;
   if (g.nets.length && !g.nets.some(n => TUNABLE.test(n.trim()))) s += `<span class="tag warn">not on Fubo</span>`;
   return s;
 }
 
 function renderBoard() {
-  const n = Object.keys(board).length;
-  $("#save").textContent = tab === "board" ? `Send to scoreboard (${n}/5)` : "Save RedZone";
   if (!games.length) { $("#gamelist").innerHTML = `<div class="empty">No games today</div>`; return; }
   $("#gamelist").innerHTML = games.map(g => {
     const b = board[g.id];
     return `<div class="game ${b ? "picked" : ""}" data-id="${g.id}">
-      <div class="row"><div class="teams">${teamRow(g.a, g)}${teamRow(g.h, g)}</div><button class="pick" data-act="pick">${b ? "✓" : "+"}</button></div>
+      <div class="row"><div class="teams">${teamRow(g.a, g)}${teamRow(g.h, g)}</div><button class="pick" data-act="pick" aria-label="On projector">${b ? "✓" : "+"}</button></div>
       <div class="meta"><span>${esc(g.detail)}</span>${tags(g)}</div>
       <div class="extra"><label>Bet on</label><select data-act="team"><option${b && b.team === g.a.loc ? " selected" : ""}>${esc(g.a.loc)}</option><option${!b || b.team === g.h.loc ? " selected" : ""}>${esc(g.h.loc)}</option></select>
         <label>Spread</label><input type="text" inputmode="decimal" placeholder="-3.5" data-act="spread" value="${esc(b ? b.spread : "")}"></div></div>`;
   }).join("");
 }
 
-function rzLabel(g) { return `${g.a.loc} at ${g.h.loc}`; }
 function renderRz() {
   $("#rztoggle").classList.toggle("on", rz.enabled !== false);
-  const list = [...rz.games].sort((x, y) => x.priority - y.priority);
   const onTv = status && status.on_tv;
+  const list = sorted();
   $("#rzlist").innerHTML = list.length ? list.map((r, i) => {
     const g = games.find(x => x.id === String(r.espn));
-    let sub = g ? `${g.detail}${g.state === "in" && g.rz ? " · RED ZONE" : ""} · ${g.nets.join(", ")}` : "";
-    if (r.boost_to) sub += ` · jumps to #${r.boost_to} if ${[r.rz_team ? r.rz_team + " in red zone" : "", r.close_within ? "within " + r.close_within : ""].filter(Boolean).join(" or ")}`;
+    const sub = g ? `${g.detail}${g.state === "in" && g.rz ? " · RED ZONE" : ""}${g.nets.length ? " · " + g.nets.join(", ") : ""}` : "";
     return `<div class="rzrow ${r.never ? "never" : ""} ${onTv === r.name ? "ontv" : ""}" data-name="${esc(r.name)}">
-      <span class="num">${i + 1}</span><div class="lbl">${esc(r.label)}${onTv === r.name ? " 📺" : ""}<small>${esc(sub)}</small></div>
-      <button class="ib" data-act="up" aria-label="Move up">▲</button><button class="ib" data-act="down" aria-label="Move down">▼</button>
-      <button class="ib ${r.never ? "on" : ""}" data-act="never" aria-label="Never switch to this game">🚫</button><button class="ib" data-act="del" aria-label="Remove">✕</button></div>`;
+      <div class="rzhead"><span class="handle" aria-label="Drag to reorder">☰</span><span class="num">${i + 1}</span>
+        <div class="lbl">${esc(r.label)}${onTv === r.name ? " 📺" : ""}<small>${esc(sub)}</small></div>
+        <button class="ib" data-act="del" aria-label="Remove">✕</button></div>
+      <div class="chips"><button class="chip cb ${r.comeback ? "on" : ""}" data-act="comeback">Comeback Watch</button>
+        <button class="chip lk ${r.lock ? "on" : ""}" data-act="lock">🔒 Flip only</button>
+        <button class="chip nv ${r.never ? "on" : ""}" data-act="never">🚫 Never</button></div></div>`;
   }).join("") : `<div class="empty">No RedZone games yet. Add some below.</div>`;
   const inList = new Set(rz.games.map(r => String(r.espn)));
   const avail = games.filter(g => g.state !== "post" && !inList.has(g.id));
-  $("#rzadd").innerHTML = avail.length ? avail.map(g => `<div class="game" data-id="${g.id}"><div class="row"><div class="teams">${teamRow(g.a, g)}${teamRow(g.h, g)}</div><button class="pick" data-act="add">+</button></div><div class="meta"><span>${esc(g.detail)}</span>${tags(g)}</div></div>`).join("")
+  $("#rzadd").innerHTML = avail.length ? avail.map(g => `<div class="game" data-id="${g.id}"><div class="row"><div class="teams">${teamRow(g.a, g)}${teamRow(g.h, g)}</div><button class="pick" data-act="add" aria-label="Add to RedZone">+</button></div><div class="meta"><span>${esc(g.detail)}</span>${tags(g)}</div></div>`).join("")
     : `<div class="empty">Every game today is already in the list</div>`;
 }
 
 function renderStatus() {
   const s = status, dot = $("#rzdot");
   if (!s) { $("#rzstatus").textContent = "RedZone hasn't reported yet"; dot.className = "dot"; return; }
-  const age = Math.round((Date.now() - new Date(s.at)) / 1000);
-  const stale = age > 90;
-  const on = s.enabled !== false && !stale;
-  dot.className = "dot " + (on ? "on" : "off");
+  const age = Math.round((Date.now() - new Date(s.at)) / 1000), stale = age > 90;
+  dot.className = "dot " + (s.enabled !== false && !stale ? "on" : "off");
   const tv = rz.games.find(r => r.name === s.on_tv);
   $("#rzstatus").textContent = stale ? `RedZone offline (last seen ${Math.round(age / 60)} min ago)`
     : s.enabled === false ? "RedZone off" : `On TV: ${tv ? tv.label : (s.on_tv || "?")} · ${s.detail || s.action}`;
@@ -206,75 +231,94 @@ function renderStatus() {
 }
 
 async function refresh(full) {
+  if (dragging) return;
   try {
     if (full) await loadGames();
     const row = await sb("GET");
     if (full) { if (!dirtyBoard) parseBoard(row.feature_list); if (!dirtyRz && row.redzone) rz = row.redzone; }
     status = row.redzone_status;
-    renderStatus(); if (full) { renderBoard(); renderRz(); } else if (tab === "rz") renderRz();
+    renderStatus();
+    if (full) { renderBoard(); renderRz(); } else if (tab === "rz" && !dirtyRz) renderRz();
   } catch (e) { $("#rzstatus").textContent = "Can't reach the server: " + e.message; }
 }
 
+// ---------- taps ----------
 document.addEventListener("click", e => {
   const tabBtn = e.target.closest(".tab");
   if (tabBtn) { tab = tabBtn.dataset.tab; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("sel", t === tabBtn));
-    $("#board").hidden = tab !== "board"; $("#rz").hidden = tab !== "rz"; renderBoard(); renderRz(); return; }
+    $("#board").hidden = tab !== "board"; $("#rz").hidden = tab !== "rz"; return; }
   const act = e.target.closest("[data-act]"); if (!act) return;
   const a = act.dataset.act, card = act.closest("[data-id]"), row = act.closest("[data-name]");
-  if (a === "pick") dirtyBoard = true; else if (a !== "team" && a !== "spread") dirtyRz = true;
-  if (a === "pick") { const g = games.find(x => x.id === card.dataset.id);
+  if (a === "pick") {
+    const g = games.find(x => x.id === card.dataset.id);
     if (board[g.id]) delete board[g.id];
-    else { if (Object.keys(board).length >= 5) return toast("The board holds 5 games"); board[g.id] = { team: g.h.loc, spread: "" }; }
-    renderBoard(); }
-  if (a === "add") { const g = games.find(x => x.id === card.dataset.id);
-    rz.games.push({ name: (g.h.abbr || g.id).replace(/[^A-Za-z0-9]/g, "") + (rz.games.some(r => r.name === g.h.abbr) ? g.id.slice(-3) : ""),
-      espn: g.id, label: rzLabel(g), match: rzLabel(g), priority: rz.games.length + 1, never: false });
-    renderRz(); }
-  if (row) { const list = [...rz.games].sort((x, y) => x.priority - y.priority), i = list.findIndex(r => r.name === row.dataset.name);
-    if (a === "up" && i > 0) [list[i - 1], list[i]] = [list[i], list[i - 1]];
-    if (a === "down" && i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
-    if (a === "never") list[i].never = !list[i].never;
+    else { if (Object.keys(board).length >= 5) return toast("The projector holds 5 games"); board[g.id] = { team: g.h.loc, spread: "" }; }
+    renderBoard(); saveBoardSoon();
+  }
+  if (a === "add") {
+    const g = games.find(x => x.id === card.dataset.id), label = `${g.a.loc} at ${g.h.loc}`;
+    let name = (g.h.abbr || "G").replace(/[^A-Za-z0-9]/g, ""); if (rz.games.some(r => r.name === name)) name += g.id.slice(-3);
+    rz.games.push({ name, espn: g.id, label, match: label, priority: rz.games.length + 1, never: false, comeback: false, lock: false });
+    renderRz(); saveRzSoon(400, `Added ${label}`);
+  }
+  if (row && ["del", "comeback", "lock", "never"].includes(a)) {
+    const list = sorted(), i = list.findIndex(r => r.name === row.dataset.name), r = list[i];
     if (a === "del") list.splice(i, 1);
-    list.forEach((r, k) => r.priority = k + 1); rz.games = list; renderRz(); }
+    if (a === "comeback") { r.comeback = !r.comeback; delete r.rz_team; delete r.boost_to; delete r.close_within; }
+    if (a === "lock") r.lock = !r.lock;
+    if (a === "never") r.never = !r.never;
+    list.forEach((x, k) => x.priority = k + 1); rz.games = list; renderRz();
+    saveRzSoon(300, a === "del" ? "Removed" : a === "comeback" ? `Comeback Watch ${r.comeback ? "on" : "off"}` : a === "lock" ? `Flip only ${r.lock ? "on" : "off"}` : `Never ${r.never ? "on" : "off"}`);
+  }
 });
 document.addEventListener("change", e => {
   const card = e.target.closest("[data-id]"); if (!card || !board[card.dataset.id]) return;
-  dirtyBoard = true;
-  if (e.target.dataset.act === "team") board[card.dataset.id].team = e.target.value;
-  if (e.target.dataset.act === "spread") board[card.dataset.id].spread = e.target.value.trim();
+  if (e.target.dataset.act === "team") { board[card.dataset.id].team = e.target.value; saveBoardSoon(); }
 });
-$("#rztoggle").onclick = () => { rz.enabled = rz.enabled === false; dirtyRz = true; renderRz(); };
-$("#save").onclick = async () => {
-  try {
-    if (tab === "board") {
-      const list = Object.values(board).map(b => { const sp = b.spread.replace(/[^\d.+-]/g, ""); return b.team.toLowerCase() + (sp ? " " + (/^[+-]/.test(sp) ? sp : "-" + sp) : ""); });
-      await sb("PATCH", { scene: list.length ? "feature" : "all", feature_team: null, feature_matchup: null, feature_list: list, feat_when: "current", feat_matchup: false, demo: 0, league: "cfb" });
-      dirtyBoard = false; toast(list.length ? "Scoreboard updated" : "Scoreboard back to all games");
-    } else {
-      rz.nonce = Date.now(); await sb("PATCH", { redzone: rz }); dirtyRz = false; toast("RedZone saved");
-    }
-  } catch (e) { toast("Save failed: " + e.message); }
-};
-// Tell RedZone the game on TV is in commercial (it can't always see that): it flips now and comes back on the next play.
+document.addEventListener("input", e => {
+  const card = e.target.closest("[data-id]"); if (!card || !board[card.dataset.id] || e.target.dataset.act !== "spread") return;
+  board[card.dataset.id].spread = e.target.value.trim(); saveBoardSoon(900);   // wait for typing to pause
+});
+
+// ---------- drag to reorder (touch + mouse) ----------
+document.addEventListener("pointerdown", e => {
+  const h = e.target.closest(".handle"); if (!h) return;
+  e.preventDefault();
+  const rowEl = h.closest(".rzrow"), box = $("#rzlist");
+  dragging = true; rowEl.classList.add("dragging"); h.setPointerCapture(e.pointerId);
+  const move = ev => {
+    const rows = [...box.querySelectorAll(".rzrow")].filter(r => r !== rowEl);
+    const after = rows.find(r => { const b = r.getBoundingClientRect(); return ev.clientY < b.top + b.height / 2; });
+    if (after) box.insertBefore(rowEl, after); else box.appendChild(rowEl);
+    [...box.querySelectorAll(".rzrow")].forEach((r, k) => r.querySelector(".num").textContent = k + 1);
+  };
+  const up = () => {
+    h.removeEventListener("pointermove", move); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up);
+    rowEl.classList.remove("dragging"); dragging = false;
+    const order = [...box.querySelectorAll(".rzrow")].map(r => r.dataset.name);
+    const before = sorted().map(r => r.name).join();
+    rz.games.forEach(r => r.priority = order.indexOf(r.name) + 1);
+    if (order.join() !== before) { renderRz(); saveRzSoon(200, "Order saved"); }
+  };
+  h.addEventListener("pointermove", move); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
+});
+
+$("#rztoggle").onclick = () => { rz.enabled = rz.enabled === false; renderRz(); saveRzSoon(100, rz.enabled ? "RedZone on" : "RedZone off"); };
+
+// Tell RedZone the game on TV is in commercial (it can't always see that): it flips now and comes back on time.
 $("#adbtn").onclick = async () => {
   if (!status || !status.on_tv) return toast("RedZone doesn't know what's on yet");
-  try {
-    const row = await sb("GET"); const cur = row.redzone || rz;
-    cur.force_break = { game: status.on_tv, at: new Date().toISOString() };
-    await sb("PATCH", { redzone: cur });
-    const g = rz.games.find(r => r.name === status.on_tv);
-    toast(`Got it, flipping off ${g ? g.label : status.on_tv}`);
+  try { const row = await sb("GET"); const cur = row.redzone || rz;
+    cur.force_break = { game: status.on_tv, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur });
+    const g = rz.games.find(r => r.name === status.on_tv); toast(`Flipping off ${g ? g.label : status.on_tv}`);
   } catch (e) { toast("Failed: " + e.message); }
 };
 // Jump straight to the #1 game (when you can see it's back before RedZone can).
 $("#topbtn").onclick = async () => {
-  try {
-    const row = await sb("GET"); const cur = row.redzone || rz;
+  try { const row = await sb("GET"); const cur = row.redzone || rz;
     const top = [...(cur.games || [])].filter(g => !g.never).sort((a, b) => a.priority - b.priority)[0];
     if (!top) return toast("No RedZone games set");
-    cur.go_to = { game: top.name, at: new Date().toISOString() };
-    await sb("PATCH", { redzone: cur });
-    toast(`Going to ${top.label}`);
+    cur.go_to = { game: top.name, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur }); toast(`Going to ${top.label}`);
   } catch (e) { toast("Failed: " + e.message); }
 };
 $("#resume").onclick = async () => { rz.nonce = Date.now(); try { await sb("PATCH", { redzone: rz }); toast("RedZone resumed"); } catch (e) { toast("Failed: " + e.message); } };
@@ -282,7 +326,7 @@ $("#resume").onclick = async () => { rz.nonce = Date.now(); try { await sb("PATC
 (async () => {
   try { SB_KEY = ((await (await fetch("cfb.html", { cache: "no-store" })).text()).match(/const SB_KEY="([^"]+)"/) || [])[1] || ""; } catch (e) {}
   await refresh(true);
-  setInterval(() => refresh(false), 5000);     // status
+  setInterval(() => refresh(false), 5000);   // TV status
   setInterval(() => { if (document.activeElement.tagName !== "INPUT") refresh(true); }, 30000);   // scores
 })();
 </script>
