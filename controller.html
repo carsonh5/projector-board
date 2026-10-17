@@ -3,151 +3,222 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b0d12">
+<meta name="theme-color" content="#090b10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Game Day Remote</title>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0b0d12; --card:#151922; --line:#232937; --text:#eef1f6; --dim:#8a93a6; --gold:#FFD84D; --cyan:#35E0E0; --red:#e74c3c; --green:#2ecc71; --violet:#a78bfa; }
+  :root { --bg:#090b10; --card:#12161e; --card2:#181d27; --line:#232a37; --text:#eef1f6; --dim:#8a93a6; --gold:#FFD84D; --cyan:#35E0E0; --red:#ef4444; --green:#22c55e; --violet:#a78bfa; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
-  body { padding: env(safe-area-inset-top) 0 calc(80px + env(safe-area-inset-bottom)); }
-  header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
-  h1 { font-family: Oswald, sans-serif; font-size: 22px; margin: 0; letter-spacing: .02em; }
-  .status { margin-top: 6px; font-size: 13px; color: var(--dim); display: flex; gap: 8px; align-items: center; }
-  .status span:last-child { flex: 1; min-width: 0; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex: 0 0 auto; }
+  body { padding: env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom)); }
+  button { font: inherit; color: inherit; }
+  img { display: block; }
+
+  /* ---------- now on TV ---------- */
+  .top { position: sticky; top: 0; z-index: 6; background: var(--bg); padding: 12px 16px 10px; border-bottom: 1px solid var(--line); }
+  .now { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+  .now .logos { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+  .now .logos img { width: 34px; height: 34px; object-fit: contain; }
+  .now .info { flex: 1; min-width: 0; }
+  .now .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: 6px; }
+  .now .t { font-family: Oswald, sans-serif; font-size: 18px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .now .d { font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
   .dot.on { background: var(--green); } .dot.off { background: var(--red); }
-  .quick { display: flex; gap: 8px; margin-top: 10px; }
-  .tabs { display: flex; gap: 8px; margin-top: 10px; }
-  .tab { flex: 1; padding: 9px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--dim); font-weight: 600; font-size: 14px; }
-  .tab.sel { color: #111; background: var(--gold); border-color: var(--gold); }
-  main { padding: 12px 16px; }
-  .hint { color: var(--dim); font-size: 13px; margin: 4px 0 12px; }
-  .game { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+  .quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .qbtn { border: 0; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 15px; color: #0b0d12; }
+
+  /* ---------- layout ---------- */
+  main { padding: 6px 16px 16px; }
+  .sect { display: flex; align-items: baseline; justify-content: space-between; font-family: Oswald, sans-serif; font-size: 13px; letter-spacing: .1em; color: var(--dim); margin: 18px 0 8px; text-transform: uppercase; }
+  .sect small { font-family: Inter, sans-serif; letter-spacing: 0; text-transform: none; font-size: 12px; }
+  .hint { color: var(--dim); font-size: 12.5px; margin: -2px 0 10px; line-height: 1.45; }
+  .empty { color: var(--dim); text-align: center; padding: 18px; font-size: 14px; background: var(--card); border-radius: 12px; }
+
+  /* ---------- scenes ---------- */
+  .scenes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .scene { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 6px 10px; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; min-height: 92px; }
+  .scene .ic { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .scene .ic img { width: 40px; height: 40px; object-fit: contain; }
+  .scene b { font-size: 12.5px; font-weight: 600; line-height: 1.2; }
+  .scene.sel { border-color: var(--gold); background: #1c190d; box-shadow: inset 0 0 0 1px var(--gold); }
+  .panel { margin-top: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .panel h4 { margin: 0 0 8px; font-size: 13px; color: var(--dim); font-weight: 600; }
+
+  /* ---------- search with logo results ---------- */
+  .search { position: relative; }
+  .search input { width: 100%; background: #0c1017; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px 11px 40px; font-size: 16px; }
+  .search .lead { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; object-fit: contain; opacity: .9; }
+  .results { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow: auto; }
+  .res { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--card2); border: 1px solid transparent; text-align: left; }
+  .res img { width: 28px; height: 28px; object-fit: contain; }
+  .res span { flex: 1; font-size: 14px; } .res small { color: var(--dim); font-size: 12px; }
+  .res.sel { border-color: var(--gold); }
+  .confgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .conf { background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 4px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .conf img { width: 34px; height: 34px; object-fit: contain; }
+  .conf b { font-size: 11px; font-weight: 600; text-align: center; line-height: 1.15; }
+  .conf.sel { border-color: var(--gold); background: #1c190d; }
+  .weeks { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+  .wk { flex: 0 0 auto; min-width: 46px; padding: 9px 10px; border-radius: 10px; background: var(--card2); border: 1px solid var(--line); font-weight: 600; font-size: 13px; }
+  .wk.sel { background: var(--gold); color: #111; border-color: var(--gold); }
+
+  /* ---------- game cards ---------- */
+  .game { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px 10px 16px; margin-bottom: 8px; overflow: hidden; }
+  .game::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: linear-gradient(var(--ca), var(--ch)); }
   .game.picked { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
   .row { display: flex; align-items: center; gap: 10px; }
   .teams { flex: 1; min-width: 0; }
-  .team { display: flex; align-items: center; gap: 8px; font-size: 15px; line-height: 1.7; }
-  .team img { width: 22px; height: 22px; object-fit: contain; }
+  .team { display: flex; align-items: center; gap: 9px; font-size: 15px; line-height: 1.75; }
+  .team img { width: 24px; height: 24px; object-fit: contain; }
   .team .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .team .rk { color: var(--dim); font-size: 12px; margin-right: -4px; }
-  .team .sc { font-family: Oswald, sans-serif; font-size: 18px; min-width: 24px; text-align: right; }
-  .meta { font-size: 12px; color: var(--dim); margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-  .tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 5px; background: var(--line); color: var(--text); }
-  .tag.rz { background: var(--red); } .tag.brk { background: var(--cyan); color: #111; } .tag.live { background: #b3261e; }
-  .tag.warn { background: #5a4410; color: var(--gold); }
-  .pick { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: #0f131b; color: var(--dim); font-size: 20px; flex: 0 0 auto; }
+  .team .rk { color: var(--dim); font-size: 11px; margin-right: -5px; }
+  .team .sc { font-family: Oswald, sans-serif; font-size: 19px; min-width: 26px; text-align: right; }
+  .team.lead .sc { color: var(--text); } .team.trail .sc { color: var(--dim); }
+  .meta { font-size: 12px; color: var(--dim); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .tag { font-size: 10.5px; font-weight: 700; letter-spacing: .03em; padding: 2px 6px; border-radius: 5px; background: var(--line); color: var(--text); }
+  .tag.live { background: #b91c1c; } .tag.rz { background: var(--red); } .tag.brk { background: var(--cyan); color: #111; } .tag.warn { background: #4a3a0c; color: var(--gold); }
+  .pick { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #0c1017; color: var(--dim); font-size: 20px; flex: 0 0 auto; }
   .picked .pick { background: var(--gold); color: #111; border-color: var(--gold); }
-  .extra { display: none; margin-top: 8px; gap: 8px; align-items: center; }
+  .extra { display: none; margin-top: 10px; gap: 8px; align-items: center; }
   .picked .extra { display: flex; }
-  .extra label { font-size: 12px; color: var(--dim); }
-  select, input[type=text] { background: #0f131b; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 16px; }
-  input[type=text] { width: 80px; }
-  .sect { font-family: Oswald, sans-serif; font-size: 13px; letter-spacing: .08em; color: var(--dim); margin: 16px 0 8px; text-transform: uppercase; }
-  .rzrow { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 10px 10px 4px; margin-bottom: 8px; }
-  .rzrow.never { opacity: .5; }
-  .rzrow.ontv { border-color: var(--green); }
-  .rzrow.dragging { opacity: .85; border-color: var(--gold); box-shadow: 0 8px 24px #000a; position: relative; z-index: 3; }
-  .rzhead { display: flex; align-items: center; gap: 6px; }
-  .handle { width: 36px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 20px; touch-action: none; cursor: grab; flex: 0 0 auto; }
-  .num { font-family: Oswald, sans-serif; font-size: 20px; width: 20px; text-align: center; color: var(--gold); flex: 0 0 auto; }
-  .lbl { flex: 1; min-width: 0; font-size: 14px; }
-  .lbl small { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
-  .ib { width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--line); background: #0f131b; color: var(--text); font-size: 15px; flex: 0 0 auto; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 0 42px; }
-  .chip { font-size: 12px; font-weight: 600; padding: 7px 10px; border-radius: 16px; border: 1px solid var(--line); background: #0f131b; color: var(--dim); }
-  .chip.on.cb { background: var(--violet); border-color: var(--violet); color: #111; }
-  .chip.on.lk { background: var(--gold); border-color: var(--gold); color: #111; }
-  .chip.on.nv { background: var(--red); border-color: var(--red); color: #fff; }
-  .switch { display: flex; align-items: center; justify-content: space-between; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
-  .toggle { width: 56px; height: 32px; border-radius: 16px; background: var(--line); position: relative; border: 0; flex: 0 0 auto; }
+  .betteam { display: flex; gap: 6px; }
+  .betteam button { display: flex; align-items: center; gap: 6px; padding: 6px 10px 6px 6px; border-radius: 10px; background: #0c1017; border: 1px solid var(--line); font-size: 13px; }
+  .betteam button img { width: 22px; height: 22px; object-fit: contain; }
+  .betteam button.sel { border-color: var(--gold); background: #1c190d; }
+  .extra input { width: 74px; background: #0c1017; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 16px; margin-left: auto; text-align: center; }
+
+  /* ---------- ticker checklist ---------- */
+  .tlist { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .titem { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; text-align: left; }
+  .titem:last-child { border-bottom: 0; }
+  .titem .ic { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex: 0 0 auto; }
+  .titem .ic img { width: 28px; height: 28px; object-fit: contain; }
+  .titem .lb { flex: 1; min-width: 0; } .titem .lb b { font-size: 14px; font-weight: 600; display: block; } .titem .lb small { font-size: 12px; color: var(--dim); }
+  .check { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #111; }
+  .titem.on .check { background: var(--gold); border-color: var(--gold); }
+  .chev { color: var(--dim); font-size: 18px; }
+  .sub { padding: 10px 12px 12px; background: #0e1219; border-bottom: 1px solid var(--line); }
+  .minis { display: flex; flex-direction: column; gap: 6px; }
+  .mini { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--card2); border: 1px solid var(--line); text-align: left; }
+  .mini img { width: 22px; height: 22px; object-fit: contain; }
+  .mini span { flex: 1; font-size: 13px; } .mini small { color: var(--dim); font-size: 11.5px; }
+  .mini.sel { border-color: var(--gold); background: #1c190d; }
+
+  /* ---------- RedZone ---------- */
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .switch b { font-size: 15px; } .switch small { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
+  .toggle { width: 54px; height: 32px; border-radius: 16px; background: var(--line); position: relative; border: 0; flex: 0 0 auto; }
   .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: left .15s; }
-  .toggle.on { background: var(--green); } .toggle.on::after { left: 27px; }
-  .legend { font-size: 12px; color: var(--dim); line-height: 1.5; margin: 10px 0 0; }
-  .legend b { color: var(--text); font-weight: 600; }
-  .bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); display: flex; gap: 8px; pointer-events: none; }
-  .bar .btn { pointer-events: auto; }
-  .btn { flex: 1; padding: 13px; border-radius: 12px; border: 0; font-weight: 700; font-size: 15px; background: var(--gold); color: #111; }
-  .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: #222a38; color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
+  .toggle.on { background: var(--green); } .toggle.on::after { left: 25px; }
+  .rzrow { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px 10px 4px; margin-bottom: 8px; overflow: hidden; }
+  .rzrow::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(var(--ca), var(--ch)); }
+  .rzrow.ontv { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+  .rzrow.dragging { z-index: 3; border-color: var(--gold); box-shadow: 0 10px 28px #000c; }
+  .rzhead { display: flex; align-items: center; gap: 6px; }
+  .handle { width: 34px; height: 46px; display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 19px; touch-action: none; flex: 0 0 auto; }
+  .num { font-family: Oswald, sans-serif; font-size: 22px; width: 20px; text-align: center; color: var(--gold); flex: 0 0 auto; }
+  .rzlogos { display: flex; gap: 2px; flex: 0 0 auto; } .rzlogos img { width: 26px; height: 26px; object-fit: contain; }
+  .lbl { flex: 1; min-width: 0; padding-left: 4px; }
+  .lbl b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lbl small { display: block; color: var(--dim); font-size: 12px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ib { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: #0c1017; font-size: 14px; flex: 0 0 auto; color: var(--dim); }
+  .opts { display: flex; gap: 6px; margin: 6px 0 0 40px; }
+  .opt { font-size: 12px; font-weight: 600; padding: 7px 11px; border-radius: 16px; border: 1px solid var(--line); background: #0c1017; color: var(--dim); }
+  .opt.on.cb { background: var(--violet); border-color: var(--violet); color: #111; }
+  .opt.on.lk { background: var(--gold); border-color: var(--gold); color: #111; }
+  .legend { display: grid; gap: 6px; margin-top: 10px; font-size: 12.5px; color: var(--dim); line-height: 1.4; }
+  .legend b { color: var(--text); }
+
+  /* ---------- bottom tabs, toast ---------- */
+  .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: grid; grid-template-columns: 1fr 1fr; background: #0c0f15ee; backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); gap: 8px; }
+  .tab { border: 0; background: none; padding: 8px; border-radius: 10px; color: var(--dim); font-weight: 600; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tab .i { font-size: 18px; }
+  .tab.sel { color: var(--gold); background: #1c190d; }
+  .resume { position: fixed; left: 16px; right: 16px; bottom: calc(70px + env(safe-area-inset-bottom)); z-index: 7; border: 0; border-radius: 12px; padding: 13px; font-weight: 700; background: var(--gold); color: #111; }
+  .toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #222a38; padding: 10px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; z-index: 8; }
   .toast.show { opacity: 1; }
-  .empty { color: var(--dim); text-align: center; padding: 20px; font-size: 14px; }
-  .scenes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .scene { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--text); min-height: 62px; }
-  .scene b { display: block; font-size: 14px; }
-  .scene span { display: block; font-size: 12px; color: var(--dim); margin-top: 3px; }
-  .scene.sel { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); background: #1d1a0e; }
-  .sx { display: flex; gap: 8px; align-items: center; margin-top: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
-  .sx label { font-size: 13px; color: var(--dim); }
-  .sx input[type=text] { flex: 1; width: auto; }
-  .chiprow { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chiprow .chip.on { background: var(--gold); border-color: var(--gold); color: #111; }
-  .tkbox .chiprow { margin-top: 8px; }
-  .tkbox .sx select { flex: 1; min-width: 0; }
-  .tkplay { display: flex; gap: 6px; flex-wrap: wrap; }
-  .tkseg { display: inline-flex; align-items: center; gap: 6px; background: #1d1a0e; border: 1px solid var(--gold); color: var(--text); border-radius: 16px; padding: 6px 6px 6px 10px; font-size: 13px; }
-  .tkseg.now { background: var(--gold); color: #111; }
-  .tkseg button { border: 0; background: transparent; color: inherit; font-size: 14px; padding: 0 4px; }
-  .tkq { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--dim); margin-top: 10px; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Game Day Remote</h1>
-  <div class="status"><span class="dot" id="rzdot"></span><span id="rzstatus">Connecting…</span></div>
+<div class="top">
+  <div class="now" id="now"><div class="logos" id="nowlogos"></div><div class="info"><div class="k"><span class="dot" id="rzdot"></span><span id="nowk">RedZone</span></div><div class="t" id="nowt">Connecting…</div><div class="d" id="nowd"></div></div></div>
   <div class="quick">
-    <button class="btn" id="adbtn" style="background:var(--cyan)">📺 Commercial, flip</button>
-    <button class="btn" id="topbtn" style="background:var(--green)">⏮ Back to #1</button>
+    <button class="qbtn" id="adbtn" style="background:var(--cyan)">📺 Commercial, flip</button>
+    <button class="qbtn" id="topbtn" style="background:var(--green)">⏮ Back to #1</button>
   </div>
-  <div class="tabs">
-    <button class="tab sel" data-tab="board">Scoreboard</button>
-    <button class="tab" data-tab="rz">RedZone</button>
-  </div>
-</header>
+</div>
 
 <main>
   <section id="board">
-    <div class="sect" style="margin-top:4px">Scene</div>
+    <div class="sect">Projector scene</div>
     <div class="scenes" id="scenes"></div>
-    <div id="scenextra"></div>
-    <div class="sect">Ticker</div>
-    <div class="tkbox">
-      <div class="tkplay" id="tkplay"></div>
-      <label class="tkq"><input type="checkbox" id="tkqueue"> Queue: add to the rotation instead of replacing (rotates every minute)</label>
-      <div class="chiprow" id="tickers"></div>
-      <div class="sx"><label>Conference</label><select id="tkconf"><option>SEC</option><option>Big Ten</option><option>Big 12</option><option>ACC</option><option>American</option><option>Mountain West</option><option>Sun Belt</option><option>MAC</option><option>Conference USA</option><option>Pac-12</option><option>Independent</option></select><button class="chip on" data-tk="conf">Show</button></div>
-      <div class="sx"><label>Game stats</label><select id="tkgame"></select><button class="chip on" data-tk="stats">Show</button></div>
-      <div class="sx"><label>Message</label><input type="text" id="tkmsg" placeholder="GO BUFFS" maxlength="80"><button class="chip on" data-tk="msg">Show</button></div>
-    </div>
-    <div class="sect">Multi game picks</div>
-    <p class="hint">Tap a game to add it to the Multi game cards (up to 5). Changes go live right away.</p>
+    <div id="scenepanel"></div>
+
+    <div class="sect">Multi game picks <small id="pickcount"></small></div>
+    <p class="hint">Tap + to add a game to the Multi game cards (up to 5). Pick who you bet on and the spread for a parlay leg.</p>
     <div id="gamelist"></div>
+
+    <div class="sect">Ticker <small id="tksum"></small></div>
+    <p class="hint">Check one to show it. Check several and the ticker rotates through them every minute.</p>
+    <div class="tlist" id="tlist"></div>
   </section>
 
   <section id="rz" hidden>
-    <div class="switch"><div><b>RedZone</b><div class="hint" style="margin:2px 0 0">Flips the TV on breaks</div></div><button class="toggle" id="rztoggle" aria-label="RedZone on or off"></button></div>
-    <p class="legend"><b>☰ Drag</b> to reorder. <b>Comeback Watch</b>: stays at its spot, but jumps to #2 if it gets within one score or the trailing team reaches the red zone. <b>🔒 Don't interrupt</b>: while this game is being played, never switch away for another game's red zone. Only its own commercials.</p>
-    <div class="sect">Priority (1 = favorite)</div>
+    <div class="switch"><div><b>RedZone</b><small>Flips the TV when your game goes to commercial</small></div><button class="toggle" id="rztoggle" aria-label="RedZone on or off"></button></div>
+    <div class="sect">Your games <small>☰ drag to reorder</small></div>
     <div id="rzlist"></div>
-    <div class="sect">Add live games</div>
+    <div class="legend">
+      <div><b>Comeback Watch</b>: stays at its spot, jumps to #2 if it gets within one score or the trailing team reaches the red zone.</div>
+      <div><b>🔒 Don't interrupt</b>: while this game is being played, never switch away for another game's red zone. Only its own commercials.</div>
+    </div>
+    <div class="sect">Add a live game</div>
     <div id="rzadd"></div>
   </section>
 </main>
 
-<div class="bar"><button class="btn" id="resume" hidden>▶ Resume RedZone</button></div>
+<button class="resume" id="resume" hidden>▶ Resume RedZone</button>
+<nav class="tabs">
+  <button class="tab sel" data-tab="board"><span class="i">🖥️</span>Projector</button>
+  <button class="tab" data-tab="rz"><span class="i">📺</span>RedZone</button>
+</nav>
 <div class="toast" id="toast"></div>
 
 <script>
-// Fubo channel ids exist for these networks (the switcher can tune them); others (Peacock, ESPN+) can't be flipped to.
-const TUNABLE = /^(abc|cbs|fox|nbc|espn|espn2|sec network|secn|acc network|accn|fs1|fox sports 1|nbcsn|big ten network|btn|cbs sports network|cbssn|the cw|cw)$/i;
+// ---------- constants ----------
 const SB_URL = "https://gnfnvsarnregwunhtnak.supabase.co/rest/v1/board_sync?id=eq.1";
-let SB_KEY = "", games = [], board = {}, rz = { enabled: true, games: [] }, status = null, tab = "board";
-let dirtyBoard = 0, dirtyRz = 0, dragging = false;   // pending saves: periodic refreshes must not overwrite them
+const ESPN = "https://site.api.espn.com/apis/site/v2/sports/football/college-football";
+const CFB_ICON = "https://a.espncdn.com/redesign/assets/img/icons/ESPN-icon-football-college.png";
+const NFL_LOGO = "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png";
+const CU_LOGO = "https://a.espncdn.com/i/teamlogos/ncaa/500/38.png";
+const confLogo = id => `https://a.espncdn.com/i/teamlogos/ncaa_conf/500/${id}.png`;
+// conference names the board understands (standings.js aliases + ticker CONF_IDS in cfb.html)
+const CONFS = [["8", "SEC"], ["5", "Big Ten"], ["4", "Big 12"], ["1", "ACC"], ["151", "American"], ["17", "Mountain West"], ["37", "Sun Belt"], ["15", "MAC"], ["12", "Conference USA"], ["9", "Pac-12"], ["18", "Independent"]];
+// Fubo channel ids exist for these networks (RedZone can tune them); others (Peacock, ESPN+) can't be flipped to
+const TUNABLE = /^(abc|cbs|fox|nbc|espn|espn2|sec network|secn|acc network|accn|fs1|fox sports 1|nbcsn|big ten network|btn|cbs sports network|cbssn|the cw|cw)$/i;
+const SCENES = [
+  { id: "cfb", name: "CFB Saturday", icon: `<img src="${CFB_ICON}" alt="">`, set: { scene: "all", league: "cfb" } },
+  { id: "multi", name: "Multi game", icon: "🃏", set: { scene: "feature", league: "cfb" } },
+  { id: "live", name: "Live now", icon: "🔴", set: { scene: "live", league: "cfb" } },
+  { id: "field", name: "Colorado Field", icon: `<img src="${CU_LOGO}" alt="">`, set: { scene: "field", league: "cfb" } },
+  { id: "nfl", name: "NFL Sunday", icon: `<img src="${NFL_LOGO}" alt="">`, set: { scene: "all", league: "nfl" } },
+  { id: "fantasy", name: "Fantasy", icon: "🏆", set: { scene: "fantasy", league: "nfl" }, arg: "week" },
+  { id: "standings", name: "Standings", icon: "📊", set: { scene: "standings", league: "cfb" }, arg: "conf", def: "Big 12" },
+  { id: "schedule", name: "Schedule", icon: "📅", set: { scene: "schedule", league: "cfb" }, arg: "team", def: "Colorado" },
+  { id: "playerstats", name: "Player stats", icon: "📈", set: { scene: "playerstats", league: "cfb" }, arg: "team", def: "Colorado" },
+  { id: "tddemo", name: "TD celebration", icon: "🎉", set: { scene: "tddemo", league: "cfb" } },
+];
+const TKS = [["all", "All games", "Live first, then today and the week", "🏈"], ["live", "Live only", "Games in progress", "🔴"], ["liveup", "Live + Upcoming", "In progress, then next up", "⏭️"], ["post", "Finals", "Final scores", "🏁"], ["top25", "Top 25", "Ranked teams only", "🏅"]];
+
+// ---------- state ----------
+let SB_KEY = "", games = [], teams = [], board = {}, rz = { enabled: true, games: [] }, status = null, row0 = {}, tab = "board";
+let dirtyBoard = 0, dirtyRz = 0, dragging = false, openSub = null, sceneArg = {}, teamQuery = "";
 const $ = s => document.querySelector(s);
 const nrm = s => (s || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const sorted = () => [...rz.games].sort((x, y) => x.priority - y.priority);
-
+const col = c => c ? "#" + String(c).replace(/^#/, "") : "#333";
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 1600); }
 async function sb(method, body) {
   const r = await fetch(SB_URL + (method === "GET" ? "&select=feature_list,picks,scene,league,ticker,redzone,redzone_status" : ""), {
@@ -157,113 +228,80 @@ async function sb(method, body) {
   return method === "GET" ? (await r.json())[0] : null;
 }
 
-// ---------- scenes (everything the projector board can show) ----------
-// The board shows picked cards whenever feature_list has entries, so picks live in their own column and are
-// copied into feature_list only for the Multi game scene.
-const SCENES = [
-  { id: "cfb",       name: "CFB Saturday",   sub: "Spotlight rotates today's games",  set: { scene: "all", league: "cfb" } },
-  { id: "multi",     name: "Multi game",     sub: "Your picked games as cards",        set: { scene: "feature", league: "cfb" } },
-  { id: "live",      name: "Live now",       sub: "Every game in progress",            set: { scene: "live", league: "cfb" } },
-  { id: "field",     name: "Colorado Field", sub: "Buffs field sim, stats at half",    set: { scene: "field", league: "cfb" } },
-  { id: "nfl",       name: "NFL Sunday",     sub: "NFL slate and ticker",              set: { scene: "all", league: "nfl" } },
-  { id: "fantasy",   name: "Fantasy",        sub: "Sleeper league matchups",           set: { scene: "fantasy", league: "nfl" }, arg: "week", argLabel: "Week (blank = live)" },
-  { id: "standings", name: "Standings",      sub: "Conference table",                  set: { scene: "standings", league: "cfb" }, arg: "text", argLabel: "Conference", def: "Big 12" },
-  { id: "schedule",  name: "Schedule",       sub: "One team's season",                 set: { scene: "schedule", league: "cfb" }, arg: "text", argLabel: "Team", def: "Colorado" },
-  { id: "playerstats", name: "Player stats", sub: "One team's box score",             set: { scene: "playerstats", league: "cfb" }, arg: "text", argLabel: "Team", def: "Colorado" },
-  { id: "tddemo",    name: "TD celebration", sub: "Demo the touchdown takeover",      set: { scene: "tddemo", league: "cfb" } },
-];
-const TICKERS = [["all", "All"], ["live", "Live only"], ["liveup", "Live + Upcoming"], ["upcoming", "Upcoming"], ["post", "Finals"], ["top25", "Top 25"]];
-// ticker = segments joined by "|" (the board rotates them every minute): see renderTicker in cfb.html
-const tkSegs = () => String(row0.ticker || "all").split("|").map(s => s.trim()).filter(Boolean);
-function tkName(seg) {
-  const t = TICKERS.find(([k]) => k === seg); if (t) return t[1];
-  if (seg.startsWith("conf:")) return seg.slice(5);
-  if (seg.startsWith("msg:")) return "“" + seg.slice(4) + "”";
-  if (seg.startsWith("stats:")) { const g = games.find(x => x.id === seg.slice(6)); return "Stats: " + (g ? `${g.a.abbr} at ${g.h.abbr}` : "game"); }
-  return seg;
-}
-async function setTicker(segs) {
-  const v = (segs.length ? segs : ["all"]).join("|");
-  try { await sb("PATCH", { ticker: v }); row0.ticker = v; renderScenes(); toast("Ticker: " + segs.map(tkName).join(" → ")); }
-  catch (e) { toast("Didn't save: " + e.message); }
-}
-function tkAdd(seg) { setTicker($("#tkqueue").checked ? tkSegs().filter(s => s !== "all").concat([seg]) : [seg]); }
-let row0 = {}, sceneArg = {};
-function currentScene() {
-  const s = row0.scene || "all", lg = row0.league || "cfb";
-  if (s === "all") return lg === "nfl" ? "nfl" : "cfb";
-  if (s === "feature") return "multi";
-  return SCENES.some(x => x.id === s) ? s : "cfb";
-}
-function pickList() {
-  return Object.values(board).map(b => { const sp = (b.spread || "").replace(/[^\d.+-]/g, "");
-    return b.team.toLowerCase() + (sp ? " " + (/^[+-]/.test(sp) ? sp : "-" + sp) : ""); });
-}
-async function setScene(id, arg) {
-  const sc = SCENES.find(x => x.id === id); if (!sc) return;
-  const body = Object.assign({ feature_team: null, feature_matchup: null, feat_matchup: false, feat_when: "current", demo: 0 }, sc.set);
-  if (id === "multi") body.feature_list = pickList();
-  else if (sc.arg) { const v = (arg ?? sceneArg[id] ?? sc.def ?? "").trim(); body.feature_list = v ? [v.toLowerCase()] : []; }
-  else body.feature_list = [];
-  if (id === "multi" && !body.feature_list.length) return toast("Pick some games below first");
-  try { await sb("PATCH", body); Object.assign(row0, body); renderScenes(); toast(`Projector: ${sc.name}`); }
-  catch (e) { toast("Didn't save: " + e.message); }
-}
-function renderScenes() {
-  const cur = currentScene();
-  $("#scenes").innerHTML = SCENES.map(s => `<button class="scene ${s.id === cur ? "sel" : ""}" data-scene="${s.id}"><b>${s.name}</b><span>${s.sub}</span></button>`).join("");
-  const sc = SCENES.find(x => x.id === cur);
-  if (sc && sc.arg) {
-    const v = sceneArg[cur] ?? ((row0.feature_list || [])[0] || sc.def || "");
-    $("#scenextra").innerHTML = `<div class="sx"><label>${sc.argLabel}</label><input type="text" id="scenearg" value="${esc(v)}" ${sc.arg === "week" ? 'inputmode="numeric"' : ""}><button class="chip on" data-act="scenego">Show</button></div>`;
-  } else $("#scenextra").innerHTML = "";
-  const segs = tkSegs();
-  $("#tkplay").innerHTML = segs.map((s, i) => `<span class="tkseg ${segs.length === 1 ? "now" : ""}">${esc(tkName(s))}${segs.length > 1 ? `<button data-tkdel="${i}" aria-label="Remove">✕</button>` : ""}</span>`).join(segs.length > 1 ? "<span style='color:var(--dim)'>→</span>" : "");
-  $("#tickers").innerHTML = TICKERS.map(([k, n]) => `<button class="chip ${segs.length === 1 && segs[0] === k ? "on" : ""}" data-ticker="${k}">${n}</button>`).join("");
-  const sel = $("#tkgame"), keep = sel.value;
-  sel.innerHTML = games.filter(g => g.state !== "pre").map(g => `<option value="${g.id}">${esc(g.a.abbr)} ${esc(g.a.score)} at ${esc(g.h.abbr)} ${esc(g.h.score)} · ${esc(g.detail)}</option>`).join("") || "<option value=''>No games started yet</option>";
-  if (keep) sel.value = keep;
-}
-
-// ---------- live saving (debounced so taps and typing coalesce) ----------
-function saveBoardSoon(ms = 350) {
-  dirtyBoard++; clearTimeout(saveBoardSoon.t);
-  saveBoardSoon.t = setTimeout(async () => {
-    const list = pickList();
-    // picking games means "show my picks": switch to Multi game (or back to CFB Saturday when the last pick is removed)
-    const body = list.length ? { picks: list, scene: "feature", league: "cfb", feature_team: null, feature_matchup: null, feature_list: list, feat_when: "current", feat_matchup: false, demo: 0 }
-                             : { picks: [], ...(currentScene() === "multi" ? { scene: "all", league: "cfb", feature_list: [] } : {}) };
-    try { await sb("PATCH", body); Object.assign(row0, body); renderScenes();
-      toast(list.length ? `Multi game: ${list.length} game${list.length > 1 ? "s" : ""}` : "Picks cleared"); }
-    catch (e) { toast("Didn't save: " + e.message); }
-    dirtyBoard = 0;
-  }, ms);
-}
-function saveRzSoon(ms = 400, msg = "RedZone updated") {
-  dirtyRz++; clearTimeout(saveRzSoon.t);
-  saveRzSoon.t = setTimeout(async () => {
-    try { rz.nonce = Date.now(); await sb("PATCH", { redzone: rz }); toast(msg); } catch (e) { toast("Didn't save: " + e.message); }
-    dirtyRz = 0;
-  }, ms);
-}
-
+// ---------- data ----------
 async function loadGames() {
-  const r = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?groups=80&limit=400");
-  const j = await r.json();
+  const j = await (await fetch(ESPN + "/scoreboard?groups=80&limit=400")).json();
   const rank = g => g.state === "in" ? 0 : g.state === "pre" ? 1 : 2;
   games = (j.events || []).map(ev => {
     const c = ev.competitions[0], st = ev.status.type;
     const a = c.competitors.find(t => t.homeAway === "away"), h = c.competitors.find(t => t.homeAway === "home");
-    const team = t => ({ loc: t.team.location, abbr: t.team.abbreviation, logo: t.team.logo, score: t.score,
-      rank: (t.curatedRank && t.curatedRank.current < 99) ? t.curatedRank.current : null });
+    const team = t => ({ loc: t.team.location, abbr: t.team.abbreviation, logo: t.team.logo, color: t.team.color, conf: String(t.team.conferenceId || ""),
+      score: t.score, rank: (t.curatedRank && t.curatedRank.current < 99) ? t.curatedRank.current : null });
     const lp = c.situation && c.situation.lastPlay ? c.situation.lastPlay.type?.text || "" : "";
     return { id: ev.id, state: st.state, detail: st.shortDetail, date: ev.date, a: team(a), h: team(h),
       nets: (c.broadcasts || []).flatMap(b => b.names || []), rz: !!(c.situation && c.situation.isRedZone),
       brk: st.name === "STATUS_HALFTIME" || st.name === "STATUS_END_PERIOD" || /touchdown|field goal good|extra point/i.test(lp) };
   }).sort((x, y) => (rank(x) - rank(y)) || (new Date(x.date) - new Date(y.date)));
 }
+async function loadTeams() {
+  try { const c = JSON.parse(localStorage.getItem("gd_teams") || "null"); if (c && Date.now() - c.at < 7 * 864e5) { teams = c.teams; return; } } catch (e) {}
+  try {
+    const j = await (await fetch(ESPN + "/teams?limit=1000")).json();
+    teams = j.sports[0].leagues[0].teams.map(x => ({ loc: x.team.location, name: x.team.displayName, abbr: x.team.abbreviation, logo: (x.team.logos || [])[0]?.href || "", color: x.team.color }));
+    try { localStorage.setItem("gd_teams", JSON.stringify({ at: Date.now(), teams })); } catch (e) {}
+  } catch (e) {}
+}
+const teamLogo = name => { const k = nrm(name); const t = teams.find(t => nrm(t.loc) === k || nrm(t.abbr) === k || nrm(t.name) === k); return t ? t.logo : ""; };
+const gameById = id => games.find(g => g.id === String(id));
 
-function parseBoard(list) {   // feature_list entries like "texas -13.5" or "ole miss" -> {gameId: {team, spread}}
+// ---------- scenes ----------
+function currentScene() {
+  const s = row0.scene || "all", lg = row0.league || "cfb";
+  if (s === "all") return lg === "nfl" ? "nfl" : "cfb";
+  if (s === "feature") return "multi";
+  return SCENES.some(x => x.id === s) ? s : "cfb";
+}
+const pickList = () => Object.values(board).map(b => { const sp = (b.spread || "").replace(/[^\d.+-]/g, "");
+  return b.team.toLowerCase() + (sp ? " " + (/^[+-]/.test(sp) ? sp : "-" + sp) : ""); });
+async function setScene(id, arg) {
+  const sc = SCENES.find(x => x.id === id); if (!sc) return;
+  const body = Object.assign({ feature_team: null, feature_matchup: null, feat_matchup: false, feat_when: "current", demo: 0 }, sc.set);
+  if (id === "multi") { body.feature_list = pickList(); if (!body.feature_list.length) return toast("Add some games below first"); }
+  else if (sc.arg) { const v = String(arg ?? sceneArg[id] ?? argNow(sc) ?? "").trim(); body.feature_list = v ? [v.toLowerCase()] : []; }
+  else body.feature_list = [];
+  try { await sb("PATCH", body); Object.assign(row0, body); renderScenes(); toast("Projector: " + sc.name); }
+  catch (e) { toast("Didn't save: " + e.message); }
+}
+function argNow(sc) { return currentScene() === sc.id ? (row0.feature_list || [])[0] : sc.def; }
+function renderScenes() {
+  const cur = currentScene();
+  $("#scenes").innerHTML = SCENES.map(s => `<button class="scene ${s.id === cur ? "sel" : ""}" data-scene="${s.id}"><span class="ic">${s.icon}</span><b>${s.name}</b></button>`).join("");
+  const sc = SCENES.find(x => x.id === cur); let html = "";
+  if (sc && sc.arg === "team") {
+    const val = sceneArg[cur] ?? argNow(sc) ?? "";
+    html = `<div class="panel"><h4>${sc.name} for</h4><div class="search"><img class="lead" src="${esc(teamLogo(val) || CFB_ICON)}" alt=""><input id="teamq" type="search" autocomplete="off" placeholder="Search any team" value="${esc(teamQuery || "")}"></div><div class="results" id="teamres"></div></div>`;
+  } else if (sc && sc.arg === "conf") {
+    const val = nrm(sceneArg[cur] ?? argNow(sc) ?? "");
+    html = `<div class="panel"><h4>Conference</h4><div class="confgrid">${CONFS.map(([id, n]) => `<button class="conf ${nrm(n) === val ? "sel" : ""}" data-conf="${esc(n)}"><img src="${confLogo(id)}" alt=""><b>${esc(n)}</b></button>`).join("")}</div></div>`;
+  } else if (sc && sc.arg === "week") {
+    const val = String((row0.feature_list || [])[0] || "");
+    html = `<div class="panel"><h4>Fantasy week</h4><div class="weeks"><button class="wk ${!val ? "sel" : ""}" data-week="">Live</button>${Array.from({ length: 18 }, (_, i) => i + 1).map(w => `<button class="wk ${val === String(w) ? "sel" : ""}" data-week="${w}">${w}</button>`).join("")}</div></div>`;
+  }
+  $("#scenepanel").innerHTML = html;
+  if (sc && sc.arg === "team") renderTeamResults();
+}
+function renderTeamResults() {
+  const box = $("#teamres"); if (!box) return;
+  const cur = SCENES.find(x => x.id === currentScene()), val = nrm(sceneArg[cur.id] ?? argNow(cur) ?? "");
+  const q = nrm(teamQuery);
+  let list = q ? teams.filter(t => nrm(t.loc).includes(q) || nrm(t.name).includes(q) || nrm(t.abbr) === q) : teams.filter(t => nrm(t.loc) === val);
+  list = list.sort((a, b) => (nrm(a.loc).startsWith(q) ? 0 : 1) - (nrm(b.loc).startsWith(q) ? 0 : 1)).slice(0, 8);
+  box.innerHTML = list.length ? list.map(t => `<button class="res ${nrm(t.loc) === val ? "sel" : ""}" data-team="${esc(t.loc)}"><img src="${esc(t.logo)}" alt=""><span>${esc(t.loc)}</span><small>${esc(t.name.replace(t.loc, "").trim())}</small></button>`).join("")
+    : `<div class="hint" style="margin:6px 2px">${q ? "No teams match" : "Type a team name"}</div>`;
+}
+
+// ---------- multi game picks ----------
+function parseBoard(list) {   // entries like "texas -13.5" or "ole miss" -> {gameId: {team, spread}}
   board = {};
   (list || []).forEach(e => {
     const m = String(e).match(/^(.*\S)\s+([+-]\d+(?:\.\d+)?)$/);
@@ -273,9 +311,20 @@ function parseBoard(list) {   // feature_list entries like "texas -13.5" or "ole
     if (g) board[g.id] = { team: [g.a, g.h].find(t => [t.loc, t.abbr].map(nrm).includes(key)).loc, spread };
   });
 }
-
-function teamRow(t, g) {
-  return `<div class="team"><img src="${esc(t.logo)}" alt="" loading="lazy">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}<span class="nm">${esc(t.loc)}</span>${g.state !== "pre" ? `<span class="sc">${esc(t.score)}</span>` : ""}</div>`;
+function saveBoardSoon(ms = 350) {
+  dirtyBoard++; clearTimeout(saveBoardSoon.t);
+  saveBoardSoon.t = setTimeout(async () => {
+    const list = pickList();
+    const body = list.length ? { picks: list, scene: "feature", league: "cfb", feature_team: null, feature_matchup: null, feature_list: list, feat_when: "current", feat_matchup: false, demo: 0 }
+                             : { picks: [], ...(currentScene() === "multi" ? { scene: "all", league: "cfb", feature_list: [] } : {}) };
+    try { await sb("PATCH", body); Object.assign(row0, body); renderScenes(); toast(list.length ? `Multi game: ${list.length} game${list.length > 1 ? "s" : ""}` : "Picks cleared"); }
+    catch (e) { toast("Didn't save: " + e.message); }
+    dirtyBoard = 0;
+  }, ms);
+}
+function teamRow(t, g, other) {
+  const sc = g.state !== "pre", cls = sc ? (+t.score > +other.score ? "lead" : +t.score < +other.score ? "trail" : "") : "";
+  return `<div class="team ${cls}"><img src="${esc(t.logo)}" alt="" loading="lazy">${t.rank ? `<span class="rk">${t.rank}</span>` : ""}<span class="nm">${esc(t.loc)}</span>${sc ? `<span class="sc">${esc(t.score)}</span>` : ""}</div>`;
 }
 function tags(g) {
   let s = g.state === "in" ? `<span class="tag live">LIVE</span>` : "";
@@ -285,50 +334,87 @@ function tags(g) {
   if (g.nets.length && !g.nets.some(n => TUNABLE.test(n.trim()))) s += `<span class="tag warn">not on Fubo</span>`;
   return s;
 }
-
+const cardStyle = g => `--ca:${col(g.a.color)};--ch:${col(g.h.color)}`;
 function renderBoard() {
+  $("#pickcount").textContent = `${Object.keys(board).length}/5`;
   if (!games.length) { $("#gamelist").innerHTML = `<div class="empty">No games today</div>`; return; }
-  $("#gamelist").innerHTML = games.map(g => {
+  $("#gamelist").innerHTML = games.filter(g => g.state !== "post" || board[g.id]).map(g => {
     const b = board[g.id];
-    return `<div class="game ${b ? "picked" : ""}" data-id="${g.id}">
-      <div class="row"><div class="teams">${teamRow(g.a, g)}${teamRow(g.h, g)}</div><button class="pick" data-act="pick" aria-label="On projector">${b ? "✓" : "+"}</button></div>
+    return `<div class="game ${b ? "picked" : ""}" data-id="${g.id}" style="${cardStyle(g)}">
+      <div class="row"><div class="teams">${teamRow(g.a, g, g.h)}${teamRow(g.h, g, g.a)}</div><button class="pick" data-act="pick" aria-label="Add to Multi game">${b ? "✓" : "+"}</button></div>
       <div class="meta"><span>${esc(g.detail)}</span>${tags(g)}</div>
-      <div class="extra"><label>Bet on</label><select data-act="team"><option${b && b.team === g.a.loc ? " selected" : ""}>${esc(g.a.loc)}</option><option${!b || b.team === g.h.loc ? " selected" : ""}>${esc(g.h.loc)}</option></select>
-        <label>Spread</label><input type="text" inputmode="decimal" placeholder="-3.5" data-act="spread" value="${esc(b ? b.spread : "")}"></div></div>`;
-  }).join("");
+      <div class="extra"><div class="betteam">${[g.a, g.h].map(t => `<button class="${b && b.team === t.loc ? "sel" : ""}" data-act="bet" data-team="${esc(t.loc)}"><img src="${esc(t.logo)}" alt="">${esc(t.abbr)}</button>`).join("")}</div>
+        <input type="text" inputmode="decimal" placeholder="Spread" data-act="spread" value="${esc(b ? b.spread : "")}" aria-label="Spread"></div></div>`;
+  }).join("") || `<div class="empty">No live or upcoming games</div>`;
 }
 
+// ---------- ticker checklist ----------
+const tkSegs = () => String(row0.ticker || "all").split("|").map(s => s.trim()).filter(Boolean).filter(s => !s.startsWith("msg:"));
+async function setTicker(segs) {
+  const v = (segs.length ? segs : ["all"]).join("|");
+  try { await sb("PATCH", { ticker: v }); row0.ticker = v; renderTicker(); toast("Ticker updated"); } catch (e) { toast("Didn't save: " + e.message); }
+}
+function toggleSeg(seg) { const s = tkSegs(); const i = s.indexOf(seg); if (i >= 0) s.splice(i, 1); else s.push(seg); setTicker(s.length ? s : ["all"]); }
+function tkLabel(seg) {
+  const t = TKS.find(([k]) => k === seg); if (t) return t[1];
+  if (seg.startsWith("conf:")) return seg.slice(5);
+  if (seg.startsWith("stats:")) { const g = gameById(seg.slice(6)); return g ? `${g.a.abbr}–${g.h.abbr} stats` : "Game stats"; }
+  return seg;
+}
+function renderTicker() {
+  const segs = tkSegs();
+  $("#tksum").textContent = segs.length > 1 ? `rotating ${segs.length}` : tkLabel(segs[0] || "all");
+  const confOn = segs.filter(s => s.startsWith("conf:")), statOn = segs.filter(s => s.startsWith("stats:"));
+  let html = TKS.map(([k, n, d, ic]) => `<button class="titem ${segs.includes(k) ? "on" : ""}" data-seg="${k}"><span class="ic">${ic}</span><span class="lb"><b>${n}</b><small>${d}</small></span><span class="check">${segs.includes(k) ? "✓" : ""}</span></button>`).join("");
+  html += `<button class="titem ${confOn.length ? "on" : ""}" data-sub="conf"><span class="ic"><img src="${confLogo(confOn.length ? (CONFS.find(c => c[1] === confOn[0].slice(5)) || CONFS[0])[0] : "8")}" alt=""></span><span class="lb"><b>Conference</b><small>${confOn.length ? confOn.map(s => s.slice(5)).join(", ") : "One conference's games"}</small></span><span class="chev">${openSub === "conf" ? "▾" : "›"}</span></button>`;
+  if (openSub === "conf") html += `<div class="sub"><div class="confgrid">${CONFS.map(([id, n]) => `<button class="conf ${segs.includes("conf:" + n) ? "sel" : ""}" data-seg="conf:${esc(n)}"><img src="${confLogo(id)}" alt=""><b>${esc(n)}</b></button>`).join("")}</div></div>`;
+  html += `<button class="titem ${statOn.length ? "on" : ""}" data-sub="stats"><span class="ic">📋</span><span class="lb"><b>Game stats</b><small>${statOn.length ? statOn.map(tkLabel).join(", ") : "Leaders from one game, scrolling"}</small></span><span class="chev">${openSub === "stats" ? "▾" : "›"}</span></button>`;
+  if (openSub === "stats") {
+    const gl = games.filter(g => g.state !== "pre");
+    html += `<div class="sub"><div class="minis">${gl.length ? gl.map(g => `<button class="mini ${segs.includes("stats:" + g.id) ? "sel" : ""}" data-seg="stats:${g.id}"><img src="${esc(g.a.logo)}" alt=""><img src="${esc(g.h.logo)}" alt=""><span>${esc(g.a.abbr)} ${esc(g.a.score)} – ${esc(g.h.abbr)} ${esc(g.h.score)}</span><small>${esc(g.detail)}</small></button>`).join("") : `<div class="hint">No games have started yet</div>`}</div></div>`;
+  }
+  $("#tlist").innerHTML = html;
+}
+
+// ---------- RedZone ----------
+function saveRzSoon(ms = 400, msg = "RedZone updated") {
+  dirtyRz++; clearTimeout(saveRzSoon.t);
+  saveRzSoon.t = setTimeout(async () => { try { rz.nonce = Date.now(); await sb("PATCH", { redzone: rz }); toast(msg); } catch (e) { toast("Didn't save: " + e.message); } dirtyRz = 0; }, ms);
+}
 function renderRz() {
   $("#rztoggle").classList.toggle("on", rz.enabled !== false);
   const onTv = status && status.on_tv;
   const list = sorted();
   $("#rzlist").innerHTML = list.length ? list.map((r, i) => {
-    const g = games.find(x => x.id === String(r.espn));
-    const sub = g ? `${g.detail}${g.state === "in" && g.rz ? " · RED ZONE" : ""}${g.nets.length ? " · " + g.nets.join(", ") : ""}` : "";
-    return `<div class="rzrow ${r.never ? "never" : ""} ${onTv === r.name ? "ontv" : ""}" data-name="${esc(r.name)}">
+    const g = gameById(r.espn);
+    const score = g && g.state !== "pre" ? `${g.a.abbr} ${g.a.score} – ${g.h.abbr} ${g.h.score} · ` : "";
+    const sub = g ? `${score}${g.detail}${g.state === "in" && g.rz ? " · RED ZONE" : ""}${g.nets.length ? " · " + g.nets.join(", ") : ""}` : "";
+    return `<div class="rzrow ${onTv === r.name ? "ontv" : ""}" data-name="${esc(r.name)}" style="${g ? cardStyle(g) : ""}">
       <div class="rzhead"><span class="handle" aria-label="Drag to reorder">☰</span><span class="num">${i + 1}</span>
-        <div class="lbl">${esc(r.label)}${onTv === r.name ? " 📺" : ""}<small>${esc(sub)}</small></div>
+        ${g ? `<span class="rzlogos"><img src="${esc(g.a.logo)}" alt=""><img src="${esc(g.h.logo)}" alt=""></span>` : ""}
+        <div class="lbl"><b>${esc(r.label)}${onTv === r.name ? " 📺" : ""}</b><small>${esc(sub)}</small></div>
         <button class="ib" data-act="del" aria-label="Remove">✕</button></div>
-      <div class="chips"><button class="chip cb ${r.comeback ? "on" : ""}" data-act="comeback">Comeback Watch</button>
-        <button class="chip lk ${r.lock ? "on" : ""}" data-act="lock">🔒 Don't interrupt</button></div></div>`;
-  }).join("") : `<div class="empty">No RedZone games yet. Add some below.</div>`;
+      <div class="opts"><button class="opt cb ${r.comeback ? "on" : ""}" data-act="comeback">Comeback Watch</button><button class="opt lk ${r.lock ? "on" : ""}" data-act="lock">🔒 Don't interrupt</button></div></div>`;
+  }).join("") : `<div class="empty">No games yet. Add some below.</div>`;
   const inList = new Set(rz.games.map(r => String(r.espn)));
   const avail = games.filter(g => g.state !== "post" && !inList.has(g.id));
-  $("#rzadd").innerHTML = avail.length ? avail.map(g => `<div class="game" data-id="${g.id}"><div class="row"><div class="teams">${teamRow(g.a, g)}${teamRow(g.h, g)}</div><button class="pick" data-act="add" aria-label="Add to RedZone">+</button></div><div class="meta"><span>${esc(g.detail)}</span>${tags(g)}</div></div>`).join("")
-    : `<div class="empty">Every game today is already in the list</div>`;
+  $("#rzadd").innerHTML = avail.length ? avail.map(g => `<div class="game" data-id="${g.id}" style="${cardStyle(g)}"><div class="row"><div class="teams">${teamRow(g.a, g, g.h)}${teamRow(g.h, g, g.a)}</div><button class="pick" data-act="add" aria-label="Add to RedZone">+</button></div><div class="meta"><span>${esc(g.detail)}</span>${tags(g)}</div></div>`).join("")
+    : `<div class="empty">Every game today is already in your list</div>`;
 }
-
 function renderStatus() {
-  const s = status, dot = $("#rzdot");
-  if (!s) { $("#rzstatus").textContent = "RedZone hasn't reported yet"; dot.className = "dot"; return; }
+  const s = status;
+  if (!s) { $("#nowt").textContent = "RedZone hasn't reported yet"; return; }
   const age = Math.round((Date.now() - new Date(s.at)) / 1000), stale = age > 90;
-  dot.className = "dot " + (s.enabled !== false && !stale ? "on" : "off");
-  const tv = rz.games.find(r => r.name === s.on_tv);
-  $("#rzstatus").textContent = stale ? `RedZone offline (last seen ${Math.round(age / 60)} min ago)`
-    : s.enabled === false ? "RedZone off" : `On TV: ${tv ? tv.label : (s.on_tv || "?")} · ${s.detail || s.action}`;
+  $("#rzdot").className = "dot " + (s.enabled !== false && !stale ? "on" : "off");
+  const r = rz.games.find(x => x.name === s.on_tv), g = r && gameById(r.espn);
+  $("#nowlogos").innerHTML = g ? `<img src="${esc(g.a.logo)}" alt=""><img src="${esc(g.h.logo)}" alt="">` : "";
+  $("#nowk").textContent = stale ? "RedZone offline" : s.enabled === false ? "RedZone off" : "On TV now";
+  $("#nowt").textContent = g ? `${g.a.loc} ${g.state !== "pre" ? g.a.score : ""} at ${g.h.loc} ${g.state !== "pre" ? g.h.score : ""}` : (r ? r.label : (s.on_tv || "—"));
+  $("#nowd").textContent = stale ? `Last seen ${Math.round(age / 60)} min ago` : [g ? g.detail : "", s.detail || s.action].filter(Boolean).join(" · ");
   $("#resume").hidden = !(s.action === "paused" && !stale);
 }
 
+// ---------- refresh ----------
 async function refresh(full) {
   if (dragging) return;
   try {
@@ -337,43 +423,40 @@ async function refresh(full) {
     if (full) {
       if (!dirtyBoard) { row0 = row; parseBoard(row.picks || (row.scene === "feature" ? row.feature_list : [])); }
       if (!dirtyRz && row.redzone) rz = row.redzone;
-      if (!dirtyBoard && document.activeElement.id !== "scenearg") renderScenes();
+      if (!dirtyBoard && document.activeElement.id !== "teamq") renderScenes();
+      if (document.activeElement.tagName !== "INPUT") { renderBoard(); renderTicker(); }
+      renderRz();
     }
-    status = row.redzone_status;
-    renderStatus();
-    if (full) { renderBoard(); renderRz(); } else if (tab === "rz" && !dirtyRz) renderRz();
-  } catch (e) { $("#rzstatus").textContent = "Can't reach the server: " + e.message; }
+    status = row.redzone_status; renderStatus();
+    if (!full && tab === "rz" && !dirtyRz) renderRz();
+  } catch (e) { $("#nowt").textContent = "Can't reach the server"; $("#nowd").textContent = e.message; }
 }
 
-// ---------- taps ----------
+// ---------- events ----------
 document.addEventListener("click", e => {
-  const tabBtn = e.target.closest(".tab");
-  if (tabBtn) { tab = tabBtn.dataset.tab; document.querySelectorAll(".tab").forEach(t => t.classList.toggle("sel", t === tabBtn));
-    $("#board").hidden = tab !== "board"; $("#rz").hidden = tab !== "rz"; return; }
-  const scBtn = e.target.closest("[data-scene]"); if (scBtn) { setScene(scBtn.dataset.scene); return; }
-  const tk = e.target.closest("[data-ticker]"); if (tk) { tkAdd(tk.dataset.ticker); return; }
-  const tkd = e.target.closest("[data-tkdel]"); if (tkd) { const s = tkSegs(); s.splice(+tkd.dataset.tkdel, 1); setTicker(s); return; }
-  const tkb = e.target.closest("[data-tk]");
-  if (tkb) {
-    const k = tkb.dataset.tk;
-    if (k === "conf") tkAdd("conf:" + $("#tkconf").value);
-    if (k === "stats") { if (!$("#tkgame").value) return toast("No game to show"); tkAdd("stats:" + $("#tkgame").value); }
-    if (k === "msg") { const m = $("#tkmsg").value.replace(/\|/g, "/").trim(); if (!m) return toast("Type a message first"); tkAdd("msg:" + m); }
-    return;
-  }
-  const act = e.target.closest("[data-act]"); if (!act) return;
+  const t = e.target;
+  const tabBtn = t.closest(".tab");
+  if (tabBtn) { tab = tabBtn.dataset.tab; document.querySelectorAll(".tab").forEach(x => x.classList.toggle("sel", x === tabBtn)); $("#board").hidden = tab !== "board"; $("#rz").hidden = tab !== "rz"; window.scrollTo(0, 0); return; }
+  const sc = t.closest("[data-scene]"); if (sc) { teamQuery = ""; setScene(sc.dataset.scene); return; }
+  const tm = t.closest("[data-team]");
+  if (tm && !tm.closest(".betteam")) { const cur = currentScene(); sceneArg[cur] = tm.dataset.team; teamQuery = ""; setScene(cur, tm.dataset.team); return; }
+  const cf = t.closest("[data-conf]"); if (cf) { sceneArg.standings = cf.dataset.conf; setScene("standings", cf.dataset.conf); return; }
+  const wk = t.closest("[data-week]"); if (wk) { setScene("fantasy", wk.dataset.week); return; }
+  const sg = t.closest("[data-seg]"); if (sg) { toggleSeg(sg.dataset.seg); return; }
+  const su = t.closest("[data-sub]"); if (su) { openSub = openSub === su.dataset.sub ? null : su.dataset.sub; renderTicker(); return; }
+  const act = t.closest("[data-act]"); if (!act) return;
   const a = act.dataset.act, card = act.closest("[data-id]"), row = act.closest("[data-name]");
-  if (a === "scenego") { const cur = currentScene(); sceneArg[cur] = $("#scenearg").value; setScene(cur, sceneArg[cur]); return; }
   if (a === "pick") {
-    const g = games.find(x => x.id === card.dataset.id);
+    const g = gameById(card.dataset.id);
     if (board[g.id]) delete board[g.id];
-    else { if (Object.keys(board).length >= 5) return toast("The projector holds 5 games"); board[g.id] = { team: g.h.loc, spread: "" }; }
+    else { if (Object.keys(board).length >= 5) return toast("Multi game holds 5"); board[g.id] = { team: g.h.loc, spread: "" }; }
     renderBoard(); saveBoardSoon();
   }
+  if (a === "bet") { board[card.dataset.id].team = act.dataset.team; renderBoard(); saveBoardSoon(); }
   if (a === "add") {
-    const g = games.find(x => x.id === card.dataset.id), label = `${g.a.loc} at ${g.h.loc}`;
+    const g = gameById(card.dataset.id), label = `${g.a.loc} at ${g.h.loc}`;
     let name = (g.h.abbr || "G").replace(/[^A-Za-z0-9]/g, ""); if (rz.games.some(r => r.name === name)) name += g.id.slice(-3);
-    rz.games.push({ name, espn: g.id, label, match: label, priority: rz.games.length + 1, never: false, comeback: false, lock: false });
+    rz.games.push({ name, espn: g.id, label, match: label, priority: rz.games.length + 1, comeback: false, lock: false });
     renderRz(); saveRzSoon(400, `Added ${label}`);
   }
   if (row && ["del", "comeback", "lock"].includes(a)) {
@@ -385,76 +468,58 @@ document.addEventListener("click", e => {
     saveRzSoon(300, a === "del" ? "Removed" : a === "comeback" ? `Comeback Watch ${r.comeback ? "on" : "off"}` : `Don't interrupt ${r.lock ? "on" : "off"}`);
   }
 });
-document.addEventListener("change", e => {
-  const card = e.target.closest("[data-id]"); if (!card || !board[card.dataset.id]) return;
-  if (e.target.dataset.act === "team") { board[card.dataset.id].team = e.target.value; saveBoardSoon(); }
-});
 document.addEventListener("input", e => {
-  const card = e.target.closest("[data-id]"); if (!card || !board[card.dataset.id] || e.target.dataset.act !== "spread") return;
-  board[card.dataset.id].spread = e.target.value.trim(); saveBoardSoon(900);   // wait for typing to pause
+  if (e.target.id === "teamq") { teamQuery = e.target.value; renderTeamResults(); return; }
+  const card = e.target.closest("[data-id]");
+  if (card && board[card.dataset.id] && e.target.dataset.act === "spread") { board[card.dataset.id].spread = e.target.value.trim(); saveBoardSoon(900); }
 });
 
-document.addEventListener("keydown", e => {
-  if (e.target.id === "scenearg" && e.key === "Enter") { const cur = currentScene(); sceneArg[cur] = e.target.value; e.target.blur(); setScene(cur, sceneArg[cur]); }
-});
-
-// ---------- drag to reorder (touch + mouse) ----------
-// The dragged row follows the finger with a transform (moving it in the DOM mid-drag drops the touch on
-// phones); the others slide aside to show where it will land; the new order is applied on release.
+// drag to reorder: the row follows the finger (moving it in the DOM mid drag drops the touch on phones)
 const noScroll = ev => ev.preventDefault();
 document.addEventListener("pointerdown", e => {
   const h = e.target.closest(".handle"); if (!h) return;
   e.preventDefault();
-  const box = $("#rzlist"), rows = [...box.querySelectorAll(".rzrow")], rowEl = h.closest(".rzrow"), from = rows.indexOf(rowEl);
+  const rows = [...$("#rzlist").querySelectorAll(".rzrow")], rowEl = h.closest(".rzrow"), from = rows.indexOf(rowEl);
   const rects = rows.map(r => r.getBoundingClientRect()), step = rects.length > 1 ? rects[1].top - rects[0].top : rects[0].height + 8;
   const startY = e.clientY; let to = from;
   dragging = true; rowEl.classList.add("dragging");
-  window.addEventListener("touchmove", noScroll, { passive: false });   // iOS: stop the page scrolling under the finger
+  window.addEventListener("touchmove", noScroll, { passive: false });
   const move = ev => {
-    const dy = ev.clientY - startY;
-    rowEl.style.transform = `translateY(${dy}px)`;
+    const dy = ev.clientY - startY; rowEl.style.transform = `translateY(${dy}px)`;
     to = Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / step)));
     rows.forEach((r, i) => { if (r === rowEl) return;
       const shift = (from < to && i > from && i <= to) ? -step : (from > to && i >= to && i < from) ? step : 0;
       r.style.transition = "transform .15s"; r.style.transform = shift ? `translateY(${shift}px)` : ""; });
   };
   const up = () => {
-    window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
-    window.removeEventListener("touchmove", noScroll);
+    window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up); window.removeEventListener("touchmove", noScroll);
     rows.forEach(r => { r.style.transform = ""; r.style.transition = ""; }); rowEl.classList.remove("dragging"); dragging = false;
     if (to === from) return;
     const list = sorted(); const [m] = list.splice(from, 1); list.splice(to, 0, m);
-    list.forEach((r, k) => r.priority = k + 1); rz.games = list;
-    renderRz(); saveRzSoon(200, `${m.label} → #${to + 1}`);
+    list.forEach((r, k) => r.priority = k + 1); rz.games = list; renderRz(); saveRzSoon(200, `${m.label} → #${to + 1}`);
   };
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
 });
 
 $("#rztoggle").onclick = () => { rz.enabled = rz.enabled === false; renderRz(); saveRzSoon(100, rz.enabled ? "RedZone on" : "RedZone off"); };
-
-// Tell RedZone the game on TV is in commercial (it can't always see that): it flips now and comes back on time.
-$("#adbtn").onclick = async () => {
+$("#adbtn").onclick = async () => {   // RedZone can't always see commercials: tell it, it flips now and comes back on time
   if (!status || !status.on_tv) return toast("RedZone doesn't know what's on yet");
-  try { const row = await sb("GET"); const cur = row.redzone || rz;
-    cur.force_break = { game: status.on_tv, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur });
-    const g = rz.games.find(r => r.name === status.on_tv); toast(`Flipping off ${g ? g.label : status.on_tv}`);
-  } catch (e) { toast("Failed: " + e.message); }
+  try { const row = await sb("GET"); const cur = row.redzone || rz; cur.force_break = { game: status.on_tv, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur }); toast("Flipping off the commercial"); }
+  catch (e) { toast("Failed: " + e.message); }
 };
-// Jump straight to the #1 game (when you can see it's back before RedZone can).
-$("#topbtn").onclick = async () => {
-  try { const row = await sb("GET"); const cur = row.redzone || rz;
-    const top = [...(cur.games || [])].filter(g => !g.never).sort((a, b) => a.priority - b.priority)[0];
-    if (!top) return toast("No RedZone games set");
-    cur.go_to = { game: top.name, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur }); toast(`Going to ${top.label}`);
-  } catch (e) { toast("Failed: " + e.message); }
+$("#topbtn").onclick = async () => {   // jump straight to #1 (when you can see it's back before RedZone can)
+  try { const row = await sb("GET"); const cur = row.redzone || rz; const top = [...(cur.games || [])].sort((a, b) => a.priority - b.priority)[0];
+    if (!top) return toast("No RedZone games set"); cur.go_to = { game: top.name, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur }); toast(`Going to ${top.label}`); }
+  catch (e) { toast("Failed: " + e.message); }
 };
 $("#resume").onclick = async () => { rz.nonce = Date.now(); try { await sb("PATCH", { redzone: rz }); toast("RedZone resumed"); } catch (e) { toast("Failed: " + e.message); } };
 
 (async () => {
   try { SB_KEY = ((await (await fetch("cfb.html", { cache: "no-store" })).text()).match(/const SB_KEY="([^"]+)"/) || [])[1] || ""; } catch (e) {}
+  loadTeams().then(() => { renderScenes(); });
   await refresh(true);
-  setInterval(() => refresh(false), 5000);   // TV status
-  setInterval(() => { if (document.activeElement.tagName !== "INPUT") refresh(true); }, 30000);   // scores
+  setInterval(() => refresh(false), 5000);
+  setInterval(() => refresh(true), 30000);
 })();
 </script>
 </body>
