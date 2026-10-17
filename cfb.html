@@ -686,7 +686,8 @@ async function load(){
         if(clk && ord) detail=clk+" · "+ord; }
       return { id:ev.id, date:ev.date, aAbbr:away.team.abbreviation, hAbbr:home.team.abbreviation,
         aLoc:away.team.location||"", hLoc:home.team.location||"",
-        aMascot:away.team.name||"", hMascot:home.team.name||"",   /* mascot (e.g. NFL "Chiefs") so voice can match by nickname, not just city/abbr */
+        aMascot:away.team.name||"", hMascot:home.team.name||"",
+        aConf:String(away.team.conferenceId||""), hConf:String(home.team.conferenceId||""),   /* ticker conference filter */   /* mascot (e.g. NFL "Chiefs") so voice can match by nickname, not just city/abbr */
         aName:rk(away)+away.team.abbreviation, hName:rk(home)+home.team.abbreviation,
         aLogo:logoOf(away.team), hLogo:logoOf(home.team), aTC:teamColors(away.team.color), hTC:teamColors(home.team.color),
         aColUnder:teamColors(away.team.color).bg, hColUnder:teamColors(home.team.color).bg,
@@ -1421,8 +1422,52 @@ function tickerLabelFor(pool, mode){
   if(pool.every(g=>g.state==="pre"))  return "UPCOMING";
   return lg;
 }
+/* ===== ticker playlist (set from the phone remote via board_sync.ticker) =====
+   TICKER_MODE is one segment or several joined with "|"; with several, the ticker rotates every TK_SEG_MS.
+   Segments: all | live | liveup | upcoming | post | top25 | conf:<name> | stats:<espn event id> | msg:<static text> */
+const TK_SEG_MS = 60000;
+const CONF_IDS = { "sec":"8", "big ten":"5", "big10":"5", "b1g":"5", "big 12":"4", "big12":"4", "acc":"1", "pac-12":"9", "pac12":"9",
+  "american":"151", "aac":"151", "mountain west":"17", "mwc":"17", "sun belt":"37", "mac":"15", "conference usa":"12", "cusa":"12", "independent":"18", "ind":"18" };
+let _tkSegs=[], _tkSegKey="", _tkSegIx=0, _tkSegAt=0, _tkStats={};
+function tkSegment(){
+  const key = TICKER_MODE||"all";
+  if(key!==_tkSegKey){ _tkSegKey=key; _tkSegs=key.split("|").map(s=>s.trim()).filter(Boolean); _tkSegIx=0; _tkSegAt=Date.now(); }
+  if(_tkSegs.length>1 && Date.now()-_tkSegAt>=TK_SEG_MS){ _tkSegIx=(_tkSegIx+1)%_tkSegs.length; _tkSegAt=Date.now(); }
+  return _tkSegs[_tkSegIx]||"all";
+}
+function tkStatic(text){   /* a non-scrolling message: stop the marquee and center the text */
+  const el=document.getElementById("t-ticker"); if(!el) return;
+  const sig="static:"+text; if(_tkStructSig===sig) return;
+  if(_tkAnim){ try{ _tkAnim.cancel(); }catch(e){} _tkAnim=null; }
+  _tkStructSig=sig; _lastTicker=sig; _tkContentSig=""; _tkPool=[];
+  el.style.transform="none";
+  el.innerHTML='<span class="item" style="width:100%;justify-content:center;display:flex">'+text.replace(/[<>&]/g,"")+'</span>';
+  const lbl=document.getElementById("tk-label"); if(lbl) lbl.textContent="";
+}
+async function tkStatsItems(eid){   /* one game's stat leaders as ticker items (cached 45 s) */
+  const c=_tkStats[eid]; if(c && Date.now()-c.at<45000) return c.items;
+  _tkStats[eid]={at:Date.now(), items:(c&&c.items)||null};
+  try{
+    const j=await (await fetch("https://site.api.espn.com/apis/site/v2/sports/football/"+leaguePath()+"/summary?event="+eid)).json();
+    const items=[];
+    (j.leaders||[]).forEach(t=>{ const ab=(t.team&&t.team.abbreviation)||"";
+      (t.leaders||[]).forEach(cat=>{ const L=(cat.leaders||[])[0]; if(!L) return;
+        items.push('<span class="item"><span class="seclbl">'+ab+' '+String(cat.displayName||cat.name).toUpperCase()+'</span> '+((L.athlete&&L.athlete.shortName)||"")+' · '+(L.displayValue||"")+'</span>'); }); });
+    const comp=j.header&&j.header.competitions&&j.header.competitions[0];
+    if(comp){ const s=comp.competitors.map(x=>x.team.abbreviation+" "+x.score).join(" – "); items.unshift('<span class="item"><span class="seclbl">'+s+'</span> '+((comp.status&&comp.status.type&&comp.status.type.shortDetail)||"")+'</span>'); }
+    _tkStats[eid]={at:Date.now(), items:items.length?items:['<span class="item">No stats yet</span>']};
+  }catch(e){}
+  return _tkStats[eid].items;
+}
 function renderTicker(){
-  const mode=TICKER_MODE||"all";
+  const seg=tkSegment();
+  if(seg.startsWith("msg:")) return tkStatic(seg.slice(4));
+  if(seg.startsWith("stats:")){
+    const eid=seg.slice(6); const lbl=document.getElementById("tk-label"); if(lbl) lbl.textContent="GAME STATS";
+    tkStatsItems(eid).then(items=>{ if(items && tkSegment()===seg) setTicker(items, "stats:"+eid+":"+items.join("").length); });
+    return;
+  }
+  const mode = seg.startsWith("conf:") ? "conf" : seg;
   /* draw from the WHOLE WEEK (games spans the current week's slate), so the ticker is full any day —
      not just the handful of games happening today. */
   const live=games.filter(g=>g.state==="in").sort((a,b)=>b.watch-a.watch);
@@ -1430,6 +1475,12 @@ function renderTicker(){
   const post=games.filter(g=>g.state==="post").sort((a,b)=>{ if(a.topRank!==b.topRank) return a.topRank-b.topRank; return a.date<b.date?1:-1; });
   let pool;
   if(mode==="live")               pool = live.length ? live : live.concat(pre);
+  else if(mode==="liveup")        pool = live.concat(pre.filter(g=>g.isToday), pre.filter(g=>!g.isToday));
+  else if(mode==="conf"){         /* one conference, live first */
+    const cid = CONF_IDS[seg.slice(5).toLowerCase().trim()] || seg.slice(5).trim();
+    const inC = g => g.aConf===cid || g.hConf===cid;
+    pool = live.filter(inC).concat(post.filter(g=>g.isToday&&inC(g)), pre.filter(inC), post.filter(g=>!g.isToday&&inC(g)));
+  }
   else if(mode==="upcoming")      pool = pre;
   else if(mode==="post")          pool = post;
   else if(mode==="top25"||mode==="rankings") pool = games.filter(g=>g.ranked).sort((a,b)=>a.topRank-b.topRank);
@@ -1441,14 +1492,16 @@ function renderTicker(){
   }
   if(!pool || !pool.length) pool = games.slice();
 
-  /* structure sig: mode + game ids + states (drives full rebuild) */
-  const structSig = mode + "|" + pool.slice(0,TICKER_MAX).map(g=>g.id+"|"+g.state).join(",");
+  /* structure sig: segment + game ids + states (drives full rebuild) */
+  const structSig = seg + "|" + pool.slice(0,TICKER_MAX).map(g=>g.id+"|"+g.state).join(",");
   /* content sig: scores + detail/clock + possession (drives in-place patch) */
   const contentSig = pool.slice(0,TICKER_MAX).map(g=>g.aS+"|"+g.hS+"|"+g.detail+"|"+(g.poss||"")).join(",");
 
-  const lbl=document.getElementById("tk-label"); if(lbl) lbl.textContent = tickerLabelFor(pool.slice(0,TICKER_MAX), mode);
+  const lbl=document.getElementById("tk-label");
+  if(lbl) lbl.textContent = mode==="conf" ? seg.slice(5).toUpperCase() : tickerLabelFor(pool.slice(0,TICKER_MAX), mode);
   setTicker(pool, structSig, contentSig);
 }
+setInterval(function(){ if(_tkSegs.length>1 && SCENE!=="field") renderTicker(); }, 5000);   /* rotate playlist segments between score loads */
 
 function render(){
   if(SCENE!=="fantasy") exitFantasy();   /* tear down the fantasy panel whenever we leave that scene */
