@@ -175,7 +175,8 @@ function renderRz() {
   const onTv = status && status.on_tv;
   $("#rzlist").innerHTML = list.length ? list.map((r, i) => {
     const g = games.find(x => x.id === String(r.espn));
-    const sub = g ? `${g.detail}${g.state === "in" && g.rz ? " · RED ZONE" : ""} · ${g.nets.join(", ")}` : "";
+    let sub = g ? `${g.detail}${g.state === "in" && g.rz ? " · RED ZONE" : ""} · ${g.nets.join(", ")}` : "";
+    if (r.boost_to) sub += ` · jumps to #${r.boost_to} if ${[r.rz_team ? r.rz_team + " in red zone" : "", r.close_within ? "within " + r.close_within : ""].filter(Boolean).join(" or ")}`;
     return `<div class="rzrow ${r.never ? "never" : ""} ${onTv === r.name ? "ontv" : ""}" data-name="${esc(r.name)}">
       <span class="num">${i + 1}</span><div class="lbl">${esc(r.label)}${onTv === r.name ? " 📺" : ""}<small>${esc(sub)}</small></div>
       <button class="ib" data-act="up" aria-label="Move up">▲</button><button class="ib" data-act="down" aria-label="Move down">▼</button>
