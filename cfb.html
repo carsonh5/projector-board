@@ -1707,6 +1707,7 @@ async function pullZones(){ try{
   const _wk=(/^\d+$/.test(String(row.feature_team||"")))?parseInt(row.feature_team,10):null;   // numeric feature_team pins the CFB slate to a past week
   if(_wk!==_cfbWeek){ _cfbWeek=_wk; games=[]; _snaps=[]; lastScores={}; firstLoad=true; _lastPickT=null; if(typeof load==="function") load(); }
   const z=row.zones;
+  if(typeof window!=="undefined") window.BOARD_FIELD_FLIP=!!(z&&z.ff&&z.ff.on);   // flip which way the ball goes on the field (voice/remote)
   if(z&&z.m){ for(const k in z){ if(Z[k]) Object.assign(Z[k],z[k]); } applyZones(); }
   const ms=row.map;
   if(ms){ document.body.classList.add("mapon");

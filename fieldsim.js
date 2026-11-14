@@ -294,7 +294,7 @@
     // teams attack opposite end zones AND switch ends each quarter (Q2/Q4 flipped) — from the period
     const period=(((comp.status)||{}).period)||((((comp.status)||{}).type)||{}).period||1;
     const possIsAway=!!(drive && drive.team && String(drive.team.id)===String((away.team||{}).id));
-    const baseAwayRight=(period%2===1);   // odd quarters (Q1/Q3): away attacks right; even (Q2/Q4): flipped
+    const baseAwayRight=(period%2===1)!==!!window.BOARD_FIELD_FLIP;   // odd quarters (Q1/Q3): away attacks right; even (Q2/Q4): flipped. board_sync zones.ff.on mirrors it to match the TV broadcast
     const attackRight = possIsAway ? baseAwayRight : !baseAwayRight;
     let st=null;
     if(drive){ const sig=String(((drive.team||{}).id)||"")+"|"+((drive.plays||[]).length)+"|"+(drive.displayResult||"");
