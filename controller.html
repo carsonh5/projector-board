@@ -12,7 +12,13 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
   body { padding: env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom)); }
-  button { font: inherit; color: inherit; }
+  button { font: inherit; color: inherit; cursor: pointer; transition: filter .12s, transform .08s, box-shadow .12s; }
+  button:hover { filter: brightness(1.15); }
+  button:active, button.pressed { transform: scale(.95); filter: brightness(.85); }
+  .qbtn { box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+  .qbtn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .mbtn:hover { background: #2e3850; }
+  .qbtn.done { box-shadow: 0 0 0 2px var(--green), 0 2px 0 rgba(0,0,0,.35); }
   img { display: block; }
 
   /* ---------- now on TV ---------- */
@@ -32,7 +38,7 @@
   .dot.on { background: var(--green); } .dot.off { background: var(--red); }
   .quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
   .quick.marks { grid-template-columns: 1fr 1fr 1fr; }
-  .mbtn { background: #222a38; color: #e8ecf3; padding: 9px; font-size: 14px; }
+  .mbtn { background: #2a3346; color: #e8ecf3; padding: 9px; font-size: 14px; border: 1px solid #3a4560 !important; }
   .qbtn { border: 0; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 15px; color: #0b0d12; }
 
   /* ---------- layout ---------- */
@@ -581,13 +587,15 @@ $("#adbtn").onclick = async () => {   // RedZone can't always see commercials: t
   catch (e) { toast("Failed: " + e.message); }
 };
 // Timing marks: log only, never flip. The tap time is taken before any network call so it matches the screen.
+function flash(b, cls, ms) { b.classList.add(cls); setTimeout(() => b.classList.remove(cls), ms); }
+document.querySelectorAll(".qbtn").forEach(b => b.addEventListener("click", () => flash(b, "pressed", 140)));
 document.querySelectorAll(".mbtn").forEach(b => b.onclick = async () => {
-  const at = new Date().toISOString(), kind = b.dataset.mark;
+  const at = new Date().toISOString(), kind = b.dataset.mark; flash(b, "pressed", 140);
   if (!status || !status.on_tv) return toast("RedZone doesn't know what's on yet");
   const label = { score: "Score", ad_start: "Ad on", ad_end: "Ad off" }[kind];
   try { const row = await sb("GET"); const cur = row.redzone || rz;
     cur.marks = (cur.marks || []).concat({ kind, game: status.on_tv, at }).slice(-30);
-    await sb("PATCH", { redzone: cur }); toast(`Logged: ${label}`); }
+    await sb("PATCH", { redzone: cur }); toast(`Logged: ${label}`); flash(b, "done", 900); }
   catch (e) { toast("Failed: " + e.message); }
 });
 // Keyboard (Chrome on Black): S score, A ad on, D ad off, C commercial flip, B back to #1. Ignored while typing.
