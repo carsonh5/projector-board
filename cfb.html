@@ -830,6 +830,7 @@ function fieldPos(g){
   let ballX,dir,firstX=null;
   if(possIsAway){ dir="right"; ballX=100-ytg; if(g.dist!=null) firstX=Math.min(100,ballX+g.dist); }
   else          { dir="left";  ballX=ytg;     if(g.dist!=null) firstX=Math.max(0,  ballX-g.dist); }
+  if(window.BOARD_FIELD_FLIP){ ballX=100-ballX; if(firstX!=null) firstX=100-firstX; dir=(dir==="right")?"left":"right"; }   // mirror to match the TV broadcast (board_sync zones.ff.on)
   return { ballX, dir, firstX, redzone:!!g.redzone, possIsHome };
 }
 function fieldHTML(fp){
