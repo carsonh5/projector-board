@@ -590,6 +590,16 @@ document.querySelectorAll(".mbtn").forEach(b => b.onclick = async () => {
     await sb("PATCH", { redzone: cur }); toast(`Logged: ${label}`); }
   catch (e) { toast("Failed: " + e.message); }
 });
+// Keyboard (Chrome on Black): S score, A ad on, D ad off, C commercial flip, B back to #1. Ignored while typing.
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const t = e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  const k = e.key.toLowerCase();
+  const mark = { s: "score", a: "ad_start", d: "ad_end" }[k];
+  if (mark) { e.preventDefault(); document.querySelector(`.mbtn[data-mark="${mark}"]`).click(); }
+  else if (k === "c") { e.preventDefault(); $("#adbtn").click(); }
+  else if (k === "b") { e.preventDefault(); $("#topbtn").click(); }
+});
 // Tune a specific game now (RedZone treats it as your pick and trusts it for 90 s; 🔒 keeps it there)
 async function goTo(name) {
   try { const row = await sb("GET"); const cur = row.redzone || rz; const g = (cur.games || []).find(x => x.name === name);
