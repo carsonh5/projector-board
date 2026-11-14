@@ -31,6 +31,8 @@
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
   .dot.on { background: var(--green); } .dot.off { background: var(--red); }
   .quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .quick.marks { grid-template-columns: 1fr 1fr 1fr; }
+  .mbtn { background: #222a38; color: #e8ecf3; padding: 9px; font-size: 14px; }
   .qbtn { border: 0; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 15px; color: #0b0d12; }
 
   /* ---------- layout ---------- */
@@ -157,6 +159,11 @@
   <div class="quick">
     <button class="qbtn" id="adbtn" style="background:var(--cyan)">📺 Commercial, flip</button>
     <button class="qbtn" id="topbtn" style="background:var(--green)">⏮ Back to #1</button>
+  </div>
+  <div class="quick marks">
+    <button class="qbtn mbtn" data-mark="score">🏈 Score</button>
+    <button class="qbtn mbtn" data-mark="ad_start">Ad on</button>
+    <button class="qbtn mbtn" data-mark="ad_end">Ad off</button>
   </div>
 </div>
 
@@ -573,6 +580,16 @@ $("#adbtn").onclick = async () => {   // RedZone can't always see commercials: t
   try { const row = await sb("GET"); const cur = row.redzone || rz; cur.force_break = { game: status.on_tv, at: new Date().toISOString() }; await sb("PATCH", { redzone: cur }); toast("Flipping off the commercial"); }
   catch (e) { toast("Failed: " + e.message); }
 };
+// Timing marks: log only, never flip. The tap time is taken before any network call so it matches the screen.
+document.querySelectorAll(".mbtn").forEach(b => b.onclick = async () => {
+  const at = new Date().toISOString(), kind = b.dataset.mark;
+  if (!status || !status.on_tv) return toast("RedZone doesn't know what's on yet");
+  const label = { score: "Score", ad_start: "Ad on", ad_end: "Ad off" }[kind];
+  try { const row = await sb("GET"); const cur = row.redzone || rz;
+    cur.marks = (cur.marks || []).concat({ kind, game: status.on_tv, at }).slice(-30);
+    await sb("PATCH", { redzone: cur }); toast(`Logged: ${label}`); }
+  catch (e) { toast("Failed: " + e.message); }
+});
 // Tune a specific game now (RedZone treats it as your pick and trusts it for 90 s; 🔒 keeps it there)
 async function goTo(name) {
   try { const row = await sb("GET"); const cur = row.redzone || rz; const g = (cur.games || []).find(x => x.name === name);
